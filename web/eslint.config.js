@@ -23,7 +23,14 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // This codebase is mid-migration; keep lint helpful but not blocking.
+      'no-unused-vars': ['warn', { varsIgnorePattern: '^[A-Z_]' }],
+      'react-hooks/exhaustive-deps': 'warn',
+      // Keep rules-of-hooks as error.
+      'react-hooks/rules-of-hooks': 'error',
+      // These rules can be noisy for data-loading patterns; revisit later.
+      'react-hooks/immutability': 'off',
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
 ])

@@ -200,7 +200,7 @@ export default function GospelLibraryPage({ user, stateSlug, states }) {
               <div className="section-header" style={{ marginBottom: "32px" }}>
                 <h2>
                   {searchQuery
-                    ? `Search results for \"${searchQuery}\"`
+                    ? `Search results for "${searchQuery}"`
                     : "Latest Publications"}
                 </h2>
               </div>

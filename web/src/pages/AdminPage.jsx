@@ -104,8 +104,6 @@ export default function AdminPage(props) {
     loadAdminFellowships(props.adminFellowshipState);
   }, [canManageFellowships, props.adminFellowshipState]);
 
-  if (!user) return null;
-
   const tabs = [
     { id: "overview", label: "Overview", show: true }, // Always show overview
     { id: "users", label: "Users", show: canManageUsers },
@@ -127,6 +125,8 @@ export default function AdminPage(props) {
       setActiveTab(tabs[0].id);
     }
   }, [tabs, activeTab]);
+
+  if (!user) return null;
 
   return (
     <section className="card retreat-page admin-dashboard-page">
