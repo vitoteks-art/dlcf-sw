@@ -1,0 +1,160 @@
+{
+  "Oyo": {
+    "regions": {
+      "Afijio": [
+        "DLCF His Presence Center Afijio",
+        "DLCF Jubilee Center Afijio",
+        "DLCF Lords Center Afijio",
+        "DLCF Saviour Center Afijio",
+        "DLCF Zion Center Afijio"
+      ],
+      "Egbeda": [
+        "DLCF Ajoda Centre Egbeda",
+        "DLCF Hallelujah Centre Egbeda"
+      ],
+      "Ibadan": [
+        "DLCF Agape Centre, Ibadan",
+        "DLCF Agbowo Peace Centre, Ibadan",
+        "DLCF Agbowo Progress Centre, Ibadan",
+        "DLCF Anchor Centre Apete, Ibadan",
+        "DLCF Aquatech Centre, Ibadan",
+        "DLCF Benjamin Centre, Eleyele, Ibadan",
+        "DLCF Conerstone Centre Apete, Ibadan",
+        "DLCF Corpers Church, Ibadan",
+        "DLCF Dominion Centre Apete, Ibadan",
+        "DLCF Emmanuel Centre",
+        "DLCF Federal College of Forestry Centre, Jericho, Ibadan",
+        "DLCF Federal Cooperative College Centre, Eleyele, Ibadan",
+        "DLCF Federal Training School, UCH, Ibadan",
+        "DLCF Grace Centre Apete, Ibadan",
+        "DLCF Hephziphah, Ibadan",
+        "DLCF Highland College of Technology Centre, Ibadan",
+        "DLCF IAR&T Bora Centre, Ibadan",
+        "DLCF IAR&T Life care Centre (Adabeji), Ibadan",
+        "DLCF Ibadan City Poly, Ibadan",
+        "DLCF Imperial Centre, Ibadan",
+        "DLCF Milestone Centre Apete, Ibadan",
+        "DLCF OYSCOHTECH Centre, Eleyele, Ibadan",
+        "DLCF Oyo State College of Nursing and Midwifery, Eleyele, Ibadan",
+        "DLCF Poly North, Ibadan",
+        "DLCF Poly Off-Campus, Ibadan",
+        "DLCF Poly South, Ibadan",
+        "DLCF Poly Unity Centre, Ibadan",
+        "DLCF Recovery Centre Apete, Ibadan",
+        "DLCF School of Midwifery, Ibadan",
+        "DLCF Trioses/NOUN Centre, Sango, Ibadan",
+        "DLCF UCH Centre, Ibadan",
+        "DLCF UI Abadina Centre, Ibadan",
+        "DLCF UI Agbowo Purity Centre, Ibadan",
+        "DLCF UI Ajibode Centre, Ibadan",
+        "DLCF UI Awo Centre, Ibadan",
+        "DLCF UI Indy Centre, Ibadan",
+        "DLCF UI Kuti Centre, Ibadan",
+        "DLCF UI Mellamby Centre, Ibadan",
+        "DLCF UI Zik Centre, Ibadan",
+        "DLCF, Catholic Hospital Centre, Oluyoro, Ibadan"
+      ],
+      "Ibarapa": [
+        "DLCF Adeseun Ogundoyin Polytechnic, Eruwa-Ibarapa",
+        "DLCF Oyo State College of Education, Lanlate-Ibarapa"
+      ],
+      "Ido": [
+        "Mount Zion Centre, Ido",
+        "Rehoboth centre, Ido"
+      ],
+      "Irepo": [],
+      "Iseyin": [
+        "DLCF Corper Iseyin",
+        "DLCF SAF Poly Odomu-Iseyin"
+      ],
+      "Ogbomosho": [
+        "Bethel Center, Ogbomoso",
+        "Camp Zion Center, Ogbomoso",
+        "Canaan Land Center, Ogbomoso",
+        "General Center, Ogbomoso",
+        "Glory Land Center, Ogbomoso",
+        "Higher Ground Center, Ogbomoso",
+        "LTH Center, Ogbomoso",
+        "Lecture Hall Center, Ogbomoso",
+        "Mount Zion Center, Ogbomoso",
+        "Olukoko Center, Ogbomoso",
+        "Peculiar Center, Ogbomoso"
+      ],
+      "Oluyole": [
+        "DLCF First Technical University Oluyole",
+        "DLCF Lead City University Centre Felele Oluyole",
+        "DLCF Lead City University main campus Centre Oluyole"
+      ],
+      "Oyo": [
+        "Canaan Land Centre",
+        "Federal School of Surveying(FSS)",
+        "Promised Land Centre",
+        "Wisdom Centre"
+      ],
+      "Saki": [
+        "Faith Centre Saki",
+        "Irewole Centre, Saki",
+        "Victory Centre Apinnite, Saki"
+      ]
+    }
+  },
+  "Ondo North": {
+    "regions": {
+      "Akure": [
+        "DLCF Millenium",
+        "DLCF National Open University",
+        "DLCF UNIMED, Akure",
+        "DLCF Zion Center Afijio",
+        "DLCF, Alejolowo",
+        "DLCF, Apatapiti",
+        "DLCF, Corpers  Church",
+        "DLCF, Footprint",
+        "DLCF, Health Technology",
+        "DLCF, Ibule",
+        "DLCF, North Gate",
+        "DLCF, Postgraduate/Staff",
+        "DLCF,AAUA, Ero Camous"
+      ],
+      "Akure North": [
+        "DLCF Corpers Church",
+        "DLCF East Campus",
+        "DLCF West Campus"
+      ],
+      "Ikare": [
+        "Success Arena, Eshe"
+      ],
+      "Oka": [
+        "DLCF Blessed Arena",
+        "DLCF Dominion Arena",
+        "DLCF Life Arena",
+        "DLCF Testimony Arena",
+        "DLCF Wisdom Arena"
+      ],
+      "Owo": [
+        "DLCF Blessed Arena",
+        "DLCF Dominion Arena",
+        "DLCF Life Arena",
+        "DLCF Testimony Arena",
+        "DLCF Wisdom Arena"
+      ]
+    }
+  },
+  "Ondo South": {
+    "regions": {
+      "ILE OLUJI": [
+        "DLCF Oke Alaafia"
+      ],
+      "OKITIPUPA": [],
+      "ONDO": [
+        "DLCF Corpers",
+        "DLCF Fiwasaye",
+        "DLCF Laje",
+        "DLCF Main campus",
+        "DLCF Odosida",
+        "DLCF Oka",
+        "DLCF Second gate",
+        "DLCF Wing C"
+      ]
+    }
+  }
+}

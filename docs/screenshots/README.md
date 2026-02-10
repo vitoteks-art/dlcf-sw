@@ -1,0 +1,32 @@
+Place screenshots here.
+
+Use these filenames so they match the guide:
+- public-navbar.png
+- about-page.png
+- beliefs-page.png
+- media-list.png
+- publications-list.png
+- states-page.png
+- state-home.png
+- state-media-list.png
+- state-publications-list.png
+- login-page.png
+- dashboard-sidebar.png
+- biodata-form.png
+- state-congress-form.png
+- zonal-congress-form.png
+- retreat-form.png
+- stmc-form.png
+- attendance-form.png
+- gck-form.png
+- admin-dashboard.png
+- admin-users.png
+- admin-locations.png
+- admin-organization.png
+- admin-roles.png
+- admin-state-posts.png
+- admin-state-home.png
+- admin-state-congress.png
+- admin-zonal-congress.png
+- admin-media.png
+- admin-publications.png

@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS post_comments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  post_id INT NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  email VARCHAR(190) NOT NULL,
+  content TEXT NOT NULL,
+  created_at DATETIME NOT NULL,
+  FOREIGN KEY (post_id) REFERENCES state_posts(id) ON DELETE CASCADE
+);
