@@ -68,6 +68,24 @@ export default function StatePublicationsDetailPage({ stateSlug, states }) {
 
   const title = item?.title || "Publication";
   const kicker = item?.publication_type || "Gospel Publications";
+  const isFeatured = (item?.tags || "").toLowerCase().includes("featured");
+
+  const readingMinutes = useMemo(() => {
+    const html = item?.content_html || "";
+    const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (!text) return null;
+    const words = text.split(" ").filter(Boolean).length;
+    return Math.max(1, Math.round(words / 200));
+  }, [item]);
+
+  const publishedLabel = useMemo(() => {
+    const raw = item?.publish_date || item?.published_at || item?.created_at;
+    if (!raw) return null;
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+  }, [item]);
+
   const heroImg =
     item?.cover_image_url ||
     "https://images.unsplash.com/photo-1523803326055-9729b9e02e5f?auto=format&fit=crop&q=80&w=1800";
@@ -128,23 +146,49 @@ export default function StatePublicationsDetailPage({ stateSlug, states }) {
           </div>
 
           <div className="relative z-10 max-w-4xl mx-auto px-4 pb-16 md:pb-24 text-center">
-            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest">
-              <span className="material-symbols-outlined text-[18px]">bookmark</span>
-              {kicker}
+            {isFeatured ? (
+              <span className="inline-block px-4 py-1 rounded-full bg-[#D4AF37] text-[#002147] text-xs font-bold uppercase tracking-widest mb-6">
+                Featured Study
+              </span>
+            ) : (
+              <span className="inline-block px-4 py-1 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold uppercase tracking-widest mb-6">
+                {kicker}
+              </span>
+            )}
+
+            <h1 className="serif-title text-4xl md:text-6xl lg:text-7xl text-white mb-8 leading-tight">{title}</h1>
+
+            <div className="flex flex-wrap items-center justify-center gap-6 text-white/80 text-sm md:text-base">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-full border-2 border-[#D4AF37]/50 p-0.5">
+                  <div className="w-full h-full rounded-full bg-white/20" />
+                </div>
+                <span className="font-medium">DLCF Editorial</span>
+              </div>
+
+              {publishedLabel ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]/50" />
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#D4AF37] text-sm">calendar_today</span>
+                    {publishedLabel}
+                  </div>
+                </>
+              ) : null}
+
+              {readingMinutes ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]/50" />
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#D4AF37] text-sm">schedule</span>
+                    {readingMinutes} min read
+                  </div>
+                </>
+              ) : null}
             </div>
-            <h1
-              className="mt-5 text-4xl md:text-6xl font-black tracking-tight text-white"
-              style={{ fontFamily: "Playfair Display, serif" }}
-            >
-              {title}
-            </h1>
+
             {desc ? (
-              <p
-                className="mt-4 text-white/85 text-lg md:text-xl max-w-3xl mx-auto"
-                style={{ fontFamily: "Playfair Display, serif" }}
-              >
-                {desc}
-              </p>
+              <p className="mt-10 text-white/85 text-lg md:text-xl max-w-3xl mx-auto serif-title">{desc}</p>
             ) : null}
           </div>
         </section>
