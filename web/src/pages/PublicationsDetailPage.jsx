@@ -159,47 +159,123 @@ export default function PublicationsDetailPage() {
         </section>
 
         {/* Body */}
-        <section className="max-w-4xl mx-auto px-4 md:px-8 py-14">
+        <section className="max-w-7xl mx-auto px-4 md:px-8 py-16 lg:py-24 grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-16">
           {status ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 p-4">{status}</div>
+            <div className="lg:col-span-2 rounded-xl border border-red-200 bg-red-50 text-red-700 p-4">{status}</div>
           ) : null}
 
           {!item ? (
             <p className="text-slate-600">Loading publication details…</p>
           ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-10">
-              {item.content_html ? (
-                <article
-                  className="article-body"
-                  style={{ fontFamily: 'Playfair Display, serif' }}
-                  dangerouslySetInnerHTML={{ __html: item.content_html }}
-                />
-              ) : (
-                <p className="text-slate-700" style={{ fontFamily: 'Playfair Display, serif' }}>
-                  No content yet.
-                </p>
-              )}
+            <>
+              <article className="article-body max-w-3xl">
+                {item.content_html ? (
+                  <div dangerouslySetInnerHTML={{ __html: item.content_html }} />
+                ) : (
+                  <p className="text-slate-700" style={{ fontFamily: "Playfair Display, serif" }}>
+                    No content yet.
+                  </p>
+                )}
 
-              <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-between">
-                <Link
-                  to="/publications"
-                  className="inline-flex items-center justify-center rounded-lg h-12 px-6 bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all"
-                >
-                  Back to Library
-                </Link>
-                {item.file_url ? (
-                  <a
-                    href={item.file_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-lg h-12 px-6 bg-[#002147] text-white text-sm font-bold hover:bg-slate-800 transition-all"
+                {/* Share / actions */}
+                <div className="mt-20 pt-10 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm font-bold text-[#002147] uppercase tracking-widest">Share this study</span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="size-10 rounded-full bg-[#002147] text-white flex items-center justify-center hover:bg-[#D4AF37] hover:text-[#002147] transition-colors"
+                        onClick={async () => {
+                          const shareUrl = window.location.href;
+                          if (navigator.share) {
+                            await navigator.share({ title, text: title, url: shareUrl });
+                            return;
+                          }
+                          await navigator.clipboard.writeText(shareUrl);
+                          alert("Link copied");
+                        }}
+                      >
+                        <span className="material-symbols-outlined text-xl">share</span>
+                      </button>
+                      <a
+                        className="size-10 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
+                        href={`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(window.location.href)}`}
+                      >
+                        <span className="material-symbols-outlined text-xl">mail</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="px-6 py-2 rounded-full border border-[#002147] text-[#002147] font-bold text-sm hover:bg-[#002147] hover:text-white transition-all uppercase tracking-tight"
+                    >
+                      Print Article
+                    </button>
+                    <a
+                      href="#"
+                      onClick={(e) => e.preventDefault()}
+                      className="px-6 py-2 rounded-full bg-[#D4AF37] text-[#002147] font-bold text-sm hover:opacity-90 transition-all uppercase tracking-tight"
+                    >
+                      Support Our Mission
+                    </a>
+                  </div>
+                </div>
+
+                {/* Back / PDF */}
+                <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-between">
+                  <Link
+                    to="/publications"
+                    className="inline-flex items-center justify-center rounded-lg h-12 px-6 bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all"
                   >
-                    <span className="material-symbols-outlined text-[18px] mr-2">download</span>
-                    Download PDF
-                  </a>
-                ) : null}
-              </div>
-            </div>
+                    Back to Library
+                  </Link>
+                  {item.file_url ? (
+                    <a
+                      href={item.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-lg h-12 px-6 bg-[#002147] text-white text-sm font-bold hover:bg-slate-800 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[18px] mr-2">download</span>
+                      Download PDF
+                    </a>
+                  ) : null}
+                </div>
+              </article>
+
+              {/* Aside */}
+              <aside className="space-y-12">
+                <div className="p-8 bg-[#002147] text-white rounded-2xl">
+                  <h5 className="serif-title text-2xl mb-4 text-[#D4AF37]">Study Resources</h5>
+                  <p className="text-white/70 text-sm mb-6 leading-relaxed">
+                    Enhance your study with our curated collection of guides and audio sermons.
+                  </p>
+                  <ul className="space-y-4 mb-8">
+                    <li className="flex items-center gap-3 text-sm">
+                      <span className="material-symbols-outlined text-[#D4AF37]">download</span> Full Study Guide (PDF)
+                    </li>
+                    <li className="flex items-center gap-3 text-sm">
+                      <span className="material-symbols-outlined text-[#D4AF37]">headphones</span> Audio Commentary
+                    </li>
+                    <li className="flex items-center gap-3 text-sm">
+                      <span className="material-symbols-outlined text-[#D4AF37]">collections_bookmark</span> Scripture Reference List
+                    </li>
+                  </ul>
+                  <button
+                    type="button"
+                    className="w-full py-3 rounded-lg bg-[#D4AF37] text-[#002147] font-bold hover:opacity-90 transition-all"
+                    onClick={() => {
+                      if (item.file_url) window.open(item.file_url, "_blank");
+                    }}
+                  >
+                    Download
+                  </button>
+                </div>
+              </aside>
+            </>
           )}
         </section>
       </main>
