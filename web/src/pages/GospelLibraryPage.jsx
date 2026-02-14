@@ -68,29 +68,7 @@ export default function GospelLibraryPage({ user, stateSlug, states }) {
 
   const featuredStudy = useMemo(() => items[0] || null, [items]);
   const popularReads = useMemo(() => items.slice(1, 4), [items]);
-  const latestMedia = [
-    {
-      id: 1,
-      title: 'Sunday Sermon: "The Way Back Home"',
-      thumb:
-        "https://images.unsplash.com/photo-1438029071396-1e831a7fa6d8?auto=format&fit=crop&q=80&w=300",
-      type: "video",
-    },
-    {
-      id: 2,
-      title: "Choir Ministration: Hallelujah Chorus",
-      thumb:
-        "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=300",
-      type: "video",
-    },
-    {
-      id: 3,
-      title: "Weekly Podcast: Grace and Faith",
-      thumb:
-        "https://images.unsplash.com/photo-1478737270239-2fccd2c7862a?auto=format&fit=crop&q=80&w=300",
-      type: "audio",
-    },
-  ];
+  // NOTE: Removed mock "latestMedia" block. Media should come from the real API (see /media routes).
 
   const libraryTitle = resolvedStateName
     ? `${resolvedStateName} Library`
@@ -121,19 +99,19 @@ export default function GospelLibraryPage({ user, stateSlug, states }) {
                 />
               </div>
               <nav className="library-nav">
-                {["Home", "Library", "Archive"].map((link) => (
-                  <Link
-                    key={link}
-                    to={`/${link.toLowerCase()}`}
-                    className={link === "Library" ? "active" : ""}
-                  >
-                    {link}
-                  </Link>
-                ))}
+                <Link to="/" className="">
+                  Home
+                </Link>
+                <Link to={stateSlug ? `/${stateSlug}/publications` : "/publications"} className="active">
+                  Library
+                </Link>
+                <Link to={stateSlug ? `/${stateSlug}/media` : "/media"} className="">
+                  Media
+                </Link>
               </nav>
-                            <Link to="/signin" className="btn-signin">
-                                Sign In
-                            </Link>
+              <Link to="/portal" className="btn-signin">
+                Portal
+              </Link>
                         </div>
                     </div>
                 </header>
@@ -314,21 +292,18 @@ export default function GospelLibraryPage({ user, stateSlug, states }) {
 
               <div className="sidebar-widget">
                 <h4 className="widget-title">
-                  <span className="icon">▶️</span> Latest Media
+                  <span className="icon">▶️</span> Media
                 </h4>
-                <div className="media-mini-grid">
-                  {latestMedia.map((media) => (
-                    <div key={media.id} className="media-mini-card">
-                      <div className="mini-thumb">
-                        <img src={media.thumb} alt={media.title} />
-                        <div className="play-overlay">
-                          <span>{media.type === "video" ? "▶" : "🎧"}</span>
-                        </div>
-                      </div>
-                      <p>{media.title}</p>
-                    </div>
-                  ))}
-                </div>
+                <p style={{ marginTop: 0, color: "rgba(255,255,255,0.85)" }}>
+                  Browse sermons, audio, and video content.
+                </p>
+                <Link
+                  className="btn-primary-large"
+                  style={{ display: "inline-block", marginTop: "10px" }}
+                  to={stateSlug ? `/${stateSlug}/media` : "/media"}
+                >
+                  View Media
+                </Link>
               </div>
 
               <div className="sidebar-widget newsletter-widget">
