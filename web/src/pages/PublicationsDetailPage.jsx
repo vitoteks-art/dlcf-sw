@@ -197,12 +197,16 @@ export default function PublicationsDetailPage() {
                       >
                         <span className="material-symbols-outlined text-xl">share</span>
                       </button>
-                      <a
+                      <button
+                        type="button"
                         className="size-10 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
-                        href={`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(window.location.href)}`}
+                        onClick={() => {
+                          const shareUrl = window.location.href;
+                          window.location.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(shareUrl)}`;
+                        }}
                       >
                         <span className="material-symbols-outlined text-xl">mail</span>
-                      </a>
+                      </button>
                     </div>
                   </div>
 
