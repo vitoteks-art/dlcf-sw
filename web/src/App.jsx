@@ -2541,7 +2541,7 @@ function App() {
         ) : isZonalMediaList ? (
           <PublicMediaListPage user={user} />
         ) : isZonalMediaDetail ? (
-          <PublicMediaDetailPage user={user} />
+          <PublicMediaDetailPage user={user} mediaId={segments[1]} />
         ) : isZonalPublicationList ? (
           <GospelLibraryPage user={user} />
         ) : isZonalPublicationDetail ? (

@@ -45,9 +45,9 @@ function toYouTubeEmbed(url) {
   return null;
 }
 
-export default function PublicMediaDetailPage({ user }) {
+export default function PublicMediaDetailPage({ user, mediaId: mediaIdProp }) {
   const params = useParams();
-  const mediaId = params.id;
+  const mediaId = mediaIdProp || params.id;
   const [item, setItem] = useState(null);
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);
