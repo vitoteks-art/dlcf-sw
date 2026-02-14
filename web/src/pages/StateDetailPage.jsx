@@ -180,7 +180,7 @@ export default function StateDetailPage({ stateSlug, states }) {
                             <div className="stats-row">
                                 <div className="stat-item">
                                     <span className="stat-number">{content.stats.regions}</span>
-                                    <span className="stat-label">Active Parishes</span>
+                                    <span className="stat-label">Active Regions</span>
                                 </div>
                                 <div className="stat-item">
                                     <span className="stat-number">{content.stats.members}</span>
