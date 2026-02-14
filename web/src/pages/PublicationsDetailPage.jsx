@@ -64,15 +64,26 @@ export default function PublicationsDetailPage({ publicationId: publicationIdPro
       {/* Sticky header */}
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-[#FDFBF7]/85 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-          <Link
-            className="flex items-center gap-2 text-[#002147] hover:text-[#D4AF37] transition-colors font-semibold text-sm group"
-            to="/publications"
-          >
-            <span className="material-symbols-outlined text-lg transition-transform group-hover:-translate-x-1">
-              arrow_back
-            </span>
-            Back to Library
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link to="/" className="flex items-center gap-3">
+              <div className="size-10 rounded-lg bg-[#002147] flex items-center justify-center overflow-hidden">
+                <img src="/logo.png" alt="DLCF" className="w-full h-full object-contain" />
+              </div>
+              <div className="hidden sm:flex flex-col leading-tight">
+                <span className="text-sm font-black text-[#002147]">Gospel Library</span>
+                <span className="text-[11px] font-semibold text-slate-500">South West Zone</span>
+              </div>
+            </Link>
+            <Link
+              className="flex items-center gap-2 text-[#002147] hover:text-[#D4AF37] transition-colors font-semibold text-sm group"
+              to="/publications"
+            >
+              <span className="material-symbols-outlined text-lg transition-transform group-hover:-translate-x-1">
+                arrow_back
+              </span>
+              Back
+            </Link>
+          </div>
 
           <div className="hidden md:flex items-center gap-8">
             <div className="flex items-center gap-2">

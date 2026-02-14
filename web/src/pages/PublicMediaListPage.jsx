@@ -81,10 +81,13 @@ export default function PublicMediaListPage({ user }) {
         <div className="max-w-[1440px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-3">
-              <div className="bg-primary text-white p-2 rounded-lg">
-                <span className="material-symbols-outlined block">church</span>
+              <div className="bg-primary text-white p-2 rounded-lg size-10 flex items-center justify-center overflow-hidden">
+                <img src="/logo.png" alt="DLCF" className="w-full h-full object-contain" />
               </div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Grace Media Hub</h1>
+              <div className="flex flex-col leading-tight">
+                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Deeper Life Campus Fellowship</h1>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">South West Zone • Media</p>
+              </div>
             </div>
 
             <nav className="hidden md:flex items-center gap-6">
