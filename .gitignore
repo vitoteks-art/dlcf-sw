@@ -38,3 +38,4 @@ Thumbs.db
 
 # Backup folders (confirm with user if needed, but safe to ignore generally)
 web208/
+api/config.local.php
