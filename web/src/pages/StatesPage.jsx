@@ -10,15 +10,26 @@ const slugifyState = (value) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+function displayStateName(name) {
+  const n = String(name || "").trim();
+  // Convert "X State (North)" => "X (North) State"
+  const m = n.match(/^(.+?)\s+State\s+\((.+)\)$/i);
+  if (m) return `${m[1]} (${m[2]}) State`;
+  // Convert "Osun State 1" => "Osun (1) State"
+  const m2 = n.match(/^(.+?)\s+State\s+(\d+)$/i);
+  if (m2) return `${m2[1]} (${m2[2]}) State`;
+  return n;
+}
+
 export default function StatesPage({ states, user }) {
   const [query, setQuery] = useState("");
 
   const normalized = useMemo(() => {
     const items = (states || []).map((state) => {
-      const name = typeof state === "string" ? state : state?.name || state?.slug || String(state || "");
+      const nameRaw = typeof state === "string" ? state : state?.name || state?.slug || String(state || "");
       const slugSource = typeof state === "string" ? state : state?.slug || state?.name || String(state || "");
       return {
-        name,
+        name: displayStateName(nameRaw),
         slug: slugifyState(slugSource),
       };
     });
@@ -132,9 +143,7 @@ export default function StatesPage({ states, user }) {
 
                 <div className="p-6 flex flex-col flex-1">
                   <div className="mb-4">
-                    <h3 className="text-xl font-bold mb-2">
-                      {s.name.trim().toLowerCase().endsWith("state") ? s.name : `${s.name} State`}
-                    </h3>
+                    <h3 className="text-xl font-bold mb-2">{s.name}</h3>
 
                     <div className="flex items-start gap-2 text-sm text-[#49499c] dark:text-slate-400 mb-1">
                       <span className="material-symbols-outlined text-sm pt-0.5">schedule</span>

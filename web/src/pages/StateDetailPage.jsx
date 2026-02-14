@@ -47,7 +47,18 @@ export default function StateDetailPage({ stateSlug, states }) {
             .catch(() => setPublicStats(null));
     }, [stateId]);
 
-    const displayName = resolvedStateName || stateId.charAt(0).toUpperCase() + stateId.slice(1).replace("-", " ");
+    const formatStateName = (name) => {
+        const n = String(name || "").trim();
+        const m = n.match(/^(.+?)\s+State\s+\((.+)\)$/i);
+        if (m) return `${m[1]} (${m[2]}) State`;
+        const m2 = n.match(/^(.+?)\s+State\s+(\d+)$/i);
+        if (m2) return `${m2[1]} (${m2[2]}) State`;
+        return n;
+    };
+
+    const displayName = formatStateName(
+        resolvedStateName || stateId.charAt(0).toUpperCase() + stateId.slice(1).replace("-", " ")
+    );
 
     const content = useMemo(() => {
         const defaults = {
@@ -141,7 +152,7 @@ export default function StateDetailPage({ stateSlug, states }) {
 
                             <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {[ 
-                                  { label: "Parishes", value: content.stats.regions },
+                                  { label: "Regions", value: content.stats.regions },
                                   { label: "Members", value: content.stats.members },
                                   { label: "Centers", value: content.stats.centers },
                                   { label: "Growth", value: content.stats.growth },
