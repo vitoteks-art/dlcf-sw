@@ -21,6 +21,7 @@ export default function StateDetailPage({ stateSlug, states }) {
     const [statePosts, setStatePosts] = useState([]);
     const [postsError, setPostsError] = useState("");
     const [homeContent, setHomeContent] = useState(null);
+    const [publicStats, setPublicStats] = useState(null);
 
     const resolvedStateName = useMemo(() => {
         if (!states || states.length === 0) return null;
@@ -40,6 +41,10 @@ export default function StateDetailPage({ stateSlug, states }) {
         apiFetch(`/public/states/${stateId}/home`)
             .then((data) => setHomeContent(data.item || null))
             .catch(() => setHomeContent(null));
+
+        apiFetch(`/public/states/${stateId}/stats`)
+            .then((data) => setPublicStats(data.item || null))
+            .catch(() => setPublicStats(null));
     }, [stateId]);
 
     const displayName = resolvedStateName || stateId.charAt(0).toUpperCase() + stateId.slice(1).replace("-", " ");
@@ -54,20 +59,34 @@ export default function StateDetailPage({ stateSlug, states }) {
                 ctaSecondary: "Find a Center Near You",
                 backgroundImageUrl: "/hero-image.jpg"
             },
-            stats: { members: "50k+", regions: "400+", centers: "120", growth: "15%" },
+            stats: { members: "0", regions: "0", centers: "0", growth: "15%" },
             events: [],
             gallery: [],
             contact: {},
             sections: []
         };
-        if (!homeContent) return defaults;
-        return {
-            ...defaults,
-            ...homeContent,
-            hero: { ...defaults.hero, ...homeContent.hero },
-            stats: { ...defaults.stats, ...homeContent.stats }
-        };
-    }, [homeContent, displayName]);
+
+        const merged = !homeContent
+            ? defaults
+            : {
+                ...defaults,
+                ...homeContent,
+                hero: { ...defaults.hero, ...homeContent.hero },
+                stats: { ...defaults.stats, ...homeContent.stats },
+            };
+
+        // Prefer live counts from the database
+        if (publicStats) {
+            merged.stats = {
+                ...merged.stats,
+                regions: String(publicStats.regions_count ?? merged.stats.regions),
+                centers: String(publicStats.centres_count ?? merged.stats.centers),
+                members: String(publicStats.members_count ?? merged.stats.members),
+            };
+        }
+
+        return merged;
+    }, [homeContent, publicStats, displayName]);
 
     if (!stateId) return null;
 

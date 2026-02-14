@@ -313,6 +313,34 @@ if (preg_match('#^/public/states/([^/]+)/home$#', $path, $matches)) {
     json_ok(['item' => $content ?: null]);
 }
 
+if (preg_match('#^/public/states/([^/]+)/stats$#', $path, $matches)) {
+    require_method('GET');
+    $stateSlug = $matches[1];
+
+    $stmt = db_prepare($db, 'SELECT name FROM states WHERE slug = ? LIMIT 1', 's', [$stateSlug]);
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    if (!$rows) {
+        json_ok(['item' => null]);
+    }
+    $stateName = $rows[0]['name'];
+
+    $stmt = db_prepare(
+        $db,
+        'SELECT
+            (SELECT COUNT(*) FROM regions r WHERE r.state_name = ?) AS regions_count,
+            (SELECT COUNT(*) FROM fellowship_centres fc WHERE fc.state = ?) AS centres_count,
+            (SELECT COUNT(*) FROM biodata b WHERE b.state = ?) AS members_count',
+        'sss',
+        [$stateName, $stateName, $stateName]
+    );
+    $stmt->execute();
+    $stats = db_fetch_all($stmt);
+    $item = $stats[0] ?? ['regions_count' => 0, 'centres_count' => 0, 'members_count' => 0];
+
+    json_ok(['item' => $item]);
+}
+
 if (preg_match('#^/public/states/([^/]+)/posts$#', $path, $matches)) {
     require_method('GET');
     $stateSlug = $matches[1];
