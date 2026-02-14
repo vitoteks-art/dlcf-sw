@@ -600,25 +600,48 @@ function App() {
     canPublishMedia;
 
   useEffect(() => {
-    const checkAuth = async (retries = 3) => {
+    // Only check auth on portal/admin pages.
+    // Public pages should NOT call /me (avoids 401 noise in console).
+    const authPrefixes = [
+      "/portal",
+      "/gck",
+      "/attendance-report",
+      "/gck-report",
+      "/stmc",
+      "/zonal-congress",
+      "/state-congress",
+      "/state-congress-report",
+      "/zonal-congress-report",
+      "/retreat",
+      "/retreat-report",
+      "/profile",
+      "/biodata",
+      "/biodata-list",
+      "/admin",
+    ];
+
+    const needsAuthCheck = authPrefixes.some(
+      (p) => location.pathname === p || location.pathname.startsWith(`${p}/`)
+    );
+
+    const checkAuth = async (retries = 2) => {
       try {
         await ensureCsrf();
         const data = await apiFetch("/me");
         setUser(data.user);
       } catch (err) {
-        // If not logged in, /me will return 401. That's expected on public browsing.
-        if (String(err?.message || "").toLowerCase().includes("unauthorized")) {
-          setUser(null);
-          return;
-        }
         if (retries > 0) {
           setTimeout(() => checkAuth(retries - 1), 1000);
         } else {
-          console.error("Auth check failed after retries:", err);
+          // On protected routes, keep the user null and let LoginPage handle it.
+          setUser(null);
         }
       }
     };
-    checkAuth();
+
+    if (needsAuthCheck) {
+      checkAuth();
+    }
 
     apiFetch("/meta/states")
       .then((data) => setStates(data.items || []))
@@ -632,7 +655,7 @@ function App() {
     apiFetch("/meta/fellowships")
       .then((data) => setAllCentres(data.items || []))
       .catch(() => setAllCentres([]));
-  }, []);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!user) return;
