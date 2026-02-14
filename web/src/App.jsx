@@ -606,6 +606,11 @@ function App() {
         const data = await apiFetch("/me");
         setUser(data.user);
       } catch (err) {
+        // If not logged in, /me will return 401. That's expected on public browsing.
+        if (String(err?.message || "").toLowerCase().includes("unauthorized")) {
+          setUser(null);
+          return;
+        }
         if (retries > 0) {
           setTimeout(() => checkAuth(retries - 1), 1000);
         } else {
