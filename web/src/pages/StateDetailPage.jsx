@@ -78,15 +78,61 @@ export default function StateDetailPage({ stateSlug, states }) {
             <StatePublicHeader stateName={displayName} stateSlug={stateId} />
 
             <main>
-                {/* Premium Hero Section */}
-                <section className="premium-hero" style={{ backgroundImage: `linear-gradient(rgba(11, 17, 23, 0.8), rgba(11, 17, 23, 0.4)), url(${content.hero.backgroundImageUrl})` }}>
-                    <div className="hero-content">
-                        {content.hero.subtitle && <span className="hero-kicker">{content.hero.subtitle}</span>}
-                        <h1 className="hero-title">{content.hero.title}</h1>
-                        <p className="hero-subtitle">{content.hero.intro}</p>
-                        <div className="hero-actions">
-                            <button className="btn-primary-large">{content.hero.ctaPrimary}</button>
-                            <button className="btn-glass-large">{content.hero.ctaSecondary}</button>
+                {/* Hero Section (Tailwind) */}
+                <section className="relative overflow-hidden">
+                    <div
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{
+                            backgroundImage: `url(${content.hero.backgroundImageUrl || "https://images.unsplash.com/photo-1523803326055-9729b9e02e5f?auto=format&fit=crop&q=80&w=1600"})`,
+                        }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#0b1117]/90 via-[#0b1117]/70 to-[#0b1117]/40" />
+                    <div className="relative px-6 md:px-20 lg:px-40 py-16 md:py-24">
+                        <div className="max-w-4xl">
+                            {content.hero.subtitle ? (
+                                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 text-white px-4 py-2 text-sm font-semibold border border-white/15">
+                                    <span className="material-symbols-outlined text-[18px]">campaign</span>
+                                    {content.hero.subtitle}
+                                </span>
+                            ) : null}
+
+                            <h1 className="mt-5 text-4xl md:text-5xl font-black leading-tight tracking-tight text-white">
+                                {content.hero.title}
+                            </h1>
+                            <p className="mt-4 text-base md:text-lg text-white/85 max-w-3xl">
+                                {content.hero.intro}
+                            </p>
+
+                            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                                <Link
+                                    to={"/media"}
+                                    className="inline-flex items-center justify-center rounded-lg h-12 px-6 bg-primary text-white text-sm font-bold shadow-md hover:bg-opacity-90 transition-all"
+                                >
+                                    <span className="material-symbols-outlined text-[18px] mr-2">live_tv</span>
+                                    {content.hero.ctaPrimary || "View Media"}
+                                </Link>
+                                <Link
+                                    to={`/${stateId}/publications`}
+                                    className="inline-flex items-center justify-center rounded-lg h-12 px-6 bg-white/10 text-white text-sm font-bold border border-white/20 hover:bg-white/15 transition-all"
+                                >
+                                    <span className="material-symbols-outlined text-[18px] mr-2">menu_book</span>
+                                    {content.hero.ctaSecondary || "Gospel Library"}
+                                </Link>
+                            </div>
+
+                            <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {[ 
+                                  { label: "Parishes", value: content.stats.regions },
+                                  { label: "Members", value: content.stats.members },
+                                  { label: "Centers", value: content.stats.centers },
+                                  { label: "Growth", value: content.stats.growth },
+                                ].map((s) => (
+                                    <div key={s.label} className="rounded-xl bg-white/10 border border-white/15 p-4">
+                                        <div className="text-2xl font-black text-white">{s.value}</div>
+                                        <div className="text-xs font-semibold text-white/75 uppercase tracking-wider mt-1">{s.label}</div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </section>
