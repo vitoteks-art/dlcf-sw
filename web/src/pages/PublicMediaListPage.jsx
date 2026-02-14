@@ -219,66 +219,82 @@ export default function PublicMediaListPage({ user }) {
         ) : null}
 
         {/* Controls */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-          <div className="flex border-b border-slate-200 dark:border-slate-800 w-fit">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+          {/* Tabs (pill style like your UI) */}
+          <div className="flex items-center gap-2 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-fit shadow-sm">
             <button
               type="button"
-              className={`px-6 py-3 border-b-2 font-bold text-sm flex items-center gap-2 ${
-                tab === "video" ? "border-primary text-primary" : "border-transparent text-slate-500 dark:text-slate-400 hover:text-primary"
+              className={`px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
+                tab === "video"
+                  ? "bg-primary text-white shadow-md"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
               onClick={() => setTab("video")}
             >
-              <span className="material-symbols-outlined text-xl">videocam</span> Videos
+              <span className="material-symbols-outlined text-xl">videocam</span>
+              Videos
             </button>
             <button
               type="button"
-              className={`px-6 py-3 border-b-2 font-bold text-sm flex items-center gap-2 ${
-                tab === "audio" ? "border-primary text-primary" : "border-transparent text-slate-500 dark:text-slate-400 hover:text-primary"
+              className={`px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
+                tab === "audio"
+                  ? "bg-primary text-white shadow-md"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
               onClick={() => setTab("audio")}
             >
-              <span className="material-symbols-outlined text-xl">mic</span> Audio
+              <span className="material-symbols-outlined text-xl">mic</span>
+              Audio
             </button>
             <button
               type="button"
-              className={`px-6 py-3 border-b-2 font-bold text-sm flex items-center gap-2 ${
-                tab === "photo" ? "border-primary text-primary" : "border-transparent text-slate-500 dark:text-slate-400 hover:text-primary"
+              className={`px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
+                tab === "photo"
+                  ? "bg-primary text-white shadow-md"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
               onClick={() => setTab("photo")}
             >
-              <span className="material-symbols-outlined text-xl">photo_library</span> Photos
+              <span className="material-symbols-outlined text-xl">photo_library</span>
+              Photos
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="relative group">
-              <span className="sr-only">Speaker</span>
+          {/* Filters (button-like selects with caret) */}
+          <div className="flex flex-wrap items-center gap-3 justify-end">
+            <div className="relative">
               <select
-                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-medium hover:border-primary transition-colors"
+                className="appearance-none flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-medium hover:border-primary transition-colors pr-10"
                 value={speaker}
                 onChange={(e) => setSpeaker(e.target.value)}
               >
                 {speakers.map((s) => (
                   <option key={s} value={s}>
-                    Speaker: {s}
+                    {s === "All" ? "Speaker: All" : `Speaker: ${s}`}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="relative group">
-              <span className="sr-only">Series</span>
+              <span className="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-lg text-slate-400">
+                expand_more
+              </span>
+            </div>
+
+            <div className="relative">
               <select
-                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-medium hover:border-primary transition-colors"
+                className="appearance-none flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-medium hover:border-primary transition-colors pr-10"
                 value={series}
                 onChange={(e) => setSeries(e.target.value)}
               >
                 {seriesList.map((s) => (
                   <option key={s} value={s}>
-                    Series: {s}
+                    {s === "All" ? "Series: All" : `Series: ${s}`}
                   </option>
                 ))}
               </select>
-            </label>
+              <span className="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-lg text-slate-400">
+                expand_more
+              </span>
+            </div>
           </div>
         </div>
 
