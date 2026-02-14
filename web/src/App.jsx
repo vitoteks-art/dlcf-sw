@@ -2545,7 +2545,7 @@ function App() {
         ) : isZonalPublicationList ? (
           <GospelLibraryPage user={user} />
         ) : isZonalPublicationDetail ? (
-          <PublicationsDetailPage user={user} />
+          <PublicationsDetailPage publicationId={segments[1]} />
         ) : isStateMediaList ? (
           <StateMediaListPage stateSlug={stateSlug} states={states} />
         ) : isStateMediaDetail ? (
@@ -2553,7 +2553,7 @@ function App() {
         ) : isStatePublicationList ? (
           <GospelLibraryPage stateSlug={stateSlug} states={states} user={user} />
         ) : isStatePublicationDetail ? (
-          <StatePublicationsDetailPage stateSlug={stateSlug} states={states} />
+          <StatePublicationsDetailPage stateSlug={stateSlug} states={states} publicationId={segments[2]} />
         ) : isLegacyStatePostPath || isStatePostPath ? (
           <StatePostPage
             stateSlug={stateSlug}

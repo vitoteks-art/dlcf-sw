@@ -6,9 +6,9 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
-export default function PublicationsDetailPage() {
+export default function PublicationsDetailPage({ publicationId: publicationIdProp }) {
   const params = useParams();
-  const publicationId = params.id;
+  const publicationId = publicationIdProp || params.id;
   const [item, setItem] = useState(null);
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);

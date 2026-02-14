@@ -14,9 +14,9 @@ const slugifyState = (value) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-export default function StatePublicationsDetailPage({ stateSlug, states }) {
+export default function StatePublicationsDetailPage({ stateSlug, states, publicationId: publicationIdProp }) {
   const params = useParams();
-  const publicationId = params.id;
+  const publicationId = publicationIdProp || params.id;
   const [item, setItem] = useState(null);
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);
