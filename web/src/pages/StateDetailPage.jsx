@@ -22,6 +22,8 @@ export default function StateDetailPage({ stateSlug, states }) {
     const [postsError, setPostsError] = useState("");
     const [homeContent, setHomeContent] = useState(null);
     const [publicStats, setPublicStats] = useState(null);
+    const [publications, setPublications] = useState([]);
+    const [publicationsError, setPublicationsError] = useState("");
 
     const resolvedStateName = useMemo(() => {
         if (!states || states.length === 0) return null;
@@ -46,6 +48,21 @@ export default function StateDetailPage({ stateSlug, states }) {
             .then((data) => setPublicStats(data.item || null))
             .catch(() => setPublicStats(null));
     }, [stateId]);
+
+    useEffect(() => {
+        // Load state publications directly from the database via the publications API.
+        setPublicationsError("");
+        if (!resolvedStateName) {
+            setPublications([]);
+            return;
+        }
+        const query = new URLSearchParams();
+        query.set("state", resolvedStateName);
+        query.set("scope", "state");
+        apiFetch(`/publication-items?${query.toString()}`)
+            .then((data) => setPublications(data.items || []))
+            .catch((err) => setPublicationsError(err.message));
+    }, [resolvedStateName]);
 
     const formatStateName = (name) => {
         const n = String(name || "").trim();
@@ -205,23 +222,40 @@ export default function StateDetailPage({ stateSlug, states }) {
                             <Link to={`/${stateId}/publications`} className="view-all">View All Articles →</Link>
                         </div>
                         <div className="publications-grid">
-                            {(statePosts.length > 0 ? statePosts.slice(0, 3) : [
-                                { id: 1, type: "Pastoral Letter", title: "Walking in Divine Dominion", content: "Exploring the biblical principles of authority and purpose." },
-                                { id: 2, type: "Monthly Digest", title: "The Power of Unified Prayer", content: "A deep dive into how collective intercession is shifting atmospheres." },
-                                { id: 3, type: "Leadership Insight", title: "Effective Youth Ministry", content: "Strategies for reaching the Gen Z population in Christ." }
-                            ]).map((post) => (
-                                <div key={post.slug || post.id} className="publication-card">
-                                    <div className="card-thumb">
-                                        <img src={post.feature_image_url || "https://placehold.co/400x250?text=Publication"} alt={post.title} />
-                                    </div>
+                            {publicationsError ? <p className="status">{publicationsError}</p> : null}
+
+                            {publications.length === 0 ? (
+                                <div className="publication-card" style={{ gridColumn: "1 / -1" }}>
                                     <div className="card-body">
-                                        <span className="card-tag">{post.type}</span>
-                                        <h4>{post.title}</h4>
-                                        <p>{post.content?.replace(/<[^>]+>/g, '').substring(0, 100)}...</p>
-                                        <Link to={`/${stateId}/updates/${post.slug || post.id}`} className="read-more">Read More</Link>
+                                        <span className="card-tag">No publications yet</span>
+                                        <h4>Nothing published for this state</h4>
+                                        <p>
+                                            When publications are published for {displayName}, they will appear here automatically.
+                                        </p>
+                                        <Link to={`/${stateId}/publications`} className="read-more">View Library</Link>
                                     </div>
                                 </div>
-                            ))}
+                            ) : (
+                                publications.slice(0, 3).map((item) => (
+                                    <div key={item.id} className="publication-card">
+                                        <div className="card-thumb">
+                                            <img
+                                                src={item.cover_image_url || "https://placehold.co/400x250?text=Publication"}
+                                                alt={item.title}
+                                            />
+                                        </div>
+                                        <div className="card-body">
+                                            <span className="card-tag">{item.publication_type || "Publication"}</span>
+                                            <h4>{item.title}</h4>
+                                            <p>
+                                                {(item.description || "").replace(/<[^>]+>/g, "").substring(0, 110)}
+                                                {item.description && item.description.length > 110 ? "…" : ""}
+                                            </p>
+                                            <Link to={`/${stateId}/publications/${item.id}`} className="read-more">Read More</Link>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </section>
