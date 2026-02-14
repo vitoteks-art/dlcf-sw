@@ -214,6 +214,37 @@ if ($path === '/meta/work-units') {
     json_ok(['items' => $items]);
 }
 
+if ($path === '/meta/publication-types') {
+    require_method('GET');
+    $state = trim($_GET['state'] ?? '');
+    $scope = trim($_GET['scope'] ?? '');
+
+    $sql = 'SELECT DISTINCT publication_type AS name
+            FROM publication_items
+            WHERE status = "published" AND publication_type IS NOT NULL AND publication_type <> ""';
+    $types = '';
+    $params = [];
+
+    if ($state !== '') {
+        $sql .= ' AND (scope = "zonal" OR (scope = "state" AND state = ?))';
+        $types .= 's';
+        $params[] = $state;
+    }
+    if ($scope !== '' && in_array($scope, ["zonal", "state"], true)) {
+        $sql .= ' AND scope = ?';
+        $types .= 's';
+        $params[] = $scope;
+    }
+
+    $sql .= ' ORDER BY publication_type';
+
+    $stmt = db_prepare($db, $sql, $types, $params);
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    $items = array_values(array_filter(array_map(fn($row) => $row['name'], $rows)));
+    json_ok(['items' => $items]);
+}
+
 if ($path === '/meta/clusters') {
     require_method('GET');
     $state = $_GET['state'] ?? '';

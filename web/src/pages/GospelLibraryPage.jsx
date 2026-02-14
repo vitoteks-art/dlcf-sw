@@ -10,14 +10,7 @@ export default function GospelLibraryPage({ user, stateSlug, states }) {
   const [status, setStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const topics = [
-    "All Topics",
-    "Devotionals",
-    "Teachings",
-    "Announcements",
-    "Bible Study",
-    "Missions",
-  ];
+  const [topics, setTopics] = useState(["All Topics"]);
 
   const slugifyState = (value) =>
     String(value)
@@ -49,6 +42,17 @@ export default function GospelLibraryPage({ user, stateSlug, states }) {
     apiFetch(`/publication-items?${query.toString()}`)
       .then((data) => setItems(data.items || []))
       .catch((err) => setStatus(err.message));
+
+    // Load topics dynamically from the backend (publication_type values)
+    apiFetch(`/meta/publication-types?${query.toString()}`)
+      .then((data) => {
+        const serverTopics = (data.items || []).filter(Boolean);
+        setTopics(["All Topics", ...serverTopics]);
+      })
+      .catch(() => {
+        // Keep the page usable if this fails
+        setTopics(["All Topics"]);
+      });
   }, [resolvedStateName]);
 
   const filteredItems = useMemo(() => {
