@@ -132,7 +132,9 @@ export default function StatesPage({ states, user }) {
 
                 <div className="p-6 flex flex-col flex-1">
                   <div className="mb-4">
-                    <h3 className="text-xl font-bold mb-2">{s.name} State</h3>
+                    <h3 className="text-xl font-bold mb-2">
+                      {s.name.trim().toLowerCase().endsWith("state") ? s.name : `${s.name} State`}
+                    </h3>
 
                     <div className="flex items-start gap-2 text-sm text-[#49499c] dark:text-slate-400 mb-1">
                       <span className="material-symbols-outlined text-sm pt-0.5">schedule</span>
