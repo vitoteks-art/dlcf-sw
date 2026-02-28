@@ -167,9 +167,9 @@ body {
 .role-pill {
   padding: 8px 14px;
   border-radius: 999px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--muted);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--text);
   font-size: 0.85rem;
 }
 
@@ -283,18 +283,21 @@ select:-webkit-autofill:focus {
 }
 
 button {
-  background: linear-gradient(135deg, var(--accent-2) 0%, #2b6bff 100%);
-  color: #0c1117;
+  background: linear-gradient(135deg, #3aa0ff 0%, #2b6bff 55%, #1f4cff 100%);
+  color: #ffffff;
   border: none;
   border-radius: 12px;
   padding: 12px 18px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  box-shadow: 0 12px 26px rgba(43, 107, 255, 0.25);
 }
 
 button:hover {
   transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 14px 30px rgba(43, 107, 255, 0.32);
 }
 
 button:disabled {
@@ -981,9 +984,10 @@ button:disabled {
 .total-pill {
   padding: 8px 14px;
   border-radius: 999px;
-  background: rgba(58, 160, 255, 0.16);
-  border: 1px solid rgba(58, 160, 255, 0.4);
-  font-weight: 600;
+  background: linear-gradient(135deg, rgba(58, 160, 255, 0.22), rgba(255, 179, 64, 0.18));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-weight: 800;
+  color: var(--text);
 }
 
 .attendance-card .counts {
