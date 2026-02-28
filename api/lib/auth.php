@@ -20,9 +20,12 @@ function start_session(array $config): void
             }
         }
 
+        $domain = $config['session']['cookie_domain'] ?? '';
+
         session_set_cookie_params([
             'lifetime' => $config['session']['cookie_lifetime'] ?? 0,
             'path' => '/',
+            'domain' => $domain !== '' ? $domain : null,
             'httponly' => true,
             'secure' => $secure,
             'samesite' => $samesite,
