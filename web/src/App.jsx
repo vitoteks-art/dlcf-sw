@@ -2698,7 +2698,7 @@ function App() {
             {user ? (
               <>
                 <span className="role-pill">{user.role}</span>
-                <button type="button" onClick={handleLogout}>
+                <button type="button" className="logout-btn" onClick={handleLogout}>
                   Logout
                 </button>
               </>

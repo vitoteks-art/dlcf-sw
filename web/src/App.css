@@ -248,12 +248,19 @@ select {
   border: 1px solid var(--border);
   border-radius: 10px;
   font-size: 0.95rem;
-  background: var(--panel-2);
-  color: var(--text);
+  /* Force dark control styling (some browsers render selects/dates as light otherwise) */
+  background-color: var(--panel-2) !important;
+  color: var(--text) !important;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
     transform 0.2s ease;
+}
+
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  color-scheme: dark;
 }
 
 input:focus,
@@ -292,6 +299,19 @@ button {
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
   box-shadow: 0 12px 26px rgba(43, 107, 255, 0.25);
+}
+
+/* Make Logout a clear, high-contrast action */
+.logout-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.10);
+  box-shadow: none;
 }
 
 button:hover {
