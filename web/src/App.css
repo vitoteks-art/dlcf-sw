@@ -2604,6 +2604,7 @@ button:disabled {
       #172231 0%,
       #0b1117 45%,
       #070a0f 100%);
+  color: var(--text);
 }
 
 .login-container {

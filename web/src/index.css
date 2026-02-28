@@ -4,8 +4,7 @@
   font-family: "Source Sans 3", "Segoe UI", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #0c1222;
-  background-color: #f4f6fb;
+  /* Color/background are defined by App.css theme tokens */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
