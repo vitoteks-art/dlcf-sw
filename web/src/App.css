@@ -36,6 +36,33 @@ body {
   display: grid;
   grid-template-columns: 260px 1fr;
   min-height: 100vh;
+  color: var(--text);
+}
+
+/* Dashboard baseline: default all text to white in the app shell */
+.app-main {
+  color: var(--text);
+}
+
+.app-main h1,
+.app-main h2,
+.app-main h3,
+.app-main h4,
+.app-main h5,
+.app-main h6,
+.app-main label,
+.app-main th,
+.app-main td {
+  color: var(--text);
+}
+
+.app-main .lede,
+.app-main .muted,
+.app-main .small-text,
+.app-main .user-meta,
+.app-main .report-meta,
+.app-main .report-meta-label {
+  color: var(--muted);
 }
 
 .sidebar {
@@ -157,6 +184,7 @@ body {
 .topbar h1 {
   margin: 6px 0 0;
   font-size: 1.6rem;
+  color: var(--text);
 }
 
 .topbar-actions {
@@ -1111,7 +1139,7 @@ button:disabled {
 
 .admin-list-item button {
   background: linear-gradient(135deg, #ff6b6b 0%, #ff3d3d 100%);
-  color: #0c1117;
+  color: #ffffff;
 }
 
 @keyframes fadeUp {
