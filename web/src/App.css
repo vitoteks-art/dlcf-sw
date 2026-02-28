@@ -3,15 +3,16 @@
 :root {
   color-scheme: dark;
   --bg: #0b1117;
-  --panel: #141b22;
-  --panel-2: #1b2430;
-  --panel-3: #222d3c;
-  --text: #e7edf5;
-  --muted: #97a3b6;
+  /* Slightly brighter surfaces for better readability */
+  --panel: #16202b;
+  --panel-2: #1d2836;
+  --panel-3: #253245;
+  --text: #eef4ff;
+  --muted: #a9b6cc;
   --accent: #ffb340;
   --accent-2: #3aa0ff;
   --accent-3: #4bd0a0;
-  --border: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.12);
   --shadow: 0 18px 40px rgba(5, 10, 20, 0.45);
 }
 
@@ -399,6 +400,24 @@ button:disabled {
 .hero-actions .ghost {
   border: 1px solid var(--border);
   color: var(--text);
+}
+
+/* Reusable ghost button/link (used across dashboard report pages) */
+.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .hero-panel {
@@ -897,7 +916,8 @@ button:disabled {
 }
 
 .report th {
-  background: var(--panel-3);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
 }
 
 .attendance-report-table th,
@@ -3229,7 +3249,8 @@ button:disabled {
 
 .btn-primary {
   background: linear-gradient(135deg, var(--accent-2) 0%, #2b6bff 100%);
-  color: #0c1117;
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(43, 107, 255, 0.25);
 }
 
 .btn-warning {
@@ -3244,6 +3265,7 @@ button:disabled {
 
 .small-text {
   font-size: 0.85rem;
+  color: var(--muted);
 }
 
 /* Scrollbar for dark theme */
