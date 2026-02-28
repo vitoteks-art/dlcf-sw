@@ -268,6 +268,20 @@ input::placeholder {
   color: rgba(151, 163, 182, 0.7);
 }
 
+/* Prevent mobile/Chrome autofill from forcing white backgrounds (causes "distorted" look on dark UI) */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text);
+  caret-color: var(--text);
+  box-shadow: 0 0 0px 1000px var(--panel-2) inset;
+  border: 1px solid var(--border);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 button {
   background: linear-gradient(135deg, var(--accent-2) 0%, #2b6bff 100%);
   color: #0c1117;

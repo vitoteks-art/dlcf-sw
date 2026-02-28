@@ -4,11 +4,28 @@ function start_session(array $config): void
 {
     if (session_status() === PHP_SESSION_NONE) {
         session_name($config['session']['name']);
+        // Cookies must be configured correctly or CSRF will fail (new session per request).
+        // Notes:
+        // - SameSite=None requires Secure=true (modern browsers will drop the cookie otherwise).
+        // - On local HTTP dev, Secure cookies will not be set.
+        $secure = (bool)($config['session']['cookie_secure'] ?? false);
+        $samesite = (string)($config['session']['cookie_samesite'] ?? 'Lax');
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        if (!$isHttps) {
+            // Avoid breaking local/dev over http.
+            $secure = false;
+            if (strtolower($samesite) === 'none') {
+                $samesite = 'Lax';
+            }
+        }
+
         session_set_cookie_params([
             'lifetime' => $config['session']['cookie_lifetime'] ?? 0,
+            'path' => '/',
             'httponly' => true,
-            'secure' => $config['session']['cookie_secure'],
-            'samesite' => $config['session']['cookie_samesite'],
+            'secure' => $secure,
+            'samesite' => $samesite,
         ]);
         session_start();
     }
