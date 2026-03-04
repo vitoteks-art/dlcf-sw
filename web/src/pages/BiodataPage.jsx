@@ -193,7 +193,7 @@ export default function BiodataPage({
             </select>
           </label>
           <label>
-            Cluster
+            Cluster (optional)
             <select
               value={biodata.cluster}
               onChange={(e) =>
