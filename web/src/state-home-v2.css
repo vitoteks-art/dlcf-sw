@@ -154,36 +154,6 @@
   object-fit: cover;
 }
 
-.state-ref-statCard {
-  position: absolute;
-  left: -24px;
-  bottom: -28px;
-  z-index: 2;
-  max-width: 280px;
-  padding: 22px 24px;
-  border-radius: 24px;
-  background: #ffffff;
-  box-shadow: 0 28px 50px rgba(18, 60, 122, 0.12);
-}
-
-.state-ref-statCard__number {
-  width: 56px;
-  height: 56px;
-  border-radius: 999px;
-  background: #d8e2ff;
-  color: #002659;
-  display: grid;
-  place-items: center;
-  font-weight: 800;
-  margin-bottom: 12px;
-}
-
-.state-ref-statCard p {
-  margin: 0;
-  color: #485e8c;
-  font-size: 0.92rem;
-  line-height: 1.6;
-}
 
 .state-ref-bento {
   display: grid;
@@ -674,11 +644,6 @@
     height: 420px;
   }
 
-  .state-ref-statCard {
-    position: static;
-    margin-top: 20px;
-    max-width: none;
-  }
 
   .state-ref-community__map {
     min-height: 300px;

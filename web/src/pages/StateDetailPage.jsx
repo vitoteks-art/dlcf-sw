@@ -226,10 +226,6 @@ export default function StateDetailPage({ stateSlug, states }) {
                   alt={`${displayName} fellowship`}
                 />
               </div>
-              <div className="state-ref-statCard">
-                <div className="state-ref-statCard__number">{statePosts.length > 0 ? `${statePosts.length}+` : "50+"}</div>
-                <p>{`Fellowship centres and ministry touchpoints across ${displayName}`}</p>
-              </div>
             </div>
           </div>
         </section>
