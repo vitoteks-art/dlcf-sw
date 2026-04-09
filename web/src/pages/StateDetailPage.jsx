@@ -204,10 +204,15 @@ export default function StateDetailPage({ stateSlug, states }) {
   const validGallery = content.gallery.filter((item) => item.url);
   const validSections = content.sections.filter((section) => section.title || section.content);
 
+  const suggestedCenters = useMemo(
+    () => communityCenters.slice(0, 2).map((item) => ({ center: item.name, region: "Suggested centre" })),
+    [communityCenters]
+  );
+
   const communityResults = useMemo(() => {
     if (!communityCenters.length) return [];
     const q = communityQuery.trim().toLowerCase();
-    if (!q) return communityCenters.slice(0, 8).map((item) => ({ center: item.name, region: "Fellowship Centre" }));
+    if (!q) return [];
 
     const exact = communityCenters
       .filter(({ name }) => String(name || "").toLowerCase().includes(q))
@@ -351,12 +356,6 @@ export default function StateDetailPage({ stateSlug, states }) {
 
         <section className="state-ref-section state-ref-section--darkBand">
           <div className="container state-ref-community">
-            <div className="state-ref-community__map state-ref-community__map--card">
-              <img
-                src={worshipImageUrl || contactImageUrl || "https://placehold.co/1200x800?text=State+Map"}
-                alt={`${displayName} map`}
-              />
-            </div>
             <div className="state-ref-community__copy">
               <h2>{content.worship.title || "Find Your Community"}</h2>
               <p>{excerpt(content.worship.body, 220)}</p>
@@ -370,24 +369,47 @@ export default function StateDetailPage({ stateSlug, states }) {
                 <span className="material-symbols-outlined">search</span>
               </div>
               <div className="state-ref-communityList">
-                {communityResults.length > 0 ? communityResults.map(({ region, center }, idx) => (
-                  <div key={`${region}-${center}-${idx}`} className="state-ref-communityItem">
-                    <div>
-                      <h5>{center}</h5>
-                      <p>{region}, {displayName}</p>
+                {communityQuery.trim() ? (
+                  communityResults.length > 0 ? communityResults.map(({ region, center }, idx) => (
+                    <div key={`${region}-${center}-${idx}`} className="state-ref-communityItem">
+                      <div>
+                        <h5>{center}</h5>
+                        <p>{region}, {displayName}</p>
+                      </div>
+                      <span className="material-symbols-outlined">directions</span>
                     </div>
-                    <span className="material-symbols-outlined">directions</span>
-                  </div>
-                )) : (
-                  <div className="state-ref-communityItem">
-                    <div>
-                      <h5>No exact center found</h5>
-                      <p>Nearby fellowship centres will appear here when available.</p>
+                  )) : (
+                    <div className="state-ref-communityItem">
+                      <div>
+                        <h5>No exact center found</h5>
+                        <p>Try another school, city, or area. Nearby fellowship centres will appear when available.</p>
+                      </div>
+                      <span className="material-symbols-outlined">travel_explore</span>
                     </div>
-                    <span className="material-symbols-outlined">travel_explore</span>
-                  </div>
+                  )
+                ) : (
+                  <>
+                    <div className="state-ref-communityHint">
+                      Search for your fellowship centre by school, city, or area.
+                    </div>
+                    {suggestedCenters.map(({ region, center }, idx) => (
+                      <div key={`${region}-${center}-${idx}`} className="state-ref-communityItem">
+                        <div>
+                          <h5>{center}</h5>
+                          <p>{region}, {displayName}</p>
+                        </div>
+                        <span className="material-symbols-outlined">place</span>
+                      </div>
+                    ))}
+                  </>
                 )}
               </div>
+            </div>
+            <div className="state-ref-community__map state-ref-community__map--card">
+              <img
+                src={worshipImageUrl || contactImageUrl || "https://placehold.co/1200x800?text=State+Map"}
+                alt={`${displayName} map`}
+              />
             </div>
           </div>
         </section>

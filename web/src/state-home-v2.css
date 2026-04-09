@@ -425,6 +425,12 @@
   gap: 14px;
 }
 
+.state-ref-communityHint {
+  padding: 16px 2px 4px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.7;
+}
+
 .state-ref-communityItem {
   display: flex;
   align-items: center;
