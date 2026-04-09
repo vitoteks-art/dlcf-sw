@@ -77,6 +77,142 @@ function can_manage_publications(array $user): bool
     return in_array($user['role'], ['administrator'], true) || user_has_work_unit($user, 'Publication Team');
 }
 
+function can_view_reports(array $user): bool
+{
+    return in_array($user['role'], [
+        'administrator',
+        'zonal_cord',
+        'zonal_admin',
+        'zonal_rep',
+        'state_cord',
+        'state_admin',
+        'state_rep',
+        'region_cord',
+        'region_rep',
+        'associate_cord',
+    ], true);
+}
+
+function require_report_access(): array
+{
+    require_auth();
+    $user = current_user();
+    if (!can_view_reports($user)) {
+        json_error('Forbidden', 403);
+    }
+    return $user;
+}
+
+function apply_scope_filters(array $user, array &$filters): void
+{
+    if (in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'zonal_rep'], true)) {
+        return;
+    }
+
+    if (in_array($user['role'], ['state_cord', 'state_admin', 'state_rep'], true)) {
+        if (!empty($user['state'])) {
+            $filters['state'] = $user['state'];
+        }
+        unset($filters['region'], $filters['fellowship_centre_id']);
+        return;
+    }
+
+    if (in_array($user['role'], ['region_cord', 'region_rep'], true)) {
+        if (!empty($user['state'])) {
+            $filters['state'] = $user['state'];
+        }
+        if (!empty($user['region'])) {
+            $filters['region'] = $user['region'];
+        }
+        unset($filters['fellowship_centre_id']);
+        return;
+    }
+
+    if ($user['role'] === 'associate_cord') {
+        if (!empty($user['state'])) {
+            $filters['state'] = $user['state'];
+        }
+        if (!empty($user['region'])) {
+            $filters['region'] = $user['region'];
+        }
+        if (!empty($user['fellowship_centre_id'])) {
+            $filters['fellowship_centre_id'] = (int) $user['fellowship_centre_id'];
+        }
+    }
+}
+
+function ensure_unique_coordinator_role(mysqli $db, string $role, ?string $state, ?string $region, ?int $excludeUserId = null): void
+{
+    if (!in_array($role, ['zonal_cord', 'state_cord', 'region_cord'], true)) {
+        return;
+    }
+
+    if ($role === 'zonal_cord') {
+        $sql = 'SELECT id FROM users WHERE role = ?';
+        $types = 's';
+        $params = [$role];
+        if ($excludeUserId !== null) {
+            $sql .= ' AND id <> ?';
+            $types .= 'i';
+            $params[] = $excludeUserId;
+        }
+        $sql .= ' LIMIT 1';
+        $stmt = db_prepare($db, $sql, $types, $params);
+        $stmt->execute();
+        if (db_fetch_all($stmt)) {
+            json_error('A zonal coordinator already exists', 422);
+        }
+        return;
+    }
+
+    if ($state === null || $state === '') {
+        json_error('State is required for this coordinator role', 422);
+    }
+
+    if ($role === 'state_cord') {
+        $sql = 'SELECT u.id
+                FROM users u
+                LEFT JOIN biodata b ON b.user_id = u.id
+                WHERE u.role = ? AND b.state = ?';
+        $types = 'ss';
+        $params = [$role, $state];
+        if ($excludeUserId !== null) {
+            $sql .= ' AND u.id <> ?';
+            $types .= 'i';
+            $params[] = $excludeUserId;
+        }
+        $sql .= ' LIMIT 1';
+        $stmt = db_prepare($db, $sql, $types, $params);
+        $stmt->execute();
+        if (db_fetch_all($stmt)) {
+            json_error('A state coordinator already exists for this state', 422);
+        }
+        return;
+    }
+
+    if ($region === null || $region === '') {
+        json_error('Region is required for this coordinator role', 422);
+    }
+
+    $sql = 'SELECT u.id
+            FROM users u
+            LEFT JOIN biodata b ON b.user_id = u.id
+            WHERE u.role = ? AND b.state = ? AND b.region = ?';
+    $types = 'sss';
+    $params = [$role, $state, $region];
+    if ($excludeUserId !== null) {
+        $sql .= ' AND u.id <> ?';
+        $types .= 'i';
+        $params[] = $excludeUserId;
+    }
+    $sql .= ' LIMIT 1';
+    $stmt = db_prepare($db, $sql, $types, $params);
+    $stmt->execute();
+    if (db_fetch_all($stmt)) {
+        json_error('A region coordinator already exists for this state and region', 422);
+    }
+}
+
 function attach_biodata_to_user(mysqli $db, array $user): array
 {
     $stmt = db_prepare(
@@ -114,7 +250,32 @@ function find_state_by_selector(mysqli $db, string $selector): ?array
     );
     $stmt->execute();
     $rows = db_fetch_all($stmt);
-    return $rows[0] ?? null;
+    if ($rows) {
+        return $rows[0];
+    }
+
+    $normalized = slugify_value($selector);
+    if ($normalized === '') {
+        return null;
+    }
+
+    $stmt = db_prepare(
+        $db,
+        'SELECT id, name, slug FROM states',
+        '',
+        []
+    );
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    foreach ($rows as $row) {
+        $nameSlug = slugify_value((string) ($row['name'] ?? ''));
+        $rowSlug = slugify_value((string) ($row['slug'] ?? ''));
+        if ($normalized === $nameSlug || $normalized === $rowSlug) {
+            return $row;
+        }
+    }
+
+    return null;
 }
 
 function load_categories(mysqli $db): array
@@ -298,12 +459,18 @@ if ($path === '/meta/coverage') {
 
 if (preg_match('#^/public/states/([^/]+)/home$#', $path, $matches)) {
     require_method('GET');
-    $stateSlug = $matches[1];
-    $sql = 'SELECT sh.content, s.name, s.slug
-            FROM state_homepages sh
-            JOIN states s ON s.id = sh.state_id
-            WHERE s.slug = ? LIMIT 1';
-    $stmt = db_prepare($db, $sql, 's', [$stateSlug]);
+    $stateSelector = urldecode($matches[1]);
+    $state = find_state_by_selector($db, $stateSelector);
+    if (!$state) {
+        json_ok(['item' => null]);
+    }
+
+    $stmt = db_prepare(
+        $db,
+        'SELECT content FROM state_homepages WHERE state_id = ? LIMIT 1',
+        'i',
+        [(int) $state['id']]
+    );
     $stmt->execute();
     $rows = db_fetch_all($stmt);
     if (!$rows) {
@@ -311,6 +478,34 @@ if (preg_match('#^/public/states/([^/]+)/home$#', $path, $matches)) {
     }
     $content = json_decode($rows[0]['content'], true);
     json_ok(['item' => $content ?: null]);
+}
+
+if ($path === '/public/state-home') {
+    require_method('GET');
+    $stateSelector = trim($_GET['slug'] ?? $_GET['state'] ?? '');
+    if ($stateSelector === '') {
+        json_ok(['item' => null]);
+    }
+
+    $state = find_state_by_selector($db, $stateSelector);
+    if (!$state) {
+        json_ok(['item' => null]);
+    }
+
+    $stmt = db_prepare(
+        $db,
+        'SELECT content FROM state_homepages WHERE state_id = ? LIMIT 1',
+        'i',
+        [(int) $state['id']]
+    );
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    if (!$rows) {
+        json_ok(['item' => null]);
+    }
+
+    $content = json_decode($rows[0]['content'] ?? '{}', true) ?: null;
+    json_ok(['item' => $content]);
 }
 
 if (preg_match('#^/public/states/([^/]+)/stats$#', $path, $matches)) {
@@ -939,7 +1134,7 @@ if ($path === '/state/posts') {
         }
         $sql = 'SELECT sp.id, s.name AS state_name, s.slug AS state_slug,
                        sp.title, sp.slug, sp.type, sp.status, sp.published_at,
-                       sp.content, sp.feature_image_url,
+                       sp.content, sp.feature_image_url, sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label,
                        GROUP_CONCAT(c.id ORDER BY c.name SEPARATOR ",") AS category_ids,
                        GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ",") AS categories,
                        sp.created_at, sp.updated_at
@@ -955,7 +1150,7 @@ if ($path === '/state/posts') {
             $params[] = $stateRow['id'];
         }
         $sql .= ' GROUP BY sp.id, s.name, s.slug, sp.title, sp.slug, sp.type, sp.status, sp.published_at,
-                          sp.content, sp.feature_image_url, sp.created_at, sp.updated_at
+                          sp.content, sp.feature_image_url, sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label, sp.created_at, sp.updated_at
                   ORDER BY sp.updated_at DESC';
         $stmt = db_prepare($db, $sql, $types, $params);
         $stmt->execute();
@@ -981,6 +1176,10 @@ if ($path === '/state/posts') {
         $type = trim($payload['type'] ?? '');
         $status = trim($payload['status'] ?? 'draft');
         $featureImageUrl = trim($payload['feature_image_url'] ?? '');
+        $eventLocation = trim($payload['event_location'] ?? '');
+        $eventStartDate = trim($payload['event_start_date'] ?? '');
+        $eventEndDate = trim($payload['event_end_date'] ?? '');
+        $eventTimeLabel = trim($payload['event_time_label'] ?? '');
         $categoryIds = $payload['category_ids'] ?? [];
         if (($user['role'] === 'state_cord' || $user['role'] === 'state_admin') && $user['state']) {
             $state = $user['state'];
@@ -1013,10 +1212,10 @@ if ($path === '/state/posts') {
         }
         $stmt = db_prepare(
             $db,
-            'INSERT INTO state_posts (state_id, title, slug, feature_image_url, content, type, status, published_at, created_by, updated_by, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
-            'isssssssii',
-            [$stateRow['id'], $title, $slug, $featureImageUrl ?: null, $content, $type, $status, $publishedAt, $user['id'], $user['id']]
+            'INSERT INTO state_posts (state_id, title, slug, feature_image_url, content, type, status, published_at, event_location, event_start_date, event_end_date, event_time_label, created_by, updated_by, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            'isssssssssssii',
+            [$stateRow['id'], $title, $slug, $featureImageUrl ?: null, $content, $type, $status, $publishedAt, $eventLocation ?: null, $eventStartDate ?: null, $eventEndDate ?: null, $eventTimeLabel ?: null, $user['id'], $user['id']]
         );
         if (!$stmt->execute()) {
             json_error('Database error: ' . $stmt->error, 500);
@@ -1040,6 +1239,7 @@ if (preg_match('#^/state/posts/(\\d+)$#', $path, $matches)) {
     $stmt = db_prepare(
         $db,
         'SELECT sp.id, sp.state_id, sp.title, sp.slug, sp.type, sp.status, sp.published_at, sp.content, sp.feature_image_url,
+                sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label,
                 s.name AS state_name
          FROM state_posts sp
          JOIN states s ON s.id = sp.state_id
@@ -1063,6 +1263,10 @@ if (preg_match('#^/state/posts/(\\d+)$#', $path, $matches)) {
         $type = trim($payload['type'] ?? $post['type']);
         $status = trim($payload['status'] ?? $post['status']);
         $featureImageUrl = trim($payload['feature_image_url'] ?? $post['feature_image_url'] ?? '');
+        $eventLocation = trim($payload['event_location'] ?? $post['event_location'] ?? '');
+        $eventStartDate = trim($payload['event_start_date'] ?? $post['event_start_date'] ?? '');
+        $eventEndDate = trim($payload['event_end_date'] ?? $post['event_end_date'] ?? '');
+        $eventTimeLabel = trim($payload['event_time_label'] ?? $post['event_time_label'] ?? '');
         $categoryIds = $payload['category_ids'] ?? [];
         if ($title === '' || $content === '' || $type === '') {
             json_error('Title, content, and type are required', 422);
@@ -1093,10 +1297,10 @@ if (preg_match('#^/state/posts/(\\d+)$#', $path, $matches)) {
         }
         $stmt = db_prepare(
             $db,
-            'UPDATE state_posts SET title = ?, slug = ?, feature_image_url = ?, content = ?, type = ?, status = ?, published_at = ?, updated_by = ?, updated_at = NOW()
+            'UPDATE state_posts SET title = ?, slug = ?, feature_image_url = ?, content = ?, type = ?, status = ?, published_at = ?, event_location = ?, event_start_date = ?, event_end_date = ?, event_time_label = ?, updated_by = ?, updated_at = NOW()
              WHERE id = ?',
-            'sssssssii',
-            [$title, $slug, $featureImageUrl ?: null, $content, $type, $status, $publishedAt, $user['id'], $postId]
+            'sssssssssssii',
+            [$title, $slug, $featureImageUrl ?: null, $content, $type, $status, $publishedAt, $eventLocation ?: null, $eventStartDate ?: null, $eventEndDate ?: null, $eventTimeLabel ?: null, $user['id'], $postId]
         );
         if (!$stmt->execute()) {
             json_error('Database error: ' . $stmt->error, 500);
@@ -2331,6 +2535,8 @@ if ($path === '/admin/users') {
             json_error('Work units must be an array', 422);
         }
 
+        ensure_unique_coordinator_role($db, $role, $state ?: null, $region ?: null);
+
         $centreId = null;
         if ($centreName !== '' && $state !== '' && $region !== '') {
             $stmt = db_prepare($db, 'SELECT id FROM fellowship_centres WHERE name = ? AND state = ? AND region = ? LIMIT 1', 'sss', [$centreName, $state, $region]);
@@ -2411,6 +2617,8 @@ if (preg_match('#^/admin/users/(\\d+)$#', $path, $matches)) {
         if (!is_array($workUnits)) {
             json_error('Work units must be an array', 422);
         }
+
+        ensure_unique_coordinator_role($db, $role, $state ?: null, $region ?: null, $id);
 
         $centreId = $current['fellowship_centre_id'];
         if (array_key_exists('fellowship_centre', $payload)) {
@@ -3991,8 +4199,14 @@ if (preg_match('#^/state-congress-registrations/(\\d+)$#', $path, $matches)) {
 
 if ($path === '/state-congress-reports/regions-by-day') {
     require_method('GET');
-    require_auth();
-    $state = trim($_GET['state'] ?? '');
+    $user = require_report_access();
+    $filters = [
+        'state' => trim($_GET['state'] ?? ''),
+        'region' => trim($_GET['region'] ?? ''),
+    ];
+    apply_scope_filters($user, $filters);
+    $state = $filters['state'] ?? '';
+    $region = $filters['region'] ?? '';
 
     $stmt = db_prepare(
         $db,
@@ -4020,6 +4234,11 @@ if ($path === '/state-congress-reports/regions-by-day') {
         $types .= 's';
         $params[] = $state;
     }
+    if ($region !== '') {
+        $sql .= ' AND region = ?';
+        $types .= 's';
+        $params[] = $region;
+    }
     $sql .= ' GROUP BY region, gender, registration_date
               ORDER BY region, registration_date';
 
@@ -4031,8 +4250,14 @@ if ($path === '/state-congress-reports/regions-by-day') {
 
 if ($path === '/state-congress-reports/categories-by-region') {
     require_method('GET');
-    require_auth();
-    $state = trim($_GET['state'] ?? '');
+    $user = require_report_access();
+    $filters = [
+        'state' => trim($_GET['state'] ?? ''),
+        'region' => trim($_GET['region'] ?? ''),
+    ];
+    apply_scope_filters($user, $filters);
+    $state = $filters['state'] ?? '';
+    $region = $filters['region'] ?? '';
 
     $stmt = db_prepare(
         $db,
@@ -4058,6 +4283,11 @@ if ($path === '/state-congress-reports/categories-by-region') {
         $types .= 's';
         $params[] = $state;
     }
+    if ($region !== '') {
+        $sql .= ' AND region = ?';
+        $types .= 's';
+        $params[] = $region;
+    }
     $sql .= ' GROUP BY region, category, gender
               ORDER BY region, category';
 
@@ -4069,8 +4299,14 @@ if ($path === '/state-congress-reports/categories-by-region') {
 
 if ($path === '/state-congress-reports/membership-by-region') {
     require_method('GET');
-    require_auth();
-    $state = trim($_GET['state'] ?? '');
+    $user = require_report_access();
+    $filters = [
+        'state' => trim($_GET['state'] ?? ''),
+        'region' => trim($_GET['region'] ?? ''),
+    ];
+    apply_scope_filters($user, $filters);
+    $state = $filters['state'] ?? '';
+    $region = $filters['region'] ?? '';
 
     $stmt = db_prepare(
         $db,
@@ -4096,6 +4332,11 @@ if ($path === '/state-congress-reports/membership-by-region') {
         $types .= 's';
         $params[] = $state;
     }
+    if ($region !== '') {
+        $sql .= ' AND region = ?';
+        $types .= 's';
+        $params[] = $region;
+    }
     $sql .= ' GROUP BY region, membership_status, gender
               ORDER BY region, membership_status';
 
@@ -4107,8 +4348,16 @@ if ($path === '/state-congress-reports/membership-by-region') {
 
 if ($path === '/state-congress-reports/membership-by-institution') {
     require_method('GET');
-    require_auth();
-    $state = trim($_GET['state'] ?? '');
+    $user = require_report_access();
+    $filters = [
+        'state' => trim($_GET['state'] ?? ''),
+        'region' => trim($_GET['region'] ?? ''),
+        'fellowship_centre_id' => (int) ($_GET['fellowship_centre_id'] ?? 0),
+    ];
+    apply_scope_filters($user, $filters);
+    $state = $filters['state'] ?? '';
+    $region = $filters['region'] ?? '';
+    $fellowshipCentreId = (int) ($filters['fellowship_centre_id'] ?? 0);
 
     $stmt = db_prepare(
         $db,
@@ -4134,6 +4383,22 @@ if ($path === '/state-congress-reports/membership-by-institution') {
         $types .= 's';
         $params[] = $state;
     }
+    if ($region !== '') {
+        $sql .= ' AND region = ?';
+        $types .= 's';
+        $params[] = $region;
+    }
+    if ($fellowshipCentreId > 0) {
+        $stmt = db_prepare($db, 'SELECT name FROM fellowship_centres WHERE id = ? LIMIT 1', 'i', [$fellowshipCentreId]);
+        $stmt->execute();
+        $centreRows = db_fetch_all($stmt);
+        if (!$centreRows) {
+            json_error('Fellowship centre not found', 404);
+        }
+        $sql .= ' AND fellowship_centre = ?';
+        $types .= 's';
+        $params[] = $centreRows[0]['name'];
+    }
     $sql .= ' GROUP BY fellowship_centre, membership_status, gender
               ORDER BY fellowship_centre, membership_status';
 
@@ -4145,8 +4410,14 @@ if ($path === '/state-congress-reports/membership-by-institution') {
 
 if ($path === '/state-congress-reports/membership-by-cluster') {
     require_method('GET');
-    require_auth();
-    $state = trim($_GET['state'] ?? '');
+    $user = require_report_access();
+    $filters = [
+        'state' => trim($_GET['state'] ?? ''),
+        'region' => trim($_GET['region'] ?? ''),
+    ];
+    apply_scope_filters($user, $filters);
+    $state = $filters['state'] ?? '';
+    $region = $filters['region'] ?? '';
 
     $stmt = db_prepare(
         $db,
@@ -4172,6 +4443,11 @@ if ($path === '/state-congress-reports/membership-by-cluster') {
         $types .= 's';
         $params[] = $state;
     }
+    if ($region !== '') {
+        $sql .= ' AND region = ?';
+        $types .= 's';
+        $params[] = $region;
+    }
     $sql .= ' GROUP BY cluster, membership_status, gender
               ORDER BY cluster, membership_status';
 
@@ -4183,10 +4459,15 @@ if ($path === '/state-congress-reports/membership-by-cluster') {
 
 if ($path === '/retreat-reports/cluster-days') {
     require_method('GET');
-    require_auth();
+    $user = require_report_access();
     $retreatType = $_GET['retreat_type'] ?? '';
-    $state = $_GET['state'] ?? '';
-    $region = $_GET['region'] ?? '';
+    $filters = [
+        'state' => $_GET['state'] ?? '',
+        'region' => $_GET['region'] ?? '',
+    ];
+    apply_scope_filters($user, $filters);
+    $state = $filters['state'] ?? '';
+    $region = $filters['region'] ?? '';
     $days = [
         'day1' => $_GET['day1'] ?? '',
         'day2' => $_GET['day2'] ?? '',
@@ -4242,13 +4523,17 @@ if ($path === '/retreat-reports/cluster-days') {
 
 if ($path === '/retreat-reports/centres') {
     require_method('GET');
-    require_auth();
+    $user = require_report_access();
     $retreatType = $_GET['retreat_type'] ?? '';
     $start = $_GET['start'] ?? '';
     $end = $_GET['end'] ?? '';
-
-    $state = $_GET['state'] ?? '';
-    $region = $_GET['region'] ?? '';
+    $filters = [
+        'state' => $_GET['state'] ?? '',
+        'region' => $_GET['region'] ?? '',
+    ];
+    apply_scope_filters($user, $filters);
+    $state = $filters['state'] ?? '';
+    $region = $filters['region'] ?? '';
 
     $sql = 'SELECT dlcf_center, category, gender, COUNT(*) AS total
             FROM retreat_registrations
@@ -4435,8 +4720,12 @@ if (preg_match('#^/zonal-registrations/(\\d+)$#', $path, $matches)) {
 
 if ($path === '/zonal-congress-reports/states-by-day') {
     require_method('GET');
-    require_auth();
-    $state = trim($_GET['state'] ?? '');
+    $user = require_report_access();
+    $filters = [
+        'state' => trim($_GET['state'] ?? ''),
+    ];
+    apply_scope_filters($user, $filters);
+    $state = $filters['state'] ?? '';
 
     $stmt = db_prepare(
         $db,
@@ -4475,8 +4764,12 @@ if ($path === '/zonal-congress-reports/states-by-day') {
 
 if ($path === '/zonal-congress-reports/membership-by-state') {
     require_method('GET');
-    require_auth();
-    $state = trim($_GET['state'] ?? '');
+    $user = require_report_access();
+    $filters = [
+        'state' => trim($_GET['state'] ?? ''),
+    ];
+    apply_scope_filters($user, $filters);
+    $state = $filters['state'] ?? '';
 
     $stmt = db_prepare(
         $db,
