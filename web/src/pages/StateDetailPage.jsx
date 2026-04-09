@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
+import locationsData from "../data/locations.json";
 import StatePublicHeader from "../components/StatePublicHeader";
 import PublicFooter from "../components/PublicFooter";
 import SEO from "../components/SEO";
@@ -43,6 +44,7 @@ export default function StateDetailPage({ stateSlug, states }) {
   const [homeContent, setHomeContent] = useState(null);
   const [publications, setPublications] = useState([]);
   const [publicationsError, setPublicationsError] = useState("");
+  const [communityQuery, setCommunityQuery] = useState("");
 
   const resolvedStateName = useMemo(() => {
     if (!states || states.length === 0) return null;
@@ -187,6 +189,39 @@ export default function StateDetailPage({ stateSlug, states }) {
   const validGallery = content.gallery.filter((item) => item.url);
   const validSections = content.sections.filter((section) => section.title || section.content);
 
+  const stateLocationBucket = useMemo(() => {
+    const normalized = String(displayName || "").toLowerCase();
+    const entries = Object.entries(locationsData || {});
+    const exact = entries.find(([key]) => normalized.includes(String(key).toLowerCase()) || String(key).toLowerCase().includes(normalized));
+    return exact ? exact[1] : null;
+  }, [displayName]);
+
+  const allCommunityCenters = useMemo(() => {
+    if (!stateLocationBucket?.regions) return [];
+    return Object.entries(stateLocationBucket.regions).flatMap(([region, centers]) =>
+      (centers || []).map((center) => ({ region, center }))
+    );
+  }, [stateLocationBucket]);
+
+  const communityResults = useMemo(() => {
+    if (!allCommunityCenters.length) return [];
+    const q = communityQuery.trim().toLowerCase();
+    if (!q) return allCommunityCenters.slice(0, 8);
+
+    const exact = allCommunityCenters.filter(({ center, region }) => {
+      const hay = `${center} ${region}`.toLowerCase();
+      return hay.includes(q);
+    });
+    if (exact.length > 0) return exact.slice(0, 8);
+
+    const tokens = q.split(/\s+/).filter(Boolean);
+    const nearby = allCommunityCenters.filter(({ center, region }) => {
+      const hay = `${center} ${region}`.toLowerCase();
+      return tokens.some((token) => hay.includes(token.slice(0, Math.max(3, token.length - 1))));
+    });
+    return nearby.slice(0, 8);
+  }, [allCommunityCenters, communityQuery]);
+
   const heroImageUrl = normalizeImageUrl(content.hero.backgroundImageUrl || homeContent?.hero?.backgroundImageUrl, normalizeImageUrl("/hero-image.jpg"));
   const aboutImageUrl = normalizeImageUrl(content.about.imageUrl, heroImageUrl || "https://placehold.co/900x700?text=State+Fellowship");
   const worshipImageUrl = normalizeImageUrl(content.worship.imageUrl, aboutImageUrl || heroImageUrl || "https://placehold.co/1200x800?text=State+Location");
@@ -314,35 +349,43 @@ export default function StateDetailPage({ stateSlug, states }) {
 
         <section className="state-ref-section state-ref-section--darkBand">
           <div className="container state-ref-community">
+            <div className="state-ref-community__map state-ref-community__map--card">
+              <img
+                src={worshipImageUrl || contactImageUrl || "https://placehold.co/1200x800?text=State+Map"}
+                alt={`${displayName} map`}
+              />
+            </div>
             <div className="state-ref-community__copy">
               <h2>{content.worship.title || "Find Your Community"}</h2>
               <p>{excerpt(content.worship.body, 220)}</p>
               <div className="state-ref-searchBox">
-                <input type="text" readOnly value={content.worship.sideTitle || `Search by school or city in ${displayName}`} />
+                <input
+                  type="text"
+                  value={communityQuery}
+                  onChange={(e) => setCommunityQuery(e.target.value)}
+                  placeholder={`Search by school or city in ${displayName}`}
+                />
                 <span className="material-symbols-outlined">search</span>
               </div>
               <div className="state-ref-communityList">
-                <div className="state-ref-communityItem">
-                  <div>
-                    <h5>{displayName} Headquarters</h5>
-                    <p>{content.contact.address || `${displayName}, Nigeria`}</p>
+                {communityResults.length > 0 ? communityResults.map(({ region, center }, idx) => (
+                  <div key={`${region}-${center}-${idx}`} className="state-ref-communityItem">
+                    <div>
+                      <h5>{center}</h5>
+                      <p>{region}, {displayName}</p>
+                    </div>
+                    <span className="material-symbols-outlined">directions</span>
                   </div>
-                  <span className="material-symbols-outlined">directions</span>
-                </div>
-                <div className="state-ref-communityItem">
-                  <div>
-                    <h5>Campus Fellowship Center</h5>
-                    <p>{excerpt(content.worship.sideBody, 70) || "Find the nearest campus fellowship center."}</p>
+                )) : (
+                  <div className="state-ref-communityItem">
+                    <div>
+                      <h5>No exact center found</h5>
+                      <p>Nearby fellowship centres will appear here when available.</p>
+                    </div>
+                    <span className="material-symbols-outlined">travel_explore</span>
                   </div>
-                  <span className="material-symbols-outlined">directions</span>
-                </div>
+                )}
               </div>
-            </div>
-            <div className="state-ref-community__map">
-              <img
-                src={worshipImageUrl || contactImageUrl || "https://placehold.co/1200x800?text=Map+or+Location+Visual"}
-                alt="State location visual"
-              />
             </div>
           </div>
         </section>
