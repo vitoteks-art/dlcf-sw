@@ -64,12 +64,12 @@ export default function AdminStatePosts({
   return (
     <div className="admin-section">
       <div className="section-header">
-        <h3>State Updates</h3>
+        <h3>Events</h3>
       </div>
 
       <div className="panel-content">
         <div className="form-card card">
-          <h4>{isEditing ? "Edit Update" : "Add New Update"}</h4>
+          <h4>{isEditing ? "Edit Event" : "Add New Event"}</h4>
           <form
             onSubmit={isEditing ? handleEditStatePost : handleAddStatePost}
             className="form compact-form"
@@ -92,18 +92,18 @@ export default function AdminStatePosts({
                 </select>
               </label>
               <label>
-                Type
+                Event Type
                 <input
                   type="text"
                   value={adminStatePostType}
                   onChange={(e) => setAdminStatePostType(e.target.value)}
-                  placeholder="Evangelism, Comic, Program"
+                  placeholder="Revival, Conference, Bible Study, Outreach"
                   required
                 />
               </label>
             </div>
             <label>
-              Title
+              Event Title
               <input
                 type="text"
                 value={adminStatePostTitle}
@@ -143,7 +143,7 @@ export default function AdminStatePosts({
               </label>
             </div>
             <div className="rich-field">
-              <span>Content (Rich Text)</span>
+              <span>Event Description (Rich Text)</span>
               <RichTextEditor
                 value={adminStatePostContent}
                 onChange={setAdminStatePostContent}
@@ -177,18 +177,18 @@ export default function AdminStatePosts({
                 </select>
               </label>
               <label>
-                Published At
+                Event Date / Range
                 <input
                   type="text"
                   value={adminStatePostPublishedAt}
                   onChange={(e) => setAdminStatePostPublishedAt(e.target.value)}
-                  placeholder="YYYY-MM-DD HH:MM:SS"
+                  placeholder="2026-04-10 or 2026-04-10 to 2026-04-15"
                   disabled={adminStatePostStatus !== "published"}
                 />
               </label>
             </div>
             <div className="form-actions">
-              <button type="submit">{isEditing ? "Update" : "Add"}</button>
+              <button type="submit">{isEditing ? "Update Event" : "Create Event"}</button>
               {isEditing ? (
                 <button type="button" onClick={resetForm}>
                   Cancel
@@ -206,7 +206,7 @@ export default function AdminStatePosts({
                 <th>Type</th>
                 <th>Categories</th>
                 <th>Status</th>
-                <th>Published</th>
+                <th>Event Date</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -255,7 +255,7 @@ export default function AdminStatePosts({
               ))}
               {adminStatePosts.length === 0 ? (
                 <tr>
-                  <td colSpan="6">No updates yet.</td>
+                  <td colSpan="6">No events yet.</td>
                 </tr>
               ) : null}
             </tbody>

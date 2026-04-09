@@ -110,7 +110,7 @@ export default function AdminPage(props) {
     { id: "locations", label: "Locations", show: canManageStates || canManageRegions || canManageFellowships },
     { id: "organization", label: "Organization", show: canManageInstitutions || canManageWorkUnits },
     { id: "roles", label: "Roles", show: canManageRoles },
-    { id: "state-posts", label: "State Updates", show: canManageStatePosts },
+    { id: "state-posts", label: "Events", show: canManageStatePosts },
     { id: "state-home", label: "State Home", show: canManageStateHome },
     { id: "state-congress", label: "State Congress", show: canManageStateCongress },
     { id: "zonal-congress", label: "Zonal Congress", show: canManageZonalCongress },
