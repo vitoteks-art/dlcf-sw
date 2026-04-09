@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
-import locationsData from "../data/locations.json";
 import StatePublicHeader from "../components/StatePublicHeader";
 import PublicFooter from "../components/PublicFooter";
 import SEO from "../components/SEO";
@@ -45,6 +44,7 @@ export default function StateDetailPage({ stateSlug, states }) {
   const [publications, setPublications] = useState([]);
   const [publicationsError, setPublicationsError] = useState("");
   const [communityQuery, setCommunityQuery] = useState("");
+  const [communityCenters, setCommunityCenters] = useState([]);
 
   const resolvedStateName = useMemo(() => {
     if (!states || states.length === 0) return null;
@@ -81,6 +81,21 @@ export default function StateDetailPage({ stateSlug, states }) {
     apiFetch(`/publication-items?${query.toString()}`)
       .then((data) => setPublications(data.items || []))
       .catch((err) => setPublicationsError(err.message));
+  }, [resolvedStateName]);
+
+  useEffect(() => {
+    if (!resolvedStateName) {
+      setCommunityCenters([]);
+      return;
+    }
+    const query = new URLSearchParams();
+    query.set("state", resolvedStateName);
+    apiFetch(`/meta/fellowships?${query.toString()}`)
+      .then((data) => {
+        const items = Array.isArray(data.items) ? data.items : [];
+        setCommunityCenters(items.map((name) => ({ name })));
+      })
+      .catch(() => setCommunityCenters([]));
   }, [resolvedStateName]);
 
   const formatStateName = (name) => {
@@ -189,38 +204,25 @@ export default function StateDetailPage({ stateSlug, states }) {
   const validGallery = content.gallery.filter((item) => item.url);
   const validSections = content.sections.filter((section) => section.title || section.content);
 
-  const stateLocationBucket = useMemo(() => {
-    const normalized = String(displayName || "").toLowerCase();
-    const entries = Object.entries(locationsData || {});
-    const exact = entries.find(([key]) => normalized.includes(String(key).toLowerCase()) || String(key).toLowerCase().includes(normalized));
-    return exact ? exact[1] : null;
-  }, [displayName]);
-
-  const allCommunityCenters = useMemo(() => {
-    if (!stateLocationBucket?.regions) return [];
-    return Object.entries(stateLocationBucket.regions).flatMap(([region, centers]) =>
-      (centers || []).map((center) => ({ region, center }))
-    );
-  }, [stateLocationBucket]);
-
   const communityResults = useMemo(() => {
-    if (!allCommunityCenters.length) return [];
+    if (!communityCenters.length) return [];
     const q = communityQuery.trim().toLowerCase();
-    if (!q) return allCommunityCenters.slice(0, 8);
+    if (!q) return communityCenters.slice(0, 8).map((item) => ({ center: item.name, region: "Fellowship Centre" }));
 
-    const exact = allCommunityCenters.filter(({ center, region }) => {
-      const hay = `${center} ${region}`.toLowerCase();
-      return hay.includes(q);
-    });
+    const exact = communityCenters
+      .filter(({ name }) => String(name || "").toLowerCase().includes(q))
+      .map((item) => ({ center: item.name, region: "Fellowship Centre" }));
     if (exact.length > 0) return exact.slice(0, 8);
 
     const tokens = q.split(/\s+/).filter(Boolean);
-    const nearby = allCommunityCenters.filter(({ center, region }) => {
-      const hay = `${center} ${region}`.toLowerCase();
-      return tokens.some((token) => hay.includes(token.slice(0, Math.max(3, token.length - 1))));
-    });
+    const nearby = communityCenters
+      .filter(({ name }) => {
+        const hay = String(name || "").toLowerCase();
+        return tokens.some((token) => hay.includes(token.slice(0, Math.max(3, token.length - 1))));
+      })
+      .map((item) => ({ center: item.name, region: "Nearby match" }));
     return nearby.slice(0, 8);
-  }, [allCommunityCenters, communityQuery]);
+  }, [communityCenters, communityQuery]);
 
   const heroImageUrl = normalizeImageUrl(content.hero.backgroundImageUrl || homeContent?.hero?.backgroundImageUrl, normalizeImageUrl("/hero-image.jpg"));
   const aboutImageUrl = normalizeImageUrl(content.about.imageUrl, heroImageUrl || "https://placehold.co/900x700?text=State+Fellowship");
