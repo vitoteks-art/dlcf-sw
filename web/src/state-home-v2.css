@@ -462,10 +462,11 @@
   filter: grayscale(1) contrast(1.08);
 }
 
-.state-ref-community__map img {
+.state-ref-community__map iframe {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  min-height: 440px;
+  border: 0;
   display: block;
 }
 

@@ -231,9 +231,10 @@ export default function StateDetailPage({ stateSlug, states }) {
 
   const heroImageUrl = normalizeImageUrl(content.hero.backgroundImageUrl || homeContent?.hero?.backgroundImageUrl, normalizeImageUrl("/hero-image.jpg"));
   const aboutImageUrl = normalizeImageUrl(content.about.imageUrl, heroImageUrl || "https://placehold.co/900x700?text=State+Fellowship");
-  const worshipImageUrl = normalizeImageUrl(content.worship.imageUrl, aboutImageUrl || heroImageUrl || "https://placehold.co/1200x800?text=State+Location");
   const contactImageUrl = normalizeImageUrl(content.contact.imageUrl, aboutImageUrl || "https://placehold.co/900x700?text=Contact+State+Team");
   const firstGalleryImageUrl = normalizeImageUrl(validGallery[0]?.url || "", aboutImageUrl || heroImageUrl);
+  const communityMapQuery = encodeURIComponent(`${displayName}, Nigeria`);
+  const communityMapUrl = `https://www.google.com/maps?q=${communityMapQuery}&z=9&output=embed`;
 
   if (!stateId) return null;
 
@@ -406,9 +407,12 @@ export default function StateDetailPage({ stateSlug, states }) {
               </div>
             </div>
             <div className="state-ref-community__map state-ref-community__map--card">
-              <img
-                src={worshipImageUrl || contactImageUrl || "https://placehold.co/1200x800?text=State+Map"}
-                alt={`${displayName} map`}
+              <iframe
+                title={`${displayName} map`}
+                src={communityMapUrl}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
               />
             </div>
           </div>
