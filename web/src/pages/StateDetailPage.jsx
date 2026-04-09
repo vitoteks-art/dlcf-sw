@@ -81,52 +81,25 @@ export default function StateDetailPage({ stateSlug, states }) {
     resolvedStateName || stateId.charAt(0).toUpperCase() + stateId.slice(1).replace("-", " ")
   );
 
-  const quickFacts = useMemo(
-    () => [
-      {
-        label: "State updates",
-        value: statePosts.length > 0 ? String(statePosts.length).padStart(2, "0") : "Fresh",
-        note: statePosts.length > 0 ? "recent stories" : "content hub",
-      },
-      {
-        label: "Publications",
-        value: publications.length > 0 ? String(publications.length).padStart(2, "0") : "Read",
-        note: publications.length > 0 ? "faith resources" : "library ready",
-      },
-      {
-        label: "Worship",
-        value: contentLabel(homeContent?.worship?.title, "Join us"),
-        note: "find fellowship",
-      },
-    ],
-    [statePosts.length, publications.length, homeContent]
-  );
-
-  function contentLabel(value, fallback) {
-    const clean = stripHtml(value || "");
-    if (!clean) return fallback;
-    return clean.length > 12 ? `${clean.slice(0, 12).trim()}…` : clean;
-  }
-
   const content = useMemo(() => {
     const defaults = {
       hero: {
         title: `Welcome to DLCF ${displayName}`,
-        subtitle: `Worship, fellowship, and spiritual growth in ${displayName}`,
+        subtitle: "Welcome Home",
         intro: `Connect with the brethren in ${displayName}, stay updated with state activities, and find the right place to worship and grow in the Word.`,
-        ctaPrimary: "Find a Centre",
-        ctaSecondary: "View Publications",
+        ctaPrimary: "Join a Fellowship",
+        ctaSecondary: "Watch Messages",
         backgroundImageUrl: "/hero-image.jpg",
       },
       about: {
-        label: "Welcome",
-        title: `About DLCF ${displayName}`,
+        label: "Who We Are",
+        title: "Rooted in Grace, Driven by Purpose",
         body: `DLCF ${displayName} exists to help people encounter Christ, grow in discipleship, and stay rooted in sound doctrine through worship, fellowship, and outreach.`,
         imageUrl: "",
       },
       worship: {
-        label: "Connect",
-        title: "Worship With Us",
+        label: "Find Your Community",
+        title: "Find a Fellowship Centre",
         body: "Looking for a place to worship, connect, and grow? Explore fellowship opportunities, locate centres, and stay connected with the life of the ministry in this state.",
         primaryLabel: "Find a Centre",
         primaryUrl: "/states",
@@ -137,31 +110,31 @@ export default function StateDetailPage({ stateSlug, states }) {
         sideBody: `Use the state pages, updates, and contact details below to connect with the ministry in ${displayName}.`,
       },
       updates: {
-        label: "Updates",
-        title: "State Updates",
-        body: `Follow recent updates, announcements, and ministry moments from ${displayName}.`,
+        label: "Recent Messages",
+        title: "Spiritual Nourishment",
+        body: `Rewatch our most recent teachings and stay transformed by the power of the Word in ${displayName}.`,
       },
       eventsSection: {
         label: "Events",
-        title: `Upcoming activities in ${displayName}`,
-        body: "Stay informed about upcoming state programmes, meetings, and ministry events.",
+        title: "Sacred Gatherings",
+        body: "Mark your calendar for upcoming revival meetings, Bible studies, and ministry programmes.",
       },
       gallerySection: {
         label: "Gallery",
-        title: "Highlights from around the state",
+        title: "State Fellowship Highlights",
         body: "Snapshots of worship, fellowship, and ministry moments across the state.",
       },
       publicationsSection: {
-        label: "Gospel Publications",
-        title: "Spiritual food and wisdom for the modern believer",
+        label: "Resources",
+        title: "Faith Resources & Publications",
         body: "Read articles, devotionals, and faith-building publications for the state audience.",
-        ctaLabel: "View All Articles →",
+        ctaLabel: "View All Resources →",
       },
       events: [{ title: "", date: "", time: "", type: "" }],
       gallery: [{ url: "", caption: "" }],
       contact: {
-        label: "Contact",
-        title: "Contact the State Team",
+        label: "Reach Out",
+        title: "Need Prayer or Spiritual Counseling?",
         body: `Reach out to the state team for enquiries, worship information, and fellowship guidance in ${displayName}.`,
         imageUrl: "",
         address: "",
@@ -197,247 +170,264 @@ export default function StateDetailPage({ stateSlug, states }) {
     };
   }, [homeContent, displayName]);
 
+  const validEvents = content.events.filter((event) => event.title || event.date || event.time || event.type);
+  const validGallery = content.gallery.filter((item) => item.url);
+  const validSections = content.sections.filter((section) => section.title || section.content);
+
   if (!stateId) return null;
 
   return (
-    <div className="premium-state-page state-home-v2">
+    <div className="premium-state-page state-home-reference">
       <SEO title={`${displayName} State | DLCF`} description={`Welcome to DLCF ${displayName}. Join us for worship and discipleship.`} />
       <StatePublicHeader stateName={displayName} stateSlug={stateId} />
 
-      <main className="state-home-main">
-        <section className="state-hero-v2">
-          <div
-            className="state-hero-v2__bg"
-            style={{ backgroundImage: `url(${content.hero.backgroundImageUrl || "https://images.unsplash.com/photo-1523803326055-9729b9e02e5f?auto=format&fit=crop&q=80&w=1600"})` }}
-          />
-          <div className="state-hero-v2__overlay" />
-          <div className="container state-hero-v2__inner">
-            <div className="state-hero-v2__copy">
-              <span className="state-hero-v2__eyebrow">{content.hero.subtitle || `DLCF ${displayName}`}</span>
-              <h1>{content.hero.title}</h1>
-              <p className="state-hero-v2__intro">{stripHtml(content.hero.intro)}</p>
-              <div className="state-hero-v2__actions">
-                <Link to={content.worship.primaryUrl || "/states"} className="state-btn state-btn--primary">
-                  {content.hero.ctaPrimary || "Find a Centre"}
+      <main className="state-reference-main">
+        <section className="state-ref-hero">
+          <div className="container state-ref-hero__grid">
+            <div className="state-ref-hero__copy">
+              <span className="state-ref-badge">{content.hero.subtitle || "Welcome Home"}</span>
+              <h1>
+                {content.hero.title || `Welcome to DLCF ${displayName}`}
+              </h1>
+              <p>{stripHtml(content.hero.intro)}</p>
+              <div className="state-ref-actions">
+                <Link to={content.worship.primaryUrl || "/states"} className="state-ref-btn state-ref-btn--primary">
+                  {content.hero.ctaPrimary || "Join a Fellowship"}
                 </Link>
-                <Link to={`/${stateId}/publications`} className="state-btn state-btn--ghost">
-                  {content.hero.ctaSecondary || "View Publications"}
+                <Link to={`/${stateId}/media`} className="state-ref-btn state-ref-btn--secondary">
+                  {content.hero.ctaSecondary || "Watch Messages"}
                 </Link>
               </div>
             </div>
-
-            <div className="state-hero-v2__panel">
-              <div className="state-hero-v2__panel-card">
-                <span className="state-hero-v2__panel-label">State snapshot</span>
-                <h3>{displayName}</h3>
-                <p>{excerpt(content.about.body, 150) || `Connect with worship, updates, and ministry life in ${displayName}.`}</p>
+            <div className="state-ref-hero__mediaWrap">
+              <div className="state-ref-hero__glow" />
+              <div className="state-ref-hero__imageCard">
+                <img
+                  src={content.hero.backgroundImageUrl || content.about.imageUrl || "https://placehold.co/900x1100?text=State+Fellowship"}
+                  alt={`${displayName} fellowship`}
+                />
               </div>
-              <div className="state-hero-v2__facts">
-                {quickFacts.map((fact) => (
-                  <div key={fact.label} className="state-fact-card">
-                    <span className="state-fact-card__value">{fact.value}</span>
-                    <span className="state-fact-card__label">{fact.label}</span>
-                    <small>{fact.note}</small>
-                  </div>
-                ))}
+              <div className="state-ref-statCard">
+                <div className="state-ref-statCard__number">{statePosts.length > 0 ? `${statePosts.length}+` : "50+"}</div>
+                <p>{`Fellowship centres and ministry touchpoints across ${displayName}`}</p>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="state-section-v2 state-section-v2--intro">
-          <div className="container state-two-column">
-            <div className="state-copy-block">
+        <section className="state-ref-section state-ref-section--soft">
+          <div className="container state-ref-bento">
+            <div className="state-ref-bento__intro">
               <span className="section-label">{content.about.label}</span>
               <h2>{content.about.title}</h2>
-              <div dangerouslySetInnerHTML={{ __html: content.about.body }} />
+              <p>{excerpt(content.about.body, 240)}</p>
             </div>
-            <div className="state-image-frame state-image-frame--tall">
-              <img src={content.about.imageUrl || "https://placehold.co/900x700?text=State+Fellowship"} alt={`${displayName} fellowship`} />
-            </div>
-          </div>
-        </section>
-
-        <section className="state-section-v2 state-section-v2--soft">
-          <div className="container state-two-column state-two-column--reverse-balance">
-            <div className="state-highlight-card">
-              <span className="section-label">{content.worship.label}</span>
-              <h2>{content.worship.title}</h2>
-              <div dangerouslySetInnerHTML={{ __html: content.worship.body }} />
-              <div className="state-inline-actions">
-                <Link to={content.worship.primaryUrl || "/states"} className="state-btn state-btn--primary">
-                  {content.worship.primaryLabel || "Find a Centre"}
-                </Link>
-                <Link to={content.worship.secondaryUrl || "#state-contact"} className="state-btn state-btn--outline">
-                  {content.worship.secondaryLabel || "Contact State Team"}
-                </Link>
-              </div>
-            </div>
-            <div className="state-image-frame state-image-frame--overlay">
-              <img src={content.worship.imageUrl || "https://placehold.co/900x900?text=State+Worship+Guide"} alt="Worship guide" />
-              <div className="state-image-frame__overlayCard">
-                <span className="state-image-frame__kicker">Connect</span>
-                <h3>{content.worship.sideTitle}</h3>
-                <p>{excerpt(content.worship.sideBody, 150)}</p>
-              </div>
+            <div className="state-ref-bento__cards">
+              <article className="state-ref-infoCard state-ref-infoCard--primary">
+                <span className="material-symbols-outlined">auto_awesome</span>
+                <h3>Who We Are</h3>
+                <p>{excerpt(content.about.body, 120)}</p>
+              </article>
+              <article className="state-ref-infoCard state-ref-infoCard--accent">
+                <span className="material-symbols-outlined">rocket_launch</span>
+                <h3>Our Mission</h3>
+                <p>{excerpt(content.worship.sideBody || content.worship.body, 120)}</p>
+              </article>
             </div>
           </div>
         </section>
 
-        <section className="state-section-v2 state-section-v2--dark">
+        <section className="state-ref-section">
           <div className="container">
-            <div className="state-section-head state-section-head--centered">
-              <span className="section-label">{content.updates.label}</span>
-              <h2>{content.updates.title}</h2>
-              <p>{excerpt(content.updates.body, 180)}</p>
-            </div>
-            <div className="state-card-grid">
-              {postsError ? <p className="status">{postsError}</p> : null}
-              {statePosts.length === 0 ? (
-                <div className="state-content-card state-content-card--empty" style={{ gridColumn: "1 / -1" }}>
-                  <div className="state-content-card__body">
-                    <span className="card-tag">No updates yet</span>
-                    <h4>No state updates available</h4>
-                    <p>State updates published for {displayName} will appear here.</p>
-                  </div>
-                </div>
-              ) : (
-                statePosts.slice(0, 3).map((post) => (
-                  <div key={post.id} className="state-content-card">
-                    <div className="state-content-card__thumb">
-                      <img src={post.feature_image_url || "https://placehold.co/700x450?text=State+Update"} alt={post.title} />
-                    </div>
-                    <div className="state-content-card__body">
-                      <span className="card-tag">{post.type || "Update"}</span>
-                      <h4>{post.title}</h4>
-                      <p>{excerpt(post.excerpt || post.content || "", 120)}</p>
-                      <Link to={`/${stateId}/updates/${post.slug || post.id}`} className="read-more">Read More</Link>
-                    </div>
-                  </div>
-                ))
-              )}
+            <div className="state-ref-actionsGrid">
+              <Link to={content.worship.primaryUrl || "/states"} className="state-ref-actionCard">
+                <span className="material-symbols-outlined">location_on</span>
+                <h4>Find a Center</h4>
+                <p>Locate the nearest DLCF center near your campus.</p>
+              </Link>
+              <Link to="#state-events" className="state-ref-actionCard">
+                <span className="material-symbols-outlined">event</span>
+                <h4>Upcoming Programs</h4>
+                <p>Stay updated with our state and campus activities.</p>
+              </Link>
+              <Link to="#state-contact" className="state-ref-actionCard">
+                <span className="material-symbols-outlined">support_agent</span>
+                <h4>Prayer Request</h4>
+                <p>Let us stand in faith with you and support your journey.</p>
+              </Link>
+              <Link to={`/${stateId}/media`} className="state-ref-actionCard">
+                <span className="material-symbols-outlined">video_library</span>
+                <h4>Recent Messages</h4>
+                <p>Access life-changing sermons and Bible studies.</p>
+              </Link>
             </div>
           </div>
         </section>
 
-        <section className="state-section-v2">
+        <section id="state-events" className="state-ref-section state-ref-section--white">
           <div className="container">
-            <div className="state-section-head">
+            <div className="state-ref-sectionHead">
               <div>
-                <span className="section-label">{content.publicationsSection.label}</span>
-                <h2>{content.publicationsSection.title}</h2>
-                <p>{excerpt(content.publicationsSection.body, 180)}</p>
+                <h2>{content.eventsSection.title}</h2>
+                <p>{content.eventsSection.body}</p>
               </div>
-              <Link to={`/${stateId}/publications`} className="view-all">{content.publicationsSection.ctaLabel || "View All Articles →"}</Link>
+              <Link to={`/${stateId}/updates`} className="state-ref-moreLink">View All Events</Link>
             </div>
-            <div className="state-card-grid">
-              {publicationsError ? <p className="status">{publicationsError}</p> : null}
-              {publications.length === 0 ? (
-                <div className="state-content-card state-content-card--empty" style={{ gridColumn: "1 / -1" }}>
-                  <div className="state-content-card__body">
-                    <span className="card-tag">No publications yet</span>
-                    <h4>Nothing published for this state</h4>
-                    <p>When publications are published for {displayName}, they will appear here automatically.</p>
-                    <Link to={`/${stateId}/publications`} className="read-more">View Library</Link>
+            <div className="state-ref-eventGrid">
+              {(validEvents.length ? validEvents : [{ title: "Upcoming State Programme", date: "Date to be announced", time: "", type: "Event" }]).slice(0, 3).map((event, idx) => (
+                <article key={`event-${idx}`} className="state-ref-eventCard">
+                  <div className="state-ref-eventCard__image">
+                    <img
+                      src={validGallery[idx]?.url || content.about.imageUrl || "https://placehold.co/800x500?text=Event"}
+                      alt={event.title || "Event"}
+                    />
+                    <div className="state-ref-eventDate">{event.date || "Soon"}</div>
                   </div>
-                </div>
-              ) : (
-                publications.slice(0, 3).map((item) => (
-                  <div key={item.id} className="state-content-card state-content-card--light">
-                    <div className="state-content-card__thumb">
-                      <img src={item.cover_image_url || "https://placehold.co/700x450?text=Publication"} alt={item.title} />
+                  <div className="state-ref-eventCard__body">
+                    <h3>{event.title || "Upcoming event"}</h3>
+                    <div className="state-ref-eventMeta">
+                      <span>{event.time || "Time TBA"}</span>
+                      <span>{event.type || "Programme"}</span>
                     </div>
-                    <div className="state-content-card__body">
-                      <span className="card-tag">{item.publication_type || "Publication"}</span>
-                      <h4>{item.title}</h4>
-                      <p>{excerpt(item.description || "", 120)}</p>
-                      <Link to={`/${stateId}/publications/${item.id}`} className="read-more">Read More</Link>
-                    </div>
+                    <button type="button">View Details</button>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-        </section>
-
-        {content.events.filter((event) => event.title || event.date || event.time || event.type).length > 0 ? (
-          <section className="state-section-v2 state-section-v2--soft">
-            <div className="container">
-              <div className="state-section-head">
-                <div>
-                  <span className="section-label">{content.eventsSection.label}</span>
-                  <h2>{content.eventsSection.title}</h2>
-                  <p>{excerpt(content.eventsSection.body, 180)}</p>
-                </div>
-              </div>
-              <div className="state-event-grid">
-                {content.events.filter((event) => event.title || event.date || event.time || event.type).map((event, idx) => (
-                  <div key={`event-card-${idx}`} className="state-event-card">
-                    <span className="card-tag">{event.type || "Event"}</span>
-                    <h4>{event.title || "Upcoming event"}</h4>
-                    <p>{[event.date, event.time].filter(Boolean).join(" • ") || "Date to be announced"}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        {content.gallery.filter((item) => item.url).length > 0 ? (
-          <section className="state-section-v2">
-            <div className="container">
-              <div className="state-section-head">
-                <div>
-                  <span className="section-label">{content.gallerySection.label}</span>
-                  <h2>{content.gallerySection.title}</h2>
-                  <p>{excerpt(content.gallerySection.body, 180)}</p>
-                </div>
-              </div>
-              <div className="state-gallery-grid">
-                {content.gallery.filter((item) => item.url).map((item, idx) => (
-                  <div key={`gallery-${idx}`} className="state-gallery-card">
-                    <img src={item.url} alt={item.caption || `Gallery ${idx + 1}`} />
-                    <div className="state-gallery-card__caption">
-                      <p>{item.caption || "State ministry highlight"}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        {content.sections.filter((section) => section.title || section.content).length > 0 ? (
-          <section className="state-section-v2 state-section-v2--soft">
-            <div className="container state-custom-sections">
-              {content.sections.filter((section) => section.title || section.content).map((section, idx) => (
-                <div key={`section-${idx}`} className="state-custom-card">
-                  {section.title ? <h3>{section.title}</h3> : null}
-                  {section.content ? <div dangerouslySetInnerHTML={{ __html: section.content }} /> : null}
-                </div>
+                </article>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="state-ref-section state-ref-section--darkBand">
+          <div className="container state-ref-community">
+            <div className="state-ref-community__copy">
+              <h2>{content.worship.title || "Find Your Community"}</h2>
+              <p>{excerpt(content.worship.body, 220)}</p>
+              <div className="state-ref-searchBox">
+                <input type="text" readOnly value={content.worship.sideTitle || `Search by school or city in ${displayName}`} />
+                <span className="material-symbols-outlined">search</span>
+              </div>
+              <div className="state-ref-communityList">
+                <div className="state-ref-communityItem">
+                  <div>
+                    <h5>{displayName} Headquarters</h5>
+                    <p>{content.contact.address || `${displayName}, Nigeria`}</p>
+                  </div>
+                  <span className="material-symbols-outlined">directions</span>
+                </div>
+                <div className="state-ref-communityItem">
+                  <div>
+                    <h5>Campus Fellowship Center</h5>
+                    <p>{excerpt(content.worship.sideBody, 70) || "Find the nearest campus fellowship center."}</p>
+                  </div>
+                  <span className="material-symbols-outlined">directions</span>
+                </div>
+              </div>
+            </div>
+            <div className="state-ref-community__map">
+              <img
+                src={content.worship.imageUrl || content.contact.imageUrl || "https://placehold.co/1200x800?text=Map+or+Location+Visual"}
+                alt="State location visual"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="state-ref-section">
+          <div className="container">
+            <div className="state-ref-sectionHead state-ref-sectionHead--center">
+              <div>
+                <h2>{content.updates.title}</h2>
+                <p>{content.updates.body}</p>
+              </div>
+            </div>
+            <div className="state-ref-messageGrid">
+              {(statePosts.length ? statePosts : [{ id: "placeholder-1", title: "Walking in Divine Purpose", excerpt: "Recent teachings and messages will appear here.", type: "Weekly Bible Study" }, { id: "placeholder-2", title: "The Power of Intercession", excerpt: "Watch the latest state convergence messages.", type: "State Convergence" }, { id: "placeholder-3", title: "Leading with Integrity", excerpt: "Messages on leadership and spiritual growth.", type: "Leadership Summit" }]).slice(0, 3).map((post) => (
+                <article key={post.id} className="state-ref-messageCard">
+                  <div className="state-ref-messageCard__thumb">
+                    <img src={post.feature_image_url || content.about.imageUrl || "https://placehold.co/700x450?text=Message"} alt={post.title} />
+                    <div className="state-ref-messageCard__play">
+                      <span className="material-symbols-outlined">play_circle</span>
+                    </div>
+                  </div>
+                  <div className="state-ref-messageCard__body">
+                    <p>{post.type || "Recent Message"}</p>
+                    <h4>{post.title}</h4>
+                    <Link to={post.id?.toString().startsWith("placeholder") ? `/${stateId}/media` : `/${stateId}/updates/${post.slug || post.id}`}>
+                      Watch Now
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="state-ref-section state-ref-section--soft">
+          <div className="container">
+            <div className="state-ref-sectionHead state-ref-sectionHead--center">
+              <div>
+                <h2>{content.publicationsSection.title}</h2>
+                <p>{content.publicationsSection.body}</p>
+              </div>
+            </div>
+            <div className="state-ref-resourceGrid">
+              {(publications.length ? publications : [{ id: "resource-1", title: "Daily Devotional", description: "Spirit-filled publications for your growth.", publication_type: "Devotional" }, { id: "resource-2", title: "Bible Study Notes", description: "Sound doctrine and practical Christian living.", publication_type: "Study" }, { id: "resource-3", title: "Campus Revival Bulletin", description: "Faith-building content for students and youths.", publication_type: "Bulletin" }]).slice(0, 3).map((item) => (
+                <article key={item.id} className="state-ref-resourceCard">
+                  <div className="state-ref-resourceCard__thumb">
+                    <img src={item.cover_image_url || validGallery[0]?.url || "https://placehold.co/700x450?text=Resource"} alt={item.title} />
+                  </div>
+                  <div className="state-ref-resourceCard__body">
+                    <span>{item.publication_type || "Publication"}</span>
+                    <h4>{item.title}</h4>
+                    <p>{excerpt(item.description || "", 120)}</p>
+                    <Link to={item.id?.toString().startsWith("resource-") ? `/${stateId}/publications` : `/${stateId}/publications/${item.id}`}>
+                      Read More
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {(validGallery.length > 0 || validSections.length > 0) ? (
+          <section className="state-ref-section state-ref-section--white">
+            <div className="container">
+              <div className="state-ref-sectionHead state-ref-sectionHead--center">
+                <div>
+                  <h2>{content.gallerySection.title}</h2>
+                  <p>{content.gallerySection.body}</p>
+                </div>
+              </div>
+              <div className="state-ref-galleryGrid">
+                {validGallery.slice(0, 4).map((item, idx) => (
+                  <article key={`gallery-${idx}`} className="state-ref-galleryCard">
+                    <img src={item.url} alt={item.caption || `Gallery ${idx + 1}`} />
+                    <div className="state-ref-galleryCard__caption">{item.caption || "State ministry highlight"}</div>
+                  </article>
+                ))}
+                {validSections.slice(0, Math.max(0, 4 - validGallery.length)).map((section, idx) => (
+                  <article key={`section-${idx}`} className="state-ref-galleryCard state-ref-galleryCard--text">
+                    <h3>{section.title || "State Highlight"}</h3>
+                    <p>{excerpt(section.content, 160)}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
           </section>
         ) : null}
 
-        <section id="state-contact" className="state-section-v2 state-section-v2--contact">
-          <div className="container state-two-column">
-            <div className="state-contact-card">
-              <span className="section-label">{content.contact.label}</span>
-              <h2>{content.contact.title || `Reach DLCF ${displayName}`}</h2>
-              <div dangerouslySetInnerHTML={{ __html: content.contact.body }} />
-              <div className="state-contact-list">
-                {content.contact.address ? <p><strong>Address:</strong> {content.contact.address}</p> : null}
-                {content.contact.email ? <p><strong>Email:</strong> {content.contact.email}</p> : null}
-                {content.contact.phone ? <p><strong>Phone:</strong> {content.contact.phone}</p> : null}
-                {!content.contact.address && !content.contact.email && !content.contact.phone ? (
-                  <p>Contact details for {displayName} will appear here once updated by the state team.</p>
-                ) : null}
-              </div>
+        <section id="state-contact" className="state-ref-ctaBand">
+          <div className="container state-ref-ctaBand__inner">
+            <div>
+              <h2>{content.contact.title}</h2>
+              <p>{excerpt(content.contact.body, 180)}</p>
+              {content.contact.email ? <p className="state-ref-contactMini">{content.contact.email}</p> : null}
+              {content.contact.phone ? <p className="state-ref-contactMini">{content.contact.phone}</p> : null}
             </div>
-            <div className="state-image-frame state-image-frame--contact">
-              <img src={content.contact.imageUrl || "https://placehold.co/900x700?text=Contact+State+Team"} alt="Contact state team" />
-            </div>
+            <Link to={content.contact.email ? `mailto:${content.contact.email}` : content.worship.secondaryUrl || "#state-contact"} className="state-ref-btn state-ref-btn--cta">
+              Reach Out Today
+            </Link>
           </div>
         </section>
       </main>
