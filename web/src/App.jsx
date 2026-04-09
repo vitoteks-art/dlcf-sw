@@ -39,6 +39,7 @@ import StateDetailPage from "./pages/StateDetailPage";
 import StatePostPage from "./pages/StatePostPage";
 import LoginPage from "./pages/LoginPage";
 import "./App.css";
+import "./state-home-v2.css";
 import { apiFetch, ensureCsrf, API_BASE } from "./api";
 
 const emptyCounts = {
@@ -71,15 +72,52 @@ const defaultStateHomeContent = {
     ctaSecondary: "",
     backgroundImageUrl: "",
   },
-  stats: {
-    members: "",
-    regions: "",
-    centers: "",
-    growth: "",
+  about: {
+    label: "",
+    title: "",
+    body: "",
+    imageUrl: "",
+  },
+  worship: {
+    label: "",
+    title: "",
+    body: "",
+    primaryLabel: "",
+    primaryUrl: "",
+    secondaryLabel: "",
+    secondaryUrl: "",
+    imageUrl: "",
+    sideTitle: "",
+    sideBody: "",
+  },
+  updates: {
+    label: "",
+    title: "",
+    body: "",
+  },
+  eventsSection: {
+    label: "",
+    title: "",
+    body: "",
+  },
+  gallerySection: {
+    label: "",
+    title: "",
+    body: "",
+  },
+  publicationsSection: {
+    label: "",
+    title: "",
+    body: "",
+    ctaLabel: "",
   },
   events: [{ title: "", date: "", time: "", type: "" }],
   gallery: [{ url: "", caption: "" }],
   contact: {
+    label: "",
+    title: "",
+    body: "",
+    imageUrl: "",
     address: "",
     email: "",
     phone: "",
@@ -587,6 +625,8 @@ function App() {
     ["administrator", "state_cord", "associate_cord", "region_cord"].includes(
       user.role
     );
+  const canViewReportsOnly =
+    user && ["zonal_rep", "state_rep", "region_rep"].includes(user.role);
   const canViewAdmin =
     canManageStates ||
     canManageRegions ||
@@ -597,7 +637,8 @@ function App() {
     canManageUsers ||
     canManageMedia ||
     canManagePublications ||
-    canPublishMedia;
+    canPublishMedia ||
+    canViewReportsOnly;
 
   useEffect(() => {
     // Only check auth on portal/admin pages.
@@ -2149,6 +2190,60 @@ function App() {
     }
   };
 
+  const handleAddRole = async (event) => {
+    event.preventDefault();
+    setStatus("");
+    try {
+      await apiFetch("/admin/roles", {
+        method: "POST",
+        body: JSON.stringify({ name: adminRoleName }),
+      });
+      setStatus("Role added.");
+      setAdminRoleName("");
+      loadAdminRoles();
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const handleEditRole = async (event) => {
+    event.preventDefault();
+    if (!adminRoleEditId) return;
+    setStatus("");
+    try {
+      await apiFetch(`/admin/roles/${adminRoleEditId}`, {
+        method: "PUT",
+        body: JSON.stringify({ name: adminRoleEditName }),
+      });
+      setStatus("Role updated.");
+      setAdminRoleEditId("");
+      setAdminRoleEditName("");
+      loadAdminRoles();
+      loadAdminUsers();
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const handleDeleteRole = async (id) => {
+    if (!window.confirm("Delete this role?")) {
+      return;
+    }
+    setStatus("");
+    try {
+      await apiFetch(`/admin/roles/${id}`, { method: "DELETE" });
+      setStatus("Role deleted.");
+      if (String(adminRoleEditId) === String(id)) {
+        setAdminRoleEditId("");
+        setAdminRoleEditName("");
+      }
+      loadAdminRoles();
+      loadAdminUsers();
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
   const loadAdminCategories = async () => {
     try {
       const data = await apiFetch("/admin/categories");
@@ -2268,7 +2363,7 @@ function App() {
     return json?.data?.url || "";
   };
 
-  const loadAdminStateHome = async (state) => {
+  const loadAdminStateHome = useCallback(async (state) => {
     if (!state) {
       setAdminStateHomeContent(null);
       return;
@@ -2287,22 +2382,43 @@ function App() {
         JSON.parse(JSON.stringify(defaultStateHomeContent))
       );
     }
-  };
+  }, []);
 
-  const handleSaveStateHome = async (event) => {
+  const handleSaveStateHome = async (event, contentOverride) => {
     event.preventDefault();
     setStatus("");
     try {
-      await apiFetch("/state/home", {
+      const nextContent = contentOverride || adminStateHomeContent || defaultStateHomeContent;
+      const mergedContent = {
+        ...(adminStateHomeContent || defaultStateHomeContent),
+        ...nextContent,
+        hero: { ...(adminStateHomeContent?.hero || defaultStateHomeContent.hero), ...(nextContent.hero || {}) },
+        about: { ...(adminStateHomeContent?.about || defaultStateHomeContent.about), ...(nextContent.about || {}) },
+        worship: { ...(adminStateHomeContent?.worship || defaultStateHomeContent.worship), ...(nextContent.worship || {}) },
+        updates: { ...(adminStateHomeContent?.updates || defaultStateHomeContent.updates), ...(nextContent.updates || {}) },
+        eventsSection: { ...(adminStateHomeContent?.eventsSection || defaultStateHomeContent.eventsSection), ...(nextContent.eventsSection || {}) },
+        gallerySection: { ...(adminStateHomeContent?.gallerySection || defaultStateHomeContent.gallerySection), ...(nextContent.gallerySection || {}) },
+        publicationsSection: { ...(adminStateHomeContent?.publicationsSection || defaultStateHomeContent.publicationsSection), ...(nextContent.publicationsSection || {}) },
+        contact: { ...(adminStateHomeContent?.contact || defaultStateHomeContent.contact), ...(nextContent.contact || {}) },
+        events: Array.isArray(nextContent.events) ? nextContent.events : (adminStateHomeContent?.events || defaultStateHomeContent.events),
+        gallery: Array.isArray(nextContent.gallery) ? nextContent.gallery : (adminStateHomeContent?.gallery || defaultStateHomeContent.gallery),
+        sections: Array.isArray(nextContent.sections) ? nextContent.sections : (adminStateHomeContent?.sections || defaultStateHomeContent.sections),
+      };
+
+      const result = await apiFetch("/state/home", {
         method: "PUT",
         body: JSON.stringify({
           state: adminStateHomeState,
-          content: adminStateHomeContent || defaultStateHomeContent,
+          content: mergedContent,
         }),
       });
-      setStatus("State homepage updated.");
+      setAdminStateHomeContent(mergedContent);
+      await loadAdminStateHome(adminStateHomeState);
+      setStatus(`State homepage updated successfully for ${adminStateHomeState}.`);
+      return result;
     } catch (err) {
-      setStatus(err.message);
+      setStatus(`Failed to save state homepage: ${err.message}`);
+      throw err;
     }
   };
 
@@ -2495,6 +2611,9 @@ function App() {
     handleAddUser,
     handleEditUser,
     handleDeleteUser,
+    handleAddRole,
+    handleEditRole,
+    handleDeleteRole,
     toggleWorkUnit,
     handleAddStatePost,
     handleEditStatePost,

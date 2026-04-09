@@ -1,392 +1,448 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
 import StatePublicHeader from "../components/StatePublicHeader";
 import PublicFooter from "../components/PublicFooter";
 import SEO from "../components/SEO";
 
+const stripHtml = (value) => String(value || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+const excerpt = (value, max = 140) => {
+  const clean = stripHtml(value);
+  return clean.length > max ? `${clean.slice(0, max).trim()}…` : clean;
+};
+
 const slugifyState = (value) =>
-    String(value)
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
+  String(value)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 export default function StateDetailPage({ stateSlug, states }) {
-    const location = useLocation();
-    const params = useParams();
+  const location = useLocation();
+  const params = useParams();
 
-    const stateId = stateSlug || params.stateId || location.pathname.split("/")[2];
+  const stateId = stateSlug || params.stateId || location.pathname.split("/")[2];
 
-    const [statePosts, setStatePosts] = useState([]);
-    const [postsError, setPostsError] = useState("");
-    const [homeContent, setHomeContent] = useState(null);
-    const [publicStats, setPublicStats] = useState(null);
-    const [publications, setPublications] = useState([]);
-    const [publicationsError, setPublicationsError] = useState("");
+  const [statePosts, setStatePosts] = useState([]);
+  const [postsError, setPostsError] = useState("");
+  const [homeContent, setHomeContent] = useState(null);
+  const [publications, setPublications] = useState([]);
+  const [publicationsError, setPublicationsError] = useState("");
 
-    const resolvedStateName = useMemo(() => {
-        if (!states || states.length === 0) return null;
-        const match = states.find((state) => {
-            const name = typeof state === "string" ? state : state?.name || state?.slug;
-            return slugifyState(name) === stateId;
-        });
-        return typeof match === "string" ? match : match?.name || null;
-    }, [stateId, states]);
+  const resolvedStateName = useMemo(() => {
+    if (!states || states.length === 0) return null;
+    const match = states.find((state) => {
+      const name = typeof state === "string" ? state : state?.name || state?.slug;
+      return slugifyState(name) === stateId;
+    });
+    return typeof match === "string" ? match : match?.name || null;
+  }, [stateId, states]);
 
-    useEffect(() => {
-        setPostsError("");
-        apiFetch(`/public/states/${stateId}/posts`)
-            .then((data) => setStatePosts(data.items || []))
-            .catch((err) => setPostsError(err.message));
+  const stateSelector = resolvedStateName || stateId;
 
-        apiFetch(`/public/states/${stateId}/home`)
-            .then((data) => setHomeContent(data.item || null))
-            .catch(() => setHomeContent(null));
+  useEffect(() => {
+    if (!stateSelector) return;
+    setPostsError("");
+    apiFetch(`/public/states/${encodeURIComponent(stateSelector)}/posts`)
+      .then((data) => setStatePosts(data.items || []))
+      .catch((err) => setPostsError(err.message));
 
-        apiFetch(`/public/states/${stateId}/stats`)
-            .then((data) => setPublicStats(data.item || null))
-            .catch(() => setPublicStats(null));
-    }, [stateId]);
+    apiFetch(`/public/state-home.php?slug=${encodeURIComponent(stateSelector)}`)
+      .then((data) => setHomeContent(data.item || null))
+      .catch(() => setHomeContent(null));
+  }, [stateSelector]);
 
-    useEffect(() => {
-        // Load state publications directly from the database via the publications API.
-        setPublicationsError("");
-        if (!resolvedStateName) {
-            setPublications([]);
-            return;
-        }
-        const query = new URLSearchParams();
-        query.set("state", resolvedStateName);
-        query.set("scope", "state");
-        apiFetch(`/publication-items?${query.toString()}`)
-            .then((data) => setPublications(data.items || []))
-            .catch((err) => setPublicationsError(err.message));
-    }, [resolvedStateName]);
+  useEffect(() => {
+    setPublicationsError("");
+    if (!resolvedStateName) {
+      setPublications([]);
+      return;
+    }
+    const query = new URLSearchParams();
+    query.set("state", resolvedStateName);
+    query.set("scope", "state");
+    apiFetch(`/publication-items?${query.toString()}`)
+      .then((data) => setPublications(data.items || []))
+      .catch((err) => setPublicationsError(err.message));
+  }, [resolvedStateName]);
 
-    const formatStateName = (name) => {
-        const n = String(name || "").trim();
-        const m = n.match(/^(.+?)\s+State\s+\((.+)\)$/i);
-        if (m) return `${m[1]} (${m[2]}) State`;
-        const m2 = n.match(/^(.+?)\s+State\s+(\d+)$/i);
-        if (m2) return `${m2[1]} (${m2[2]}) State`;
-        return n;
+  const formatStateName = (name) => {
+    const n = String(name || "").trim();
+    const m = n.match(/^(.+?)\s+State\s+\((.+)\)$/i);
+    if (m) return `${m[1]} (${m[2]}) State`;
+    const m2 = n.match(/^(.+?)\s+State\s+(\d+)$/i);
+    if (m2) return `${m2[1]} (${m2[2]}) State`;
+    return n;
+  };
+
+  const displayName = formatStateName(
+    resolvedStateName || stateId.charAt(0).toUpperCase() + stateId.slice(1).replace("-", " ")
+  );
+
+  const quickFacts = useMemo(
+    () => [
+      {
+        label: "State updates",
+        value: statePosts.length > 0 ? String(statePosts.length).padStart(2, "0") : "Fresh",
+        note: statePosts.length > 0 ? "recent stories" : "content hub",
+      },
+      {
+        label: "Publications",
+        value: publications.length > 0 ? String(publications.length).padStart(2, "0") : "Read",
+        note: publications.length > 0 ? "faith resources" : "library ready",
+      },
+      {
+        label: "Worship",
+        value: contentLabel(homeContent?.worship?.title, "Join us"),
+        note: "find fellowship",
+      },
+    ],
+    [statePosts.length, publications.length, homeContent]
+  );
+
+  function contentLabel(value, fallback) {
+    const clean = stripHtml(value || "");
+    if (!clean) return fallback;
+    return clean.length > 12 ? `${clean.slice(0, 12).trim()}…` : clean;
+  }
+
+  const content = useMemo(() => {
+    const defaults = {
+      hero: {
+        title: `Welcome to DLCF ${displayName}`,
+        subtitle: `Worship, fellowship, and spiritual growth in ${displayName}`,
+        intro: `Connect with the brethren in ${displayName}, stay updated with state activities, and find the right place to worship and grow in the Word.`,
+        ctaPrimary: "Find a Centre",
+        ctaSecondary: "View Publications",
+        backgroundImageUrl: "/hero-image.jpg",
+      },
+      about: {
+        label: "Welcome",
+        title: `About DLCF ${displayName}`,
+        body: `DLCF ${displayName} exists to help people encounter Christ, grow in discipleship, and stay rooted in sound doctrine through worship, fellowship, and outreach.`,
+        imageUrl: "",
+      },
+      worship: {
+        label: "Connect",
+        title: "Worship With Us",
+        body: "Looking for a place to worship, connect, and grow? Explore fellowship opportunities, locate centres, and stay connected with the life of the ministry in this state.",
+        primaryLabel: "Find a Centre",
+        primaryUrl: "/states",
+        secondaryLabel: "Contact State Team",
+        secondaryUrl: "#state-contact",
+        imageUrl: "",
+        sideTitle: "Find fellowship opportunities",
+        sideBody: `Use the state pages, updates, and contact details below to connect with the ministry in ${displayName}.`,
+      },
+      updates: {
+        label: "Updates",
+        title: "State Updates",
+        body: `Follow recent updates, announcements, and ministry moments from ${displayName}.`,
+      },
+      eventsSection: {
+        label: "Events",
+        title: `Upcoming activities in ${displayName}`,
+        body: "Stay informed about upcoming state programmes, meetings, and ministry events.",
+      },
+      gallerySection: {
+        label: "Gallery",
+        title: "Highlights from around the state",
+        body: "Snapshots of worship, fellowship, and ministry moments across the state.",
+      },
+      publicationsSection: {
+        label: "Gospel Publications",
+        title: "Spiritual food and wisdom for the modern believer",
+        body: "Read articles, devotionals, and faith-building publications for the state audience.",
+        ctaLabel: "View All Articles →",
+      },
+      events: [{ title: "", date: "", time: "", type: "" }],
+      gallery: [{ url: "", caption: "" }],
+      contact: {
+        label: "Contact",
+        title: "Contact the State Team",
+        body: `Reach out to the state team for enquiries, worship information, and fellowship guidance in ${displayName}.`,
+        imageUrl: "",
+        address: "",
+        email: "",
+        phone: "",
+      },
+      sections: [{ title: "", content: "" }],
     };
 
-    const displayName = formatStateName(
-        resolvedStateName || stateId.charAt(0).toUpperCase() + stateId.slice(1).replace("-", " ")
-    );
+    return {
+      ...defaults,
+      ...(homeContent || {}),
+      hero: { ...defaults.hero, ...((homeContent || {}).hero || {}) },
+      about: { ...defaults.about, ...((homeContent || {}).about || {}) },
+      worship: { ...defaults.worship, ...((homeContent || {}).worship || {}) },
+      updates: { ...defaults.updates, ...((homeContent || {}).updates || {}) },
+      eventsSection: { ...defaults.eventsSection, ...((homeContent || {}).eventsSection || {}) },
+      gallerySection: { ...defaults.gallerySection, ...((homeContent || {}).gallerySection || {}) },
+      publicationsSection: { ...defaults.publicationsSection, ...((homeContent || {}).publicationsSection || {}) },
+      contact: { ...defaults.contact, ...((homeContent || {}).contact || {}) },
+      events:
+        Array.isArray((homeContent || {}).events) && (homeContent || {}).events.length > 0
+          ? (homeContent || {}).events
+          : defaults.events,
+      gallery:
+        Array.isArray((homeContent || {}).gallery) && (homeContent || {}).gallery.length > 0
+          ? (homeContent || {}).gallery
+          : defaults.gallery,
+      sections:
+        Array.isArray((homeContent || {}).sections) && (homeContent || {}).sections.length > 0
+          ? (homeContent || {}).sections
+          : defaults.sections,
+    };
+  }, [homeContent, displayName]);
 
-    const content = useMemo(() => {
-        const defaults = {
-            hero: {
-                title: `Experience God's Presence in ${displayName}`,
-                subtitle: `Sunday service is live now`,
-                intro: `Join our vibrant community of believers at the heart of ${displayName}. Connecting thousands through faith, purpose, and the undiluted Word of God.`,
-                ctaPrimary: "Join Live Broadcast",
-                ctaSecondary: "Find a Center Near You",
-                backgroundImageUrl: "/hero-image.jpg"
-            },
-            stats: { members: "0", regions: "0", centers: "0", growth: "15%" },
-            events: [],
-            gallery: [],
-            contact: {},
-            sections: []
-        };
+  if (!stateId) return null;
 
-        const merged = !homeContent
-            ? defaults
-            : {
-                ...defaults,
-                ...homeContent,
-                hero: { ...defaults.hero, ...homeContent.hero },
-                stats: { ...defaults.stats, ...homeContent.stats },
-            };
+  return (
+    <div className="premium-state-page state-home-v2">
+      <SEO title={`${displayName} State | DLCF`} description={`Welcome to DLCF ${displayName}. Join us for worship and discipleship.`} />
+      <StatePublicHeader stateName={displayName} stateSlug={stateId} />
 
-        // Prefer live counts from the database
-        if (publicStats) {
-            merged.stats = {
-                ...merged.stats,
-                regions: String(publicStats.regions_count ?? merged.stats.regions),
-                centers: String(publicStats.centres_count ?? merged.stats.centers),
-                members: String(publicStats.members_count ?? merged.stats.members),
-            };
-        }
+      <main className="state-home-main">
+        <section className="state-hero-v2">
+          <div
+            className="state-hero-v2__bg"
+            style={{ backgroundImage: `url(${content.hero.backgroundImageUrl || "https://images.unsplash.com/photo-1523803326055-9729b9e02e5f?auto=format&fit=crop&q=80&w=1600"})` }}
+          />
+          <div className="state-hero-v2__overlay" />
+          <div className="container state-hero-v2__inner">
+            <div className="state-hero-v2__copy">
+              <span className="state-hero-v2__eyebrow">{content.hero.subtitle || `DLCF ${displayName}`}</span>
+              <h1>{content.hero.title}</h1>
+              <p className="state-hero-v2__intro">{stripHtml(content.hero.intro)}</p>
+              <div className="state-hero-v2__actions">
+                <Link to={content.worship.primaryUrl || "/states"} className="state-btn state-btn--primary">
+                  {content.hero.ctaPrimary || "Find a Centre"}
+                </Link>
+                <Link to={`/${stateId}/publications`} className="state-btn state-btn--ghost">
+                  {content.hero.ctaSecondary || "View Publications"}
+                </Link>
+              </div>
+            </div>
 
-        return merged;
-    }, [homeContent, publicStats, displayName]);
+            <div className="state-hero-v2__panel">
+              <div className="state-hero-v2__panel-card">
+                <span className="state-hero-v2__panel-label">State snapshot</span>
+                <h3>{displayName}</h3>
+                <p>{excerpt(content.about.body, 150) || `Connect with worship, updates, and ministry life in ${displayName}.`}</p>
+              </div>
+              <div className="state-hero-v2__facts">
+                {quickFacts.map((fact) => (
+                  <div key={fact.label} className="state-fact-card">
+                    <span className="state-fact-card__value">{fact.value}</span>
+                    <span className="state-fact-card__label">{fact.label}</span>
+                    <small>{fact.note}</small>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
 
-    if (!stateId) return null;
+        <section className="state-section-v2 state-section-v2--intro">
+          <div className="container state-two-column">
+            <div className="state-copy-block">
+              <span className="section-label">{content.about.label}</span>
+              <h2>{content.about.title}</h2>
+              <div dangerouslySetInnerHTML={{ __html: content.about.body }} />
+            </div>
+            <div className="state-image-frame state-image-frame--tall">
+              <img src={content.about.imageUrl || "https://placehold.co/900x700?text=State+Fellowship"} alt={`${displayName} fellowship`} />
+            </div>
+          </div>
+        </section>
 
-    return (
-        <div className="premium-state-page">
-            <SEO title={`${displayName} State | DLCF`} description={`Welcome to DLCF ${displayName}. Join us for worship and discipleship.`} />
+        <section className="state-section-v2 state-section-v2--soft">
+          <div className="container state-two-column state-two-column--reverse-balance">
+            <div className="state-highlight-card">
+              <span className="section-label">{content.worship.label}</span>
+              <h2>{content.worship.title}</h2>
+              <div dangerouslySetInnerHTML={{ __html: content.worship.body }} />
+              <div className="state-inline-actions">
+                <Link to={content.worship.primaryUrl || "/states"} className="state-btn state-btn--primary">
+                  {content.worship.primaryLabel || "Find a Centre"}
+                </Link>
+                <Link to={content.worship.secondaryUrl || "#state-contact"} className="state-btn state-btn--outline">
+                  {content.worship.secondaryLabel || "Contact State Team"}
+                </Link>
+              </div>
+            </div>
+            <div className="state-image-frame state-image-frame--overlay">
+              <img src={content.worship.imageUrl || "https://placehold.co/900x900?text=State+Worship+Guide"} alt="Worship guide" />
+              <div className="state-image-frame__overlayCard">
+                <span className="state-image-frame__kicker">Connect</span>
+                <h3>{content.worship.sideTitle}</h3>
+                <p>{excerpt(content.worship.sideBody, 150)}</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
-            <StatePublicHeader stateName={displayName} stateSlug={stateId} />
-
-            <main>
-                {/* Hero Section (Tailwind) */}
-                <section className="relative overflow-hidden">
-                    <div
-                        className="absolute inset-0 bg-cover bg-center"
-                        style={{
-                            backgroundImage: `url(${content.hero.backgroundImageUrl || "https://images.unsplash.com/photo-1523803326055-9729b9e02e5f?auto=format&fit=crop&q=80&w=1600"})`,
-                        }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#0b1117]/90 via-[#0b1117]/70 to-[#0b1117]/40" />
-                    <div className="relative px-6 md:px-20 lg:px-40 py-16 md:py-24">
-                        <div className="max-w-4xl">
-                            {content.hero.subtitle ? (
-                                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 text-white px-4 py-2 text-sm font-semibold border border-white/15">
-                                    <span className="material-symbols-outlined text-[18px]">campaign</span>
-                                    {content.hero.subtitle}
-                                </span>
-                            ) : null}
-
-                            <h1 className="mt-5 text-4xl md:text-5xl font-black leading-tight tracking-tight text-white">
-                                {content.hero.title}
-                            </h1>
-                            <p className="mt-4 text-base md:text-lg text-white/85 max-w-3xl">
-                                {content.hero.intro}
-                            </p>
-
-                            <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                                <Link
-                                    to={"/media"}
-                                    className="inline-flex items-center justify-center rounded-lg h-12 px-6 bg-primary text-white text-sm font-bold shadow-md hover:bg-opacity-90 transition-all"
-                                >
-                                    <span className="material-symbols-outlined text-[18px] mr-2">live_tv</span>
-                                    {content.hero.ctaPrimary || "View Media"}
-                                </Link>
-                                <Link
-                                    to={`/${stateId}/publications`}
-                                    className="inline-flex items-center justify-center rounded-lg h-12 px-6 bg-white/10 text-white text-sm font-bold border border-white/20 hover:bg-white/15 transition-all"
-                                >
-                                    <span className="material-symbols-outlined text-[18px] mr-2">menu_book</span>
-                                    {content.hero.ctaSecondary || "Gospel Library"}
-                                </Link>
-                            </div>
-
-                            <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {[ 
-                                  { label: "Regions", value: content.stats.regions },
-                                  { label: "Members", value: content.stats.members },
-                                  { label: "Centers", value: content.stats.centers },
-                                  { label: "Growth", value: content.stats.growth },
-                                ].map((s) => (
-                                    <div key={s.label} className="rounded-xl bg-white/10 border border-white/15 p-4">
-                                        <div className="text-2xl font-black text-white">{s.value}</div>
-                                        <div className="text-xs font-semibold text-white/75 uppercase tracking-wider mt-1">{s.label}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+        <section className="state-section-v2 state-section-v2--dark">
+          <div className="container">
+            <div className="state-section-head state-section-head--centered">
+              <span className="section-label">{content.updates.label}</span>
+              <h2>{content.updates.title}</h2>
+              <p>{excerpt(content.updates.body, 180)}</p>
+            </div>
+            <div className="state-card-grid">
+              {postsError ? <p className="status">{postsError}</p> : null}
+              {statePosts.length === 0 ? (
+                <div className="state-content-card state-content-card--empty" style={{ gridColumn: "1 / -1" }}>
+                  <div className="state-content-card__body">
+                    <span className="card-tag">No updates yet</span>
+                    <h4>No state updates available</h4>
+                    <p>State updates published for {displayName} will appear here.</p>
+                  </div>
+                </div>
+              ) : (
+                statePosts.slice(0, 3).map((post) => (
+                  <div key={post.id} className="state-content-card">
+                    <div className="state-content-card__thumb">
+                      <img src={post.feature_image_url || "https://placehold.co/700x450?text=State+Update"} alt={post.title} />
                     </div>
-                </section>
-
-                {/* About & Stats Section */}
-                <section className="state-about-section">
-                    <div className="container split-grid">
-                        <div className="about-text">
-                            <span className="section-label">Our Legacy</span>
-                            <h2>Serving {displayName} State with Faith & Purpose</h2>
-                            <p>
-                                For over three decades, the DLCF {displayName} has stood as a beacon of hope and spiritual growth in the {displayName} region.
-                                Our missionaries and volunteers are dedicated to transforming lives through the power of Christ, reaching every corner of the state.
-                            </p>
-                            <div className="stats-row">
-                                <div className="stat-item">
-                                    <span className="stat-number">{content.stats.regions}</span>
-                                    <span className="stat-label">Active Regions</span>
-                                </div>
-                                <div className="stat-item">
-                                    <span className="stat-number">{content.stats.members}</span>
-                                    <span className="stat-label">Community Members</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="about-image-card">
-                            <img src="https://placehold.co/800x600?text=State+Headquarters" alt="Headquarters" />
-                        </div>
+                    <div className="state-content-card__body">
+                      <span className="card-tag">{post.type || "Update"}</span>
+                      <h4>{post.title}</h4>
+                      <p>{excerpt(post.excerpt || post.content || "", 120)}</p>
+                      <Link to={`/${stateId}/updates/${post.slug || post.id}`} className="read-more">Read More</Link>
                     </div>
-                </section>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </section>
 
-                {/* Gospel Publications Section */}
-                <section className="state-publications-section">
-                    <div className="container">
-                        <div className="section-header">
-                            <div>
-                                <span className="section-label">Gospel Publications</span>
-                                <h2>Spiritual food and wisdom for the modern believer</h2>
-                            </div>
-                            <Link to={`/${stateId}/publications`} className="view-all">View All Articles →</Link>
-                        </div>
-                        <div className="publications-grid">
-                            {publicationsError ? <p className="status">{publicationsError}</p> : null}
-
-                            {publications.length === 0 ? (
-                                <div className="publication-card" style={{ gridColumn: "1 / -1" }}>
-                                    <div className="card-body">
-                                        <span className="card-tag">No publications yet</span>
-                                        <h4>Nothing published for this state</h4>
-                                        <p>
-                                            When publications are published for {displayName}, they will appear here automatically.
-                                        </p>
-                                        <Link to={`/${stateId}/publications`} className="read-more">View Library</Link>
-                                    </div>
-                                </div>
-                            ) : (
-                                publications.slice(0, 3).map((item) => (
-                                    <div key={item.id} className="publication-card">
-                                        <div className="card-thumb">
-                                            <img
-                                                src={item.cover_image_url || "https://placehold.co/400x250?text=Publication"}
-                                                alt={item.title}
-                                            />
-                                        </div>
-                                        <div className="card-body">
-                                            <span className="card-tag">{item.publication_type || "Publication"}</span>
-                                            <h4>{item.title}</h4>
-                                            <p>
-                                                {(item.description || "").replace(/<[^>]+>/g, "").substring(0, 110)}
-                                                {item.description && item.description.length > 110 ? "…" : ""}
-                                            </p>
-                                            <Link to={`/${stateId}/publications/${item.id}`} className="read-more">Read More</Link>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
+        <section className="state-section-v2">
+          <div className="container">
+            <div className="state-section-head">
+              <div>
+                <span className="section-label">{content.publicationsSection.label}</span>
+                <h2>{content.publicationsSection.title}</h2>
+                <p>{excerpt(content.publicationsSection.body, 180)}</p>
+              </div>
+              <Link to={`/${stateId}/publications`} className="view-all">{content.publicationsSection.ctaLabel || "View All Articles →"}</Link>
+            </div>
+            <div className="state-card-grid">
+              {publicationsError ? <p className="status">{publicationsError}</p> : null}
+              {publications.length === 0 ? (
+                <div className="state-content-card state-content-card--empty" style={{ gridColumn: "1 / -1" }}>
+                  <div className="state-content-card__body">
+                    <span className="card-tag">No publications yet</span>
+                    <h4>Nothing published for this state</h4>
+                    <p>When publications are published for {displayName}, they will appear here automatically.</p>
+                    <Link to={`/${stateId}/publications`} className="read-more">View Library</Link>
+                  </div>
+                </div>
+              ) : (
+                publications.slice(0, 3).map((item) => (
+                  <div key={item.id} className="state-content-card state-content-card--light">
+                    <div className="state-content-card__thumb">
+                      <img src={item.cover_image_url || "https://placehold.co/700x450?text=Publication"} alt={item.title} />
                     </div>
-                </section>
-
-                {/* Recent Sermons & Media Section */}
-                <section className="state-media-section dark-bg">
-                    <div className="container">
-                        <div className="section-header centered">
-                            <h2>Recent Sermons & Media</h2>
-                            <p>Stay spiritually nourished with our latest messages and state-wide broadcasts.</p>
-                        </div>
-                        <div className="media-layout-grid">
-                            <div className="featured-video">
-                                <div className="video-poster" style={{ backgroundImage: `url(https://placehold.co/1200x800?text=Featured+Sermon)` }}>
-                                    <div className="play-button">▶</div>
-                                    <div className="poster-caption">
-                                        <span className="date-tag">State Convention 2026</span>
-                                        <h3>The Mandate of Restoration</h3>
-                                        <p>Watch full session from the state headquarters.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="side-media-list">
-                                {[
-                                    { title: "Pastoral Thanksgiving Night", date: "Jan 12, 2026" },
-                                    { title: "Healing & Deliverance Hour", date: "Jan 15, 2026" },
-                                    { title: "Foundations of Faith Pt. 4", date: "Jan 19, 2026" },
-                                    { title: "Workers' Retreat 2026", date: "Jan 22, 2026" }
-                                ].map((item, id) => (
-                                    <div key={id} className="mini-media-card">
-                                        <img src={`https://placehold.co/150x100?text=Media+${id + 1}`} alt="Media" />
-                                        <div className="mini-body">
-                                            <h5>{item.title}</h5>
-                                            <p>{item.date}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                    <div className="state-content-card__body">
+                      <span className="card-tag">{item.publication_type || "Publication"}</span>
+                      <h4>{item.title}</h4>
+                      <p>{excerpt(item.description || "", 120)}</p>
+                      <Link to={`/${stateId}/publications/${item.id}`} className="read-more">Read More</Link>
                     </div>
-                </section>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </section>
 
-                {/* Leadership Section */}
-                <section className="state-leadership-section">
-                    <div className="container centered">
-                        <span className="section-label">State Leadership</span>
-                        <h2>Shepherding the flock with integrity and vision</h2>
+        {content.events.filter((event) => event.title || event.date || event.time || event.type).length > 0 ? (
+          <section className="state-section-v2 state-section-v2--soft">
+            <div className="container">
+              <div className="state-section-head">
+                <div>
+                  <span className="section-label">{content.eventsSection.label}</span>
+                  <h2>{content.eventsSection.title}</h2>
+                  <p>{excerpt(content.eventsSection.body, 180)}</p>
+                </div>
+              </div>
+              <div className="state-event-grid">
+                {content.events.filter((event) => event.title || event.date || event.time || event.type).map((event, idx) => (
+                  <div key={`event-card-${idx}`} className="state-event-card">
+                    <span className="card-tag">{event.type || "Event"}</span>
+                    <h4>{event.title || "Upcoming event"}</h4>
+                    <p>{[event.date, event.time].filter(Boolean).join(" • ") || "Date to be announced"}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
-                        <div className="main-leader">
-                            <div className="leader-avatar-large">
-                                <img src="https://placehold.co/300x300?text=State+Coordinator" alt="State Coordinator" />
-                            </div>
-                            <h3>Pastor Adebayo Samuel</h3>
-                            <span className="leader-role">STATE COORDINATOR</span>
-                            <p className="leader-quote">"Dedicated to building a purposeful fellowship where every soul is spiritually and socially empowered."</p>
-                        </div>
-
-                        <div className="sub-leadership-grid">
-                            {[
-                                { name: "Bro. David Johnson", role: "STATE SECRETARY" },
-                                { name: "Sis. Grace Williams", role: "STATE TREASURER" },
-                                { name: "Bro. Festus Akindele", role: "STATE WORK COORDINATOR" },
-                                { name: "Bro. Emmanuel Okoro", role: "STATE MEDIA LEAD" }
-                            ].map((leader, idx) => (
-                                <div key={idx} className="leader-card-small">
-                                    <div className="leader-avatar-small">
-                                        <img src={`https://placehold.co/150x150?text=Ref+${idx}`} alt={leader.name} />
-                                    </div>
-                                    <h5>{leader.name}</h5>
-                                    <p>{leader.role}</p>
-                                </div>
-                            ))}
-                        </div>
+        {content.gallery.filter((item) => item.url).length > 0 ? (
+          <section className="state-section-v2">
+            <div className="container">
+              <div className="state-section-head">
+                <div>
+                  <span className="section-label">{content.gallerySection.label}</span>
+                  <h2>{content.gallerySection.title}</h2>
+                  <p>{excerpt(content.gallerySection.body, 180)}</p>
+                </div>
+              </div>
+              <div className="state-gallery-grid">
+                {content.gallery.filter((item) => item.url).map((item, idx) => (
+                  <div key={`gallery-${idx}`} className="state-gallery-card">
+                    <img src={item.url} alt={item.caption || `Gallery ${idx + 1}`} />
+                    <div className="state-gallery-card__caption">
+                      <p>{item.caption || "State ministry highlight"}</p>
                     </div>
-                </section>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
-                {/* Service Times & Locations Section */}
-                <section className="state-locations-section gray-bg">
-                    <div className="container split-grid">
-                        <div className="locations-info">
-                            <h2>Service Times & Locations</h2>
-                            <p>Find us across the state at our various meeting centers.</p>
+        {content.sections.filter((section) => section.title || section.content).length > 0 ? (
+          <section className="state-section-v2 state-section-v2--soft">
+            <div className="container state-custom-sections">
+              {content.sections.filter((section) => section.title || section.content).map((section, idx) => (
+                <div key={`section-${idx}`} className="state-custom-card">
+                  {section.title ? <h3>{section.title}</h3> : null}
+                  {section.content ? <div dangerouslySetInnerHTML={{ __html: section.content }} /> : null}
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
-                            <div className="location-list">
-                                <div className="location-item active">
-                                    <div className="loc-icon">📍</div>
-                                    <div className="loc-details">
-                                        <h4>State Headquarters</h4>
-                                        <p>Plot 12, Church Avenue, Old Governor's Office Area, {displayName} State.</p>
-                                        <div className="loc-times">
-                                            <span><strong>SUNDAYS:</strong> 8:00 AM & 5:00 PM</span>
-                                            <span><strong>THURSDAYS:</strong> 6:00 PM</span>
-                                        </div>
-                                        <Link to="/" className="get-directions">Get Directions ↗</Link>
-                                    </div>
-                                </div>
-                                <div className="location-item">
-                                    <div className="loc-icon">📍</div>
-                                    <div className="loc-details">
-                                        <h4>Iwo Zonal Center</h4>
-                                        <p>Plot 5, Main Road, Iwo, {displayName} State.</p>
-                                    </div>
-                                </div>
-                                <div className="location-item">
-                                    <div className="loc-icon">📍</div>
-                                    <div className="loc-details">
-                                        <h4>Ilesa Town Center</h4>
-                                        <p>Victory Cathedral, Inner Road, Ilesa, Osun.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="locations-map">
-                            <div className="map-placeholder">
-                                <img src="https://placehold.co/800x800?text=Interactive+State+Map" alt="Map" />
-                                <div className="map-overlay">
-                                    <div className="overlay-content">
-                                        <span className="icon">📍</span>
-                                        <h4>View Centers on Map</h4>
-                                        <p>Explore all 400+ parishes and fellowship centers across the state.</p>
-                                        <button className="btn-primary-small">Explore Map</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </main>
+        <section id="state-contact" className="state-section-v2 state-section-v2--contact">
+          <div className="container state-two-column">
+            <div className="state-contact-card">
+              <span className="section-label">{content.contact.label}</span>
+              <h2>{content.contact.title || `Reach DLCF ${displayName}`}</h2>
+              <div dangerouslySetInnerHTML={{ __html: content.contact.body }} />
+              <div className="state-contact-list">
+                {content.contact.address ? <p><strong>Address:</strong> {content.contact.address}</p> : null}
+                {content.contact.email ? <p><strong>Email:</strong> {content.contact.email}</p> : null}
+                {content.contact.phone ? <p><strong>Phone:</strong> {content.contact.phone}</p> : null}
+                {!content.contact.address && !content.contact.email && !content.contact.phone ? (
+                  <p>Contact details for {displayName} will appear here once updated by the state team.</p>
+                ) : null}
+              </div>
+            </div>
+            <div className="state-image-frame state-image-frame--contact">
+              <img src={content.contact.imageUrl || "https://placehold.co/900x700?text=Contact+State+Team"} alt="Contact state team" />
+            </div>
+          </div>
+        </section>
+      </main>
 
-            <PublicFooter />
-        </div>
-    );
+      <PublicFooter />
+    </div>
+  );
 }
-
