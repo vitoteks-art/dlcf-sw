@@ -12,6 +12,18 @@ const excerpt = (value, max = 140) => {
   return clean.length > max ? `${clean.slice(0, max).trim()}…` : clean;
 };
 
+const normalizeImageUrl = (value, fallback = "") => {
+  const raw = String(value || "").trim();
+  if (!raw) return fallback;
+  if (/^https?:\/\//i.test(raw) || raw.startsWith("data:")) return raw;
+  if (raw.startsWith("//")) return `https:${raw}`;
+  if (raw.startsWith("/uploads/") || raw.startsWith("uploads/")) {
+    const cleaned = raw.startsWith("/") ? raw : `/${raw}`;
+    return `https://api.dlcfsw.org.ng${cleaned}`;
+  }
+  return raw;
+};
+
 const slugifyState = (value) =>
   String(value)
     .toLowerCase()
@@ -89,7 +101,7 @@ export default function StateDetailPage({ stateSlug, states }) {
         intro: `Connect with the brethren in ${displayName}, stay updated with state activities, and find the right place to worship and grow in the Word.`,
         ctaPrimary: "Join a Fellowship",
         ctaSecondary: "Watch Messages",
-        backgroundImageUrl: "/hero-image.jpg",
+        backgroundImageUrl: "https://api.dlcfsw.org.ng/hero-image.jpg",
       },
       about: {
         label: "Who We Are",
@@ -170,6 +182,12 @@ export default function StateDetailPage({ stateSlug, states }) {
     };
   }, [homeContent, displayName]);
 
+  const heroImageUrl = normalizeImageUrl(content.hero.backgroundImageUrl, "https://api.dlcfsw.org.ng/hero-image.jpg");
+  const aboutImageUrl = normalizeImageUrl(content.about.imageUrl, heroImageUrl || "https://placehold.co/900x700?text=State+Fellowship");
+  const worshipImageUrl = normalizeImageUrl(content.worship.imageUrl, aboutImageUrl || heroImageUrl || "https://placehold.co/1200x800?text=State+Location");
+  const contactImageUrl = normalizeImageUrl(content.contact.imageUrl, aboutImageUrl || "https://placehold.co/900x700?text=Contact+State+Team");
+  const firstGalleryImageUrl = normalizeImageUrl(validGallery[0]?.url || "", aboutImageUrl || heroImageUrl);
+
   const validEvents = content.events.filter((event) => event.title || event.date || event.time || event.type);
   const validGallery = content.gallery.filter((item) => item.url);
   const validSections = content.sections.filter((section) => section.title || section.content);
@@ -203,7 +221,7 @@ export default function StateDetailPage({ stateSlug, states }) {
               <div className="state-ref-hero__glow" />
               <div className="state-ref-hero__imageCard">
                 <img
-                  src={content.hero.backgroundImageUrl || content.about.imageUrl || "https://placehold.co/900x1100?text=State+Fellowship"}
+                  src={heroImageUrl || aboutImageUrl || "https://placehold.co/900x1100?text=State+Fellowship"}
                   alt={`${displayName} fellowship`}
                 />
               </div>
@@ -278,7 +296,7 @@ export default function StateDetailPage({ stateSlug, states }) {
                 <article key={`event-${idx}`} className="state-ref-eventCard">
                   <div className="state-ref-eventCard__image">
                     <img
-                      src={validGallery[idx]?.url || content.about.imageUrl || "https://placehold.co/800x500?text=Event"}
+                      src={normalizeImageUrl(validGallery[idx]?.url || "", aboutImageUrl || "https://placehold.co/800x500?text=Event")}
                       alt={event.title || "Event"}
                     />
                     <div className="state-ref-eventDate">{event.date || "Soon"}</div>
@@ -325,7 +343,7 @@ export default function StateDetailPage({ stateSlug, states }) {
             </div>
             <div className="state-ref-community__map">
               <img
-                src={content.worship.imageUrl || content.contact.imageUrl || "https://placehold.co/1200x800?text=Map+or+Location+Visual"}
+                src={worshipImageUrl || contactImageUrl || "https://placehold.co/1200x800?text=Map+or+Location+Visual"}
                 alt="State location visual"
               />
             </div>
@@ -344,7 +362,7 @@ export default function StateDetailPage({ stateSlug, states }) {
               {(statePosts.length ? statePosts : [{ id: "placeholder-1", title: "Walking in Divine Purpose", excerpt: "Recent teachings and messages will appear here.", type: "Weekly Bible Study" }, { id: "placeholder-2", title: "The Power of Intercession", excerpt: "Watch the latest state convergence messages.", type: "State Convergence" }, { id: "placeholder-3", title: "Leading with Integrity", excerpt: "Messages on leadership and spiritual growth.", type: "Leadership Summit" }]).slice(0, 3).map((post) => (
                 <article key={post.id} className="state-ref-messageCard">
                   <div className="state-ref-messageCard__thumb">
-                    <img src={post.feature_image_url || content.about.imageUrl || "https://placehold.co/700x450?text=Message"} alt={post.title} />
+                    <img src={normalizeImageUrl(post.feature_image_url || "", aboutImageUrl || "https://placehold.co/700x450?text=Message")} alt={post.title} />
                     <div className="state-ref-messageCard__play">
                       <span className="material-symbols-outlined">play_circle</span>
                     </div>
@@ -374,7 +392,7 @@ export default function StateDetailPage({ stateSlug, states }) {
               {(publications.length ? publications : [{ id: "resource-1", title: "Daily Devotional", description: "Spirit-filled publications for your growth.", publication_type: "Devotional" }, { id: "resource-2", title: "Bible Study Notes", description: "Sound doctrine and practical Christian living.", publication_type: "Study" }, { id: "resource-3", title: "Campus Revival Bulletin", description: "Faith-building content for students and youths.", publication_type: "Bulletin" }]).slice(0, 3).map((item) => (
                 <article key={item.id} className="state-ref-resourceCard">
                   <div className="state-ref-resourceCard__thumb">
-                    <img src={item.cover_image_url || validGallery[0]?.url || "https://placehold.co/700x450?text=Resource"} alt={item.title} />
+                    <img src={normalizeImageUrl(item.cover_image_url || "", firstGalleryImageUrl || "https://placehold.co/700x450?text=Resource")} alt={item.title} />
                   </div>
                   <div className="state-ref-resourceCard__body">
                     <span>{item.publication_type || "Publication"}</span>
@@ -402,7 +420,7 @@ export default function StateDetailPage({ stateSlug, states }) {
               <div className="state-ref-galleryGrid">
                 {validGallery.slice(0, 4).map((item, idx) => (
                   <article key={`gallery-${idx}`} className="state-ref-galleryCard">
-                    <img src={item.url} alt={item.caption || `Gallery ${idx + 1}`} />
+                    <img src={normalizeImageUrl(item.url, firstGalleryImageUrl || "https://placehold.co/700x450?text=Gallery")} alt={item.caption || `Gallery ${idx + 1}`} />
                     <div className="state-ref-galleryCard__caption">{item.caption || "State ministry highlight"}</div>
                   </article>
                 ))}
