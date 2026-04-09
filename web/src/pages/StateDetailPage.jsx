@@ -21,6 +21,7 @@ const normalizeImageUrl = (value, fallback = "") => {
     const cleaned = raw.startsWith("/") ? raw : `/${raw}`;
     return `https://api.dlcfsw.org.ng${cleaned}`;
   }
+  if (raw.startsWith("/")) return raw;
   return raw;
 };
 
@@ -186,7 +187,7 @@ export default function StateDetailPage({ stateSlug, states }) {
   const validGallery = content.gallery.filter((item) => item.url);
   const validSections = content.sections.filter((section) => section.title || section.content);
 
-  const heroImageUrl = normalizeImageUrl(content.hero.backgroundImageUrl, normalizeImageUrl("/hero-image.jpg"));
+  const heroImageUrl = normalizeImageUrl(content.hero.backgroundImageUrl || homeContent?.hero?.backgroundImageUrl, normalizeImageUrl("/hero-image.jpg"));
   const aboutImageUrl = normalizeImageUrl(content.about.imageUrl, heroImageUrl || "https://placehold.co/900x700?text=State+Fellowship");
   const worshipImageUrl = normalizeImageUrl(content.worship.imageUrl, aboutImageUrl || heroImageUrl || "https://placehold.co/1200x800?text=State+Location");
   const contactImageUrl = normalizeImageUrl(content.contact.imageUrl, aboutImageUrl || "https://placehold.co/900x700?text=Contact+State+Team");
