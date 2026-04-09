@@ -276,20 +276,26 @@ export default function StateDetailPage({ stateSlug, states }) {
         <section className="state-ref-section state-ref-section--soft">
           <div className="container state-ref-bento">
             <div className="state-ref-bento__intro">
-              <span className="section-label">{content.about.label}</span>
-              <h2>{content.about.title}</h2>
-              <p>{excerpt(content.about.body, 240)}</p>
+              <span className="section-label">Who We Are</span>
+              <h2>{`Rooted in Grace, Driven by Purpose in ${displayName}`}</h2>
+              <p>
+                {`Deeper Life Campus Fellowship ${displayName} is part of a vibrant ministry committed to building godly students and youths through the Word of God, prayer, holy living, and practical discipleship.`}
+              </p>
             </div>
             <div className="state-ref-bento__cards">
               <article className="state-ref-infoCard state-ref-infoCard--primary">
                 <span className="material-symbols-outlined">auto_awesome</span>
                 <h3>Who We Are</h3>
-                <p>{excerpt(content.about.body, 120)}</p>
+                <p>
+                  We are a Bible-believing community raising spiritually vibrant, disciplined, and purpose-driven students and young people for Christ.
+                </p>
               </article>
               <article className="state-ref-infoCard state-ref-infoCard--accent">
                 <span className="material-symbols-outlined">rocket_launch</span>
                 <h3>Our Mission</h3>
-                <p>{excerpt(content.worship.sideBody || content.worship.body, 120)}</p>
+                <p>
+                  To win souls, build believers in sound doctrine, and send forth godly leaders who will shine for Christ in every sphere of life.
+                </p>
               </article>
             </div>
           </div>
