@@ -182,15 +182,15 @@ export default function StateDetailPage({ stateSlug, states }) {
     };
   }, [homeContent, displayName]);
 
+  const validEvents = content.events.filter((event) => event.title || event.date || event.time || event.type);
+  const validGallery = content.gallery.filter((item) => item.url);
+  const validSections = content.sections.filter((section) => section.title || section.content);
+
   const heroImageUrl = normalizeImageUrl(content.hero.backgroundImageUrl, "https://api.dlcfsw.org.ng/hero-image.jpg");
   const aboutImageUrl = normalizeImageUrl(content.about.imageUrl, heroImageUrl || "https://placehold.co/900x700?text=State+Fellowship");
   const worshipImageUrl = normalizeImageUrl(content.worship.imageUrl, aboutImageUrl || heroImageUrl || "https://placehold.co/1200x800?text=State+Location");
   const contactImageUrl = normalizeImageUrl(content.contact.imageUrl, aboutImageUrl || "https://placehold.co/900x700?text=Contact+State+Team");
   const firstGalleryImageUrl = normalizeImageUrl(validGallery[0]?.url || "", aboutImageUrl || heroImageUrl);
-
-  const validEvents = content.events.filter((event) => event.title || event.date || event.time || event.type);
-  const validGallery = content.gallery.filter((item) => item.url);
-  const validSections = content.sections.filter((section) => section.title || section.content);
 
   if (!stateId) return null;
 
