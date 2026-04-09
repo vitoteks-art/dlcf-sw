@@ -435,14 +435,12 @@ export default function StateDetailPage({ stateSlug, states }) {
         <section id="state-contact" className="state-ref-ctaBand">
           <div className="container state-ref-ctaBand__inner">
             <div>
-              <h2>{content.contact.title}</h2>
-              <p>{excerpt(content.contact.body, 180)}</p>
-              {content.contact.email ? <p className="state-ref-contactMini">{content.contact.email}</p> : null}
-              {content.contact.phone ? <p className="state-ref-contactMini">{content.contact.phone}</p> : null}
+              <h2>Need Prayer or Spiritual Counseling?</h2>
+              <p>Our ministers are available to pray with you, counsel you from the Word of God, and help you stay strong in faith.</p>
             </div>
-            <Link to={content.contact.email ? `mailto:${content.contact.email}` : content.worship.secondaryUrl || "#state-contact"} className="state-ref-btn state-ref-btn--cta">
+            <a href="mailto:info@dlcfsw.org.ng" className="state-ref-btn state-ref-btn--cta">
               Reach Out Today
-            </Link>
+            </a>
           </div>
         </section>
       </main>
