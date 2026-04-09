@@ -204,9 +204,9 @@ export default function StateDetailPage({ stateSlug, states }) {
         <section className="state-ref-hero">
           <div className="container state-ref-hero__grid">
             <div className="state-ref-hero__copy">
-              <span className="state-ref-badge">{content.hero.subtitle || "Welcome Home"}</span>
+              <span className="state-ref-badge">{stripHtml(content.hero.subtitle) || "Welcome Home"}</span>
               <h1>
-                {content.hero.title || `Welcome to DLCF ${displayName}`}
+                {stripHtml(content.hero.title) || `Welcome to DLCF ${displayName}`}
               </h1>
               <p>{stripHtml(content.hero.intro)}</p>
               <div className="state-ref-actions">
