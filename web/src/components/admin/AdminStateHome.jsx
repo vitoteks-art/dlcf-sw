@@ -333,18 +333,9 @@ export default function AdminStateHome({
               <span>Section Intro (Rich Text)</span>
               <RichTextEditor value={content.eventsSection.body} onChange={(val) => update(["eventsSection", "body"], val)} onUploadImage={uploadImage} />
             </div>
-
-            <h5>Events</h5>
-            {content.events.map((event, idx) => (
-              <div key={`event-${idx}`} className="grid-4">
-                <label>Title<input type="text" value={event.title} onChange={(e) => updateList("events", idx, "title", e.target.value)} /></label>
-                <label>Date<input type="text" value={event.date} onChange={(e) => updateList("events", idx, "date", e.target.value)} /></label>
-                <label>Time<input type="text" value={event.time} onChange={(e) => updateList("events", idx, "time", e.target.value)} /></label>
-                <label>Type<input type="text" value={event.type} onChange={(e) => updateList("events", idx, "type", e.target.value)} /></label>
-                <div className="form-actions"><button type="button" onClick={() => removeRow("events", idx)}>Remove</button></div>
-              </div>
-            ))}
-            <button type="button" className="ghost" onClick={() => addRow("events", { title: "", date: "", time: "", type: "" })}>Add Event</button>
+            <div className="status" style={{ marginBottom: "1rem" }}>
+              Event creation has moved out of State Home. Use the dedicated Events admin section to create and manage state events.
+            </div>
 
             <h5>Gallery Section Heading</h5>
             <div className="grid-2">
@@ -384,17 +375,8 @@ export default function AdminStateHome({
             ))}
             <button type="button" className="ghost" onClick={() => addRow("gallery", { url: "", caption: "" })}>Add Photo</button>
 
-            <h5>Publications Section</h5>
-            <div className="grid-2">
-              <label>Section Label<input type="text" value={content.publicationsSection.label} onChange={(e) => update(["publicationsSection", "label"], e.target.value)} /></label>
-              <label>Section Title<input type="text" value={content.publicationsSection.title} onChange={(e) => update(["publicationsSection", "title"], e.target.value)} /></label>
-            </div>
-            <div className="rich-field">
-              <span>Section Intro (Rich Text)</span>
-              <RichTextEditor value={content.publicationsSection.body} onChange={(val) => update(["publicationsSection", "body"], val)} onUploadImage={uploadImage} />
-            </div>
-            <div className="grid-2">
-              <label>CTA Label<input type="text" value={content.publicationsSection.ctaLabel} onChange={(e) => update(["publicationsSection", "ctaLabel"], e.target.value)} /></label>
+            <div className="status" style={{ marginBottom: "1rem" }}>
+              Publications and Media are managed in their own dedicated admin sections and are no longer meant to be managed from State Home.
             </div>
 
             <h5>Contact</h5>
