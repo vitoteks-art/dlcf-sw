@@ -101,7 +101,7 @@ export default function StateDetailPage({ stateSlug, states }) {
         intro: `Connect with the brethren in ${displayName}, stay updated with state activities, and find the right place to worship and grow in the Word.`,
         ctaPrimary: "Join a Fellowship",
         ctaSecondary: "Watch Messages",
-        backgroundImageUrl: "https://api.dlcfsw.org.ng/hero-image.jpg",
+        backgroundImageUrl: "/hero-image.jpg",
       },
       about: {
         label: "Who We Are",
@@ -186,7 +186,7 @@ export default function StateDetailPage({ stateSlug, states }) {
   const validGallery = content.gallery.filter((item) => item.url);
   const validSections = content.sections.filter((section) => section.title || section.content);
 
-  const heroImageUrl = normalizeImageUrl(content.hero.backgroundImageUrl, "https://api.dlcfsw.org.ng/hero-image.jpg");
+  const heroImageUrl = normalizeImageUrl(content.hero.backgroundImageUrl, normalizeImageUrl("/hero-image.jpg"));
   const aboutImageUrl = normalizeImageUrl(content.about.imageUrl, heroImageUrl || "https://placehold.co/900x700?text=State+Fellowship");
   const worshipImageUrl = normalizeImageUrl(content.worship.imageUrl, aboutImageUrl || heroImageUrl || "https://placehold.co/1200x800?text=State+Location");
   const contactImageUrl = normalizeImageUrl(content.contact.imageUrl, aboutImageUrl || "https://placehold.co/900x700?text=Contact+State+Team");
