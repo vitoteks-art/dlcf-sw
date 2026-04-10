@@ -4,6 +4,33 @@ require __DIR__ . '/../lib/response.php';
 require __DIR__ . '/../lib/db.php';
 
 $config = require __DIR__ . '/../config.php';
+$corsOrigin = $config['cors']['origin'] ?? '*';
+$requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$allowOrigin = '';
+if ($corsOrigin === '*') {
+    $allowOrigin = '*';
+} else {
+    $allowed = array_map('trim', explode(',', $corsOrigin));
+    if ($requestOrigin && in_array($requestOrigin, $allowed, true)) {
+        $allowOrigin = $requestOrigin;
+    } elseif (!empty($allowed)) {
+        $allowOrigin = $allowed[0];
+    }
+}
+
+if ($allowOrigin !== '') {
+    header('Access-Control-Allow-Origin: ' . $allowOrigin);
+    header('Vary: Origin');
+}
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
 $db = db_connect($config);
 
 function slugify_public_state_value(string $value): string
