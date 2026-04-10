@@ -268,52 +268,6 @@ export default function AdminStateHome({
               <RichTextEditor value={content.about.body} onChange={(val) => update(["about", "body"], val)} onUploadImage={uploadImage} />
             </div>
 
-            <h5>Worship / Connect Section</h5>
-            <div className="grid-2">
-              <label>Section Label<input type="text" value={content.worship.label} onChange={(e) => update(["worship", "label"], e.target.value)} /></label>
-              <label>Section Title<input type="text" value={content.worship.title} onChange={(e) => update(["worship", "title"], e.target.value)} /></label>
-            </div>
-            <div className="rich-field">
-              <span>Worship / Connect Body (Rich Text)</span>
-              <RichTextEditor value={content.worship.body} onChange={(val) => update(["worship", "body"], val)} onUploadImage={uploadImage} />
-            </div>
-            <div className="grid-2">
-              <label>Primary Button Label<input type="text" value={content.worship.primaryLabel} onChange={(e) => update(["worship", "primaryLabel"], e.target.value)} /></label>
-              <label>Primary Button URL<input type="text" value={content.worship.primaryUrl} onChange={(e) => update(["worship", "primaryUrl"], e.target.value)} /></label>
-            </div>
-            <div className="grid-2">
-              <label>Secondary Button Label<input type="text" value={content.worship.secondaryLabel} onChange={(e) => update(["worship", "secondaryLabel"], e.target.value)} /></label>
-              <label>Secondary Button URL<input type="text" value={content.worship.secondaryUrl} onChange={(e) => update(["worship", "secondaryUrl"], e.target.value)} /></label>
-            </div>
-            <div className="grid-2">
-              <label>Right Panel Image URL<input type="text" value={content.worship.imageUrl} onChange={(e) => update(["worship", "imageUrl"], e.target.value)} /></label>
-              <label>
-                Upload Right Panel Image
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    e.target.value = "";
-                    if (!file) return;
-                    try {
-                      const url = await uploadImage(file);
-                      if (url) update(["worship", "imageUrl"], url);
-                    } catch (err) {
-                      console.error(err);
-                    }
-                  }}
-                />
-              </label>
-            </div>
-            <div className="grid-2">
-              <label>Right Panel Title<input type="text" value={content.worship.sideTitle} onChange={(e) => update(["worship", "sideTitle"], e.target.value)} /></label>
-            </div>
-            <div className="rich-field">
-              <span>Right Panel Body (Rich Text)</span>
-              <RichTextEditor value={content.worship.sideBody} onChange={(val) => update(["worship", "sideBody"], val)} onUploadImage={uploadImage} />
-            </div>
-
             <h5>Updates Section</h5>
             <div className="grid-2">
               <label>Section Label<input type="text" value={content.updates.label} onChange={(e) => update(["updates", "label"], e.target.value)} /></label>
