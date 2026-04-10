@@ -366,7 +366,7 @@ export default function StateDetailPage({ stateSlug, states }) {
                 <h2>{content.eventsSection.title}</h2>
                 <p>{content.eventsSection.body}</p>
               </div>
-              <Link to={`/${stateId}/updates`} className="state-ref-moreLink">View All Events</Link>
+              <Link to={`/${stateId}/events`} className="state-ref-moreLink">View All Events</Link>
             </div>
             <div className="state-ref-eventGrid">
               {(homepageEvents.length ? homepageEvents : [{ title: "Upcoming State Programme", date: "Date to be announced", time: "", type: "Event" }]).slice(0, 3).map((event, idx) => (
@@ -384,7 +384,7 @@ export default function StateDetailPage({ stateSlug, states }) {
                       <span>{event.time || "Time TBA"}</span>
                       <span>{event.type || "Programme"}</span>
                     </div>
-                    <button type="button">View Details</button>
+                    <Link to={event.slug ? `/${stateId}/events/${event.slug}` : `/${stateId}/events`}>View Details</Link>
                   </div>
                 </article>
               ))}

@@ -4,6 +4,7 @@ export default function StatePublicHeader({ stateName = "Osun State", stateSlug 
   const baseSlug = stateSlug || stateName.toLowerCase().replace(/\s+/g, "-");
   const navLinks = [
     { label: "Overview", to: `/${baseSlug}` },
+    { label: "Events", to: `/${baseSlug}/events` },
     { label: "Publications", to: `/${baseSlug}/publications` },
     { label: "Media", to: `/${baseSlug}/media` },
     { label: "Leadership", to: `/${baseSlug}/leadership` },

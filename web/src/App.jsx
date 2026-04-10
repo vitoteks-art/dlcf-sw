@@ -37,6 +37,8 @@ import AboutPage from "./pages/AboutPage";
 import BeliefsPage from "./pages/BeliefsPage";
 import StateDetailPage from "./pages/StateDetailPage";
 import StatePostPage from "./pages/StatePostPage";
+import StateEventsListPage from "./pages/StateEventsListPage";
+import StateEventDetailPage from "./pages/StateEventDetailPage";
 import LoginPage from "./pages/LoginPage";
 import "./App.css";
 import "./state-home-v2.css";
@@ -2663,6 +2665,8 @@ function App() {
       isStatePath && segments[1] === "publications" && !segments[2];
     const isStatePublicationDetail =
       isStatePath && segments[1] === "publications" && segments[2];
+    const isStateEventsList = isStatePath && segments[1] === "events" && !segments[2];
+    const isStateEventDetail = isStatePath && segments[1] === "events" && segments[2];
     return (
       <div className="public-shell">
         {location.pathname === "/" ? (
@@ -2687,6 +2691,10 @@ function App() {
           <GospelLibraryPage stateSlug={stateSlug} states={states} user={user} />
         ) : isStatePublicationDetail ? (
           <StatePublicationsDetailPage stateSlug={stateSlug} states={states} publicationId={segments[2]} />
+        ) : isStateEventsList ? (
+          <StateEventsListPage stateSlug={stateSlug} states={states} />
+        ) : isStateEventDetail ? (
+          <StateEventDetailPage stateSlug={stateSlug} eventSlug={segments[2]} states={states} />
         ) : isLegacyStatePostPath || isStatePostPath ? (
           <StatePostPage
             stateSlug={stateSlug}
@@ -2914,6 +2922,8 @@ function App() {
               }
             />
             <Route path="/states/:stateId" element={<StateDetailPage />} />
+            <Route path="/:stateId/events" element={<StateEventsListPage />} />
+            <Route path="/:stateId/events/:eventSlug" element={<StateEventDetailPage />} />
             <Route
               path="/stmc"
               element={
