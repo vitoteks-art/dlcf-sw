@@ -75,7 +75,7 @@ export default function StateDetailPage({ stateSlug, states }) {
   useEffect(() => {
     if (!stateSelector) return;
     setPostsError("");
-    apiFetch(`/public/states/${encodeURIComponent(stateSelector)}/posts`)
+    apiFetch(`/public/state-events.php?slug=${encodeURIComponent(stateSelector)}`)
       .then((data) => setStatePosts(data.items || []))
       .catch((err) => setPostsError(err.message));
 
