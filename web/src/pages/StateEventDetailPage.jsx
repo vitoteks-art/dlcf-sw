@@ -78,7 +78,7 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
     <div className="bg-[#f7f9fc] text-[#191c1e]">
       <StatePublicHeader stateName={displayName} stateSlug={resolvedStateSlug} />
 
-      <main className="pt-20">
+      <main>
         <header className="relative min-h-[870px] flex items-center overflow-hidden">
           <div className="absolute inset-0 z-0">
             <img alt="Event background" className="w-full h-full object-cover brightness-[0.4]" src={heroImage} />

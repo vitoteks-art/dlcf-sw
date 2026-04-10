@@ -118,7 +118,7 @@ export default function StateEventsListPage({ stateSlug, states }) {
     <div className="bg-[#f7f9fc] text-[#191c1e]">
       <StatePublicHeader stateName={displayName} stateSlug={resolvedStateSlug} />
 
-      <main className="pt-20">
+      <main>
         <section className="relative min-h-[614px] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
             <img
