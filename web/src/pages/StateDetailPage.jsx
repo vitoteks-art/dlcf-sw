@@ -351,18 +351,6 @@ export default function StateDetailPage({ stateSlug, states }) {
                 />
               </div>
             </div>
-            <div className="state-ref-bento__cards">
-              <article className="state-ref-infoCard state-ref-infoCard--primary">
-                <span className="material-symbols-outlined">auto_awesome</span>
-                <h3>{content.about.label || "Who We Are"}</h3>
-                <p>{stripHtml(content.about.body) || "We are a Bible-believing community raising spiritually vibrant, disciplined, and purpose-driven students and young people for Christ."}</p>
-              </article>
-              <article className="state-ref-infoCard state-ref-infoCard--accent">
-                <span className="material-symbols-outlined">rocket_launch</span>
-                <h3>{content.about.title || "Our Mission"}</h3>
-                <p>{stripHtml(content.about.body) || "To win souls, build believers in sound doctrine, and send forth godly leaders who will shine for Christ in every sphere of life."}</p>
-              </article>
-            </div>
           </div>
         </section>
 
