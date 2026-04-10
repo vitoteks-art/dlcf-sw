@@ -56,6 +56,8 @@ export default function StateDetailPage({ stateSlug, states }) {
   const [statePosts, setStatePosts] = useState([]);
   const [postsError, setPostsError] = useState("");
   const [homeContent, setHomeContent] = useState(null);
+  const [mediaItems, setMediaItems] = useState([]);
+  const [mediaError, setMediaError] = useState("");
   const [publications, setPublications] = useState([]);
   const [publicationsError, setPublicationsError] = useState("");
   const [communityQuery, setCommunityQuery] = useState("");
@@ -83,6 +85,20 @@ export default function StateDetailPage({ stateSlug, states }) {
       .then((data) => setHomeContent(data.item || null))
       .catch(() => setHomeContent(null));
   }, [stateSelector]);
+
+  useEffect(() => {
+    setMediaError("");
+    if (!resolvedStateName) {
+      setMediaItems([]);
+      return;
+    }
+    const query = new URLSearchParams();
+    query.set("state", resolvedStateName);
+    query.set("scope", "state");
+    apiFetch(`/media-items?${query.toString()}`)
+      .then((data) => setMediaItems(data.items || []))
+      .catch((err) => setMediaError(err.message));
+  }, [resolvedStateName]);
 
   useEffect(() => {
     setPublicationsError("");
@@ -464,24 +480,25 @@ export default function StateDetailPage({ stateSlug, states }) {
               </div>
             </div>
             <div className="state-ref-messageGrid">
-              {(statePosts.length ? statePosts : [{ id: "placeholder-1", title: "Walking in Divine Purpose", excerpt: "Recent teachings and messages will appear here.", type: "Weekly Bible Study" }, { id: "placeholder-2", title: "The Power of Intercession", excerpt: "Watch the latest state convergence messages.", type: "State Convergence" }, { id: "placeholder-3", title: "Leading with Integrity", excerpt: "Messages on leadership and spiritual growth.", type: "Leadership Summit" }]).slice(0, 3).map((post) => (
-                <article key={post.id} className="state-ref-messageCard">
+              {(mediaItems.length ? mediaItems : [{ id: "placeholder-1", title: "Walking in Divine Purpose", description: "Recent teachings and messages will appear here.", media_type: "audio" }, { id: "placeholder-2", title: "The Power of Intercession", description: "Watch the latest state convergence messages.", media_type: "video" }, { id: "placeholder-3", title: "Leading with Integrity", description: "Messages on leadership and spiritual growth.", media_type: "audio" }]).slice(0, 3).map((item) => (
+                <article key={item.id} className="state-ref-messageCard">
                   <div className="state-ref-messageCard__thumb">
-                    <img src={normalizeImageUrl(post.feature_image_url || "", aboutImageUrl || "https://placehold.co/700x450?text=Message")} alt={post.title} />
+                    <img src={normalizeImageUrl(item.thumbnail_url || "", aboutImageUrl || "https://placehold.co/700x450?text=Message")} alt={item.title} />
                     <div className="state-ref-messageCard__play">
                       <span className="material-symbols-outlined">play_circle</span>
                     </div>
                   </div>
                   <div className="state-ref-messageCard__body">
-                    <p>{post.type || "Recent Message"}</p>
-                    <h4>{post.title}</h4>
-                    <Link to={post.id?.toString().startsWith("placeholder") ? `/${stateId}/media` : `/${stateId}/updates/${post.slug || post.id}`}>
+                    <p>{item.media_type || "Recent Message"}</p>
+                    <h4>{item.title}</h4>
+                    <Link to={item.id?.toString().startsWith("placeholder") ? `/${stateId}/media` : `/${stateId}/media/${item.id}`}>
                       Watch Now
                     </Link>
                   </div>
                 </article>
               ))}
             </div>
+            {mediaError ? <p className="status">{mediaError}</p> : null}
           </div>
         </section>
 
