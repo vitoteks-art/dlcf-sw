@@ -186,15 +186,6 @@ export default function AdminStatePosts({
                   disabled={adminStatePostStatus !== "published"}
                 />
               </label>
-              <label>
-                Event Location
-                <input
-                  type="text"
-                  value={adminStatePostExcerpt}
-                  onChange={(e) => setAdminStatePostExcerpt(e.target.value)}
-                  placeholder="UI Campus Hall, Ibadan"
-                />
-              </label>
             </div>
             <div className="form-actions">
               <button type="submit">{isEditing ? "Update Event" : "Create Event"}</button>
