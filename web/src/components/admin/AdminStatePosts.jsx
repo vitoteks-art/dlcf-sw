@@ -17,6 +17,10 @@ export default function AdminStatePosts({
   setAdminStatePostStatus,
   adminStatePostPublishedAt,
   setAdminStatePostPublishedAt,
+  adminStatePostStartDate,
+  setAdminStatePostStartDate,
+  adminStatePostEndDate,
+  setAdminStatePostEndDate,
   adminStatePostFeatureImage,
   setAdminStatePostFeatureImage,
   adminStatePostContent,
@@ -47,6 +51,8 @@ export default function AdminStatePosts({
     setAdminStatePostType("");
     setAdminStatePostStatus("draft");
     setAdminStatePostPublishedAt("");
+    setAdminStatePostStartDate("");
+    setAdminStatePostEndDate("");
     setAdminStatePostFeatureImage("");
     setAdminStatePostContent("");
     setAdminStatePostCategoryIds([]);
@@ -177,12 +183,31 @@ export default function AdminStatePosts({
                 </select>
               </label>
               <label>
-                Event Date / Range
+                Event Start Date
+                <input
+                  type="date"
+                  value={adminStatePostStartDate}
+                  onChange={(e) => setAdminStatePostStartDate(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="grid-2">
+              <label>
+                Event End Date
+                <input
+                  type="date"
+                  value={adminStatePostEndDate}
+                  onChange={(e) => setAdminStatePostEndDate(e.target.value)}
+                  min={adminStatePostStartDate || undefined}
+                />
+              </label>
+              <label>
+                Published At
                 <input
                   type="text"
                   value={adminStatePostPublishedAt}
                   onChange={(e) => setAdminStatePostPublishedAt(e.target.value)}
-                  placeholder="2026-04-10 or 2026-04-10 to 2026-04-15"
+                  placeholder="YYYY-MM-DD HH:MM:SS"
                   disabled={adminStatePostStatus !== "published"}
                 />
               </label>
@@ -224,7 +249,7 @@ export default function AdminStatePosts({
                   <td>{post.type}</td>
                   <td>{(post.categories || []).join(", ") || "-"}</td>
                   <td>{post.status}</td>
-                  <td>{post.published_at || "-"}</td>
+                  <td>{post.event_start_date || post.published_at || "-"}</td>
                   <td className="actions-cell">
                     <button
                       className="btn-sm btn-outline"
@@ -234,6 +259,8 @@ export default function AdminStatePosts({
                         setAdminStatePostType(post.type || "");
                         setAdminStatePostStatus(post.status || "draft");
                         setAdminStatePostPublishedAt(post.published_at || "");
+                        setAdminStatePostStartDate(post.event_start_date || "");
+                        setAdminStatePostEndDate(post.event_end_date || "");
                         setAdminStatePostFeatureImage(post.feature_image_url || "");
                         setAdminStatePostContent(post.content || "");
                         setAdminStatePostCategoryIds(post.category_ids || []);

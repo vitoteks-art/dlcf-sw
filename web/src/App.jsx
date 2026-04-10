@@ -418,6 +418,8 @@ function App() {
   const [adminStatePostType, setAdminStatePostType] = useState("");
   const [adminStatePostStatus, setAdminStatePostStatus] = useState("draft");
   const [adminStatePostPublishedAt, setAdminStatePostPublishedAt] = useState("");
+  const [adminStatePostStartDate, setAdminStatePostStartDate] = useState("");
+  const [adminStatePostEndDate, setAdminStatePostEndDate] = useState("");
   const [adminStatePostFeatureImage, setAdminStatePostFeatureImage] = useState("");
   const [adminStatePostContent, setAdminStatePostContent] = useState("");
   const [adminStatePostCategoryIds, setAdminStatePostCategoryIds] = useState([]);
@@ -2280,6 +2282,8 @@ function App() {
         status: adminStatePostStatus,
         feature_image_url: adminStatePostFeatureImage,
         category_ids: adminStatePostCategoryIds,
+        event_start_date: adminStatePostStartDate || "",
+        event_end_date: adminStatePostEndDate || "",
       };
       if (adminStatePostPublishedAt) {
         payload.published_at = adminStatePostPublishedAt;
@@ -2293,6 +2297,8 @@ function App() {
       setAdminStatePostType("");
       setAdminStatePostStatus("draft");
       setAdminStatePostPublishedAt("");
+      setAdminStatePostStartDate("");
+      setAdminStatePostEndDate("");
       setAdminStatePostFeatureImage("");
       setAdminStatePostContent("");
       setAdminStatePostCategoryIds([]);
@@ -2313,6 +2319,8 @@ function App() {
         type: adminStatePostType,
         status: adminStatePostStatus,
         published_at: adminStatePostPublishedAt || "",
+        event_start_date: adminStatePostStartDate || "",
+        event_end_date: adminStatePostEndDate || "",
         feature_image_url: adminStatePostFeatureImage,
         category_ids: adminStatePostCategoryIds,
       };
@@ -2322,6 +2330,8 @@ function App() {
       });
       setStatus("State update updated.");
       setAdminStatePostEditId("");
+      setAdminStatePostStartDate("");
+      setAdminStatePostEndDate("");
       loadAdminStatePosts(adminStatePostState);
     } catch (err) {
       setStatus(err.message);
@@ -2537,6 +2547,8 @@ function App() {
     adminStatePostType,
     adminStatePostStatus,
     adminStatePostPublishedAt,
+    adminStatePostStartDate,
+    adminStatePostEndDate,
     adminStatePostFeatureImage,
     adminStatePostContent,
     adminStatePostCategoryIds,
@@ -2589,6 +2601,8 @@ function App() {
     setAdminStatePostType,
     setAdminStatePostStatus,
     setAdminStatePostPublishedAt,
+    setAdminStatePostStartDate,
+    setAdminStatePostEndDate,
     setAdminStatePostFeatureImage,
     setAdminStatePostContent,
     setAdminStatePostCategoryIds,
