@@ -294,6 +294,10 @@ export default function StateDetailPage({ stateSlug, states }) {
 
   const heroImageUrl = normalizeImageUrl(content.hero.backgroundImageUrl || homeContent?.hero?.backgroundImageUrl, normalizeImageUrl("/hero-image.jpg"));
   const aboutImageUrl = normalizeImageUrl(content.about.imageUrl, heroImageUrl || "https://placehold.co/900x700?text=State+Fellowship");
+  const aboutLabel = String(homeContent?.about?.label || content.about.label || "").trim() || "Who We Are";
+  const aboutTitle = String(homeContent?.about?.title || content.about.title || "").trim() || `Rooted in Grace, Driven by Purpose in ${displayName}`;
+  const aboutBody = String(homeContent?.about?.body || content.about.body || "").trim() || `Deeper Life Campus Fellowship ${displayName} is part of a vibrant ministry committed to building godly students and youths through the Word of God, prayer, holy living, and practical discipleship.`;
+  const aboutImage = normalizeImageUrl(homeContent?.about?.imageUrl || content.about.imageUrl, heroImageUrl || "https://placehold.co/900x700?text=About+State");
   const contactImageUrl = normalizeImageUrl(content.contact.imageUrl, aboutImageUrl || "https://placehold.co/900x700?text=Contact+State+Team");
   const firstGalleryImageUrl = normalizeImageUrl(validGallery[0]?.url || "", aboutImageUrl || heroImageUrl);
   const communityMapQuery = encodeURIComponent(`${displayName}, Nigeria`);
@@ -339,14 +343,14 @@ export default function StateDetailPage({ stateSlug, states }) {
         <section className="state-ref-section state-ref-section--soft">
           <div className="container state-ref-bento">
             <div className="state-ref-bento__intro">
-              <span className="section-label">{content.about.label || "Who We Are"}</span>
-              <h2>{content.about.title || `Rooted in Grace, Driven by Purpose in ${displayName}`}</h2>
-              <p>{stripHtml(content.about.body) || `Deeper Life Campus Fellowship ${displayName} is part of a vibrant ministry committed to building godly students and youths through the Word of God, prayer, holy living, and practical discipleship.`}</p>
+              <span className="section-label">{aboutLabel}</span>
+              <h2>{aboutTitle}</h2>
+              <p>{stripHtml(aboutBody)}</p>
             </div>
             <div className="state-ref-bento__image" style={{ marginBottom: "2rem" }}>
               <div className="state-ref-hero__imageCard" style={{ maxWidth: "520px", margin: "0 auto" }}>
                 <img
-                  src={aboutImageUrl || heroImageUrl || "https://placehold.co/900x700?text=About+State"}
+                  src={aboutImage}
                   alt={`${displayName} about section`}
                 />
               </div>
