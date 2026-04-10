@@ -343,6 +343,14 @@ export default function StateDetailPage({ stateSlug, states }) {
               <h2>{content.about.title || `Rooted in Grace, Driven by Purpose in ${displayName}`}</h2>
               <p>{stripHtml(content.about.body) || `Deeper Life Campus Fellowship ${displayName} is part of a vibrant ministry committed to building godly students and youths through the Word of God, prayer, holy living, and practical discipleship.`}</p>
             </div>
+            <div className="state-ref-bento__image" style={{ marginBottom: "2rem" }}>
+              <div className="state-ref-hero__imageCard" style={{ maxWidth: "520px", margin: "0 auto" }}>
+                <img
+                  src={aboutImageUrl || heroImageUrl || "https://placehold.co/900x700?text=About+State"}
+                  alt={`${displayName} about section`}
+                />
+              </div>
+            </div>
             <div className="state-ref-bento__cards">
               <article className="state-ref-infoCard state-ref-infoCard--primary">
                 <span className="material-symbols-outlined">auto_awesome</span>
