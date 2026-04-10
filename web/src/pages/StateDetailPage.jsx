@@ -12,6 +12,21 @@ const excerpt = (value, max = 140) => {
   return clean.length > max ? `${clean.slice(0, max).trim()}…` : clean;
 };
 
+const formatEventDate = (startDate, endDate) => {
+  const start = String(startDate || "").trim();
+  const end = String(endDate || "").trim();
+  if (!start && !end) return "Soon";
+  const formatOne = (value) => {
+    const d = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+  };
+  if (start && end && start !== end) {
+    return `${formatOne(start)} - ${formatOne(end)}`;
+  }
+  return formatOne(start || end);
+};
+
 const normalizeImageUrl = (value, fallback = "") => {
   const raw = String(value || "").trim();
   if (!raw) return fallback;
@@ -201,6 +216,22 @@ export default function StateDetailPage({ stateSlug, states }) {
   }, [homeContent, displayName]);
 
   const validEvents = content.events.filter((event) => event.title || event.date || event.time || event.type);
+  const homepageEvents = useMemo(() => {
+    const items = Array.isArray(statePosts) ? statePosts : [];
+    const eventPosts = items.filter((post) => post.event_start_date || post.event_end_date || /event|conference|revival|programme|program|crusade|retreat/i.test(String(post.type || "")));
+    if (eventPosts.length > 0) {
+      return eventPosts.map((post) => ({
+        id: post.id,
+        slug: post.slug,
+        title: post.title || "Upcoming event",
+        date: formatEventDate(post.event_start_date, post.event_end_date),
+        time: post.event_time_label || "Time TBA",
+        type: post.type || "Programme",
+        image: post.feature_image_url || "",
+      }));
+    }
+    return validEvents;
+  }, [statePosts, validEvents]);
   const validGallery = content.gallery.filter((item) => item.url);
   const validSections = content.sections.filter((section) => section.title || section.content);
 
@@ -338,11 +369,11 @@ export default function StateDetailPage({ stateSlug, states }) {
               <Link to={`/${stateId}/updates`} className="state-ref-moreLink">View All Events</Link>
             </div>
             <div className="state-ref-eventGrid">
-              {(validEvents.length ? validEvents : [{ title: "Upcoming State Programme", date: "Date to be announced", time: "", type: "Event" }]).slice(0, 3).map((event, idx) => (
+              {(homepageEvents.length ? homepageEvents : [{ title: "Upcoming State Programme", date: "Date to be announced", time: "", type: "Event" }]).slice(0, 3).map((event, idx) => (
                 <article key={`event-${idx}`} className="state-ref-eventCard">
                   <div className="state-ref-eventCard__image">
                     <img
-                      src={normalizeImageUrl(validGallery[idx]?.url || "", aboutImageUrl || "https://placehold.co/800x500?text=Event")}
+                      src={normalizeImageUrl(event.image || validGallery[idx]?.url || "", aboutImageUrl || "https://placehold.co/800x500?text=Event")}
                       alt={event.title || "Event"}
                     />
                     <div className="state-ref-eventDate">{event.date || "Soon"}</div>
