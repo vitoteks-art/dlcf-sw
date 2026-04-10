@@ -540,7 +540,8 @@ if (preg_match('#^/public/states/([^/]+)/posts$#', $path, $matches)) {
     require_method('GET');
     $stateSlug = $matches[1];
     $type = trim($_GET['type'] ?? '');
-    $sql = 'SELECT sp.title, sp.slug, sp.type, sp.published_at, sp.feature_image_url,
+    $sql = 'SELECT sp.id, sp.title, sp.slug, sp.type, sp.published_at, sp.feature_image_url,
+                   sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label,
                    GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ",") AS categories
             FROM state_posts sp
             JOIN states s ON s.id = sp.state_id
@@ -554,7 +555,8 @@ if (preg_match('#^/public/states/([^/]+)/posts$#', $path, $matches)) {
         $types .= 's';
         $params[] = $type;
     }
-    $sql .= ' GROUP BY sp.id, sp.title, sp.slug, sp.type, sp.published_at, sp.feature_image_url
+    $sql .= ' GROUP BY sp.id, sp.title, sp.slug, sp.type, sp.published_at, sp.feature_image_url,
+                      sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label
               ORDER BY sp.published_at DESC, sp.created_at DESC';
     $stmt = db_prepare($db, $sql, $types, $params);
     $stmt->execute();
@@ -575,6 +577,7 @@ if (preg_match('#^/public/states/([^/]+)/posts/([^/]+)$#', $path, $matches)) {
     
     // 1. Fetch Post with Author
     $sql = 'SELECT sp.id, sp.state_id, sp.title, sp.slug, sp.type, sp.content, sp.published_at, sp.feature_image_url,
+                   sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label,
                    u.name AS author_name,
                    GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ",") AS categories
             FROM state_posts sp
@@ -583,7 +586,8 @@ if (preg_match('#^/public/states/([^/]+)/posts/([^/]+)$#', $path, $matches)) {
             LEFT JOIN state_post_categories spc ON spc.post_id = sp.id
             LEFT JOIN categories c ON c.id = spc.category_id
             WHERE s.slug = ? AND sp.slug = ? AND sp.status = ?
-            GROUP BY sp.id, sp.title, sp.slug, sp.type, sp.content, sp.published_at, sp.feature_image_url, u.name
+            GROUP BY sp.id, sp.title, sp.slug, sp.type, sp.content, sp.published_at, sp.feature_image_url,
+                     sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label, u.name
             LIMIT 1';
     $stmt = db_prepare($db, $sql, 'sss', [$stateSlug, $postSlug, 'published']);
     $stmt->execute();
