@@ -12,6 +12,22 @@ const excerpt = (value, max = 140) => {
   return clean.length > max ? `${clean.slice(0, max).trim()}…` : clean;
 };
 
+const mergeWithNonEmpty = (defaults, incoming) => {
+  const next = { ...defaults };
+  const source = incoming || {};
+  Object.keys(source).forEach((key) => {
+    const value = source[key];
+    if (typeof value === "string") {
+      if (value.trim() !== "") next[key] = value;
+      return;
+    }
+    if (value !== undefined && value !== null) {
+      next[key] = value;
+    }
+  });
+  return next;
+};
+
 const formatEventDate = (startDate, endDate) => {
   const start = String(startDate || "").trim();
   const end = String(endDate || "").trim();
@@ -208,14 +224,14 @@ export default function StateDetailPage({ stateSlug, states }) {
     return {
       ...defaults,
       ...(homeContent || {}),
-      hero: { ...defaults.hero, ...((homeContent || {}).hero || {}) },
-      about: { ...defaults.about, ...((homeContent || {}).about || {}) },
-      worship: { ...defaults.worship, ...((homeContent || {}).worship || {}) },
-      updates: { ...defaults.updates, ...((homeContent || {}).updates || {}) },
-      eventsSection: { ...defaults.eventsSection, ...((homeContent || {}).eventsSection || {}) },
-      gallerySection: { ...defaults.gallerySection, ...((homeContent || {}).gallerySection || {}) },
-      publicationsSection: { ...defaults.publicationsSection, ...((homeContent || {}).publicationsSection || {}) },
-      contact: { ...defaults.contact, ...((homeContent || {}).contact || {}) },
+      hero: mergeWithNonEmpty(defaults.hero, (homeContent || {}).hero),
+      about: mergeWithNonEmpty(defaults.about, (homeContent || {}).about),
+      worship: mergeWithNonEmpty(defaults.worship, (homeContent || {}).worship),
+      updates: mergeWithNonEmpty(defaults.updates, (homeContent || {}).updates),
+      eventsSection: mergeWithNonEmpty(defaults.eventsSection, (homeContent || {}).eventsSection),
+      gallerySection: mergeWithNonEmpty(defaults.gallerySection, (homeContent || {}).gallerySection),
+      publicationsSection: mergeWithNonEmpty(defaults.publicationsSection, (homeContent || {}).publicationsSection),
+      contact: mergeWithNonEmpty(defaults.contact, (homeContent || {}).contact),
       events:
         Array.isArray((homeContent || {}).events) && (homeContent || {}).events.length > 0
           ? (homeContent || {}).events
