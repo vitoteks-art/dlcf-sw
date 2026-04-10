@@ -278,57 +278,6 @@ export default function AdminStateHome({
               <RichTextEditor value={content.updates.body} onChange={(val) => update(["updates", "body"], val)} onUploadImage={uploadImage} />
             </div>
 
-            <h5>Events Section Heading</h5>
-            <div className="grid-2">
-              <label>Section Label<input type="text" value={content.eventsSection.label} onChange={(e) => update(["eventsSection", "label"], e.target.value)} /></label>
-              <label>Section Title<input type="text" value={content.eventsSection.title} onChange={(e) => update(["eventsSection", "title"], e.target.value)} /></label>
-            </div>
-            <div className="rich-field">
-              <span>Section Intro (Rich Text)</span>
-              <RichTextEditor value={content.eventsSection.body} onChange={(val) => update(["eventsSection", "body"], val)} onUploadImage={uploadImage} />
-            </div>
-            <div className="status" style={{ marginBottom: "1rem" }}>
-              Event creation has moved out of State Home. Use the dedicated Events admin section to create and manage state events.
-            </div>
-
-            <h5>Gallery Section Heading</h5>
-            <div className="grid-2">
-              <label>Section Label<input type="text" value={content.gallerySection.label} onChange={(e) => update(["gallerySection", "label"], e.target.value)} /></label>
-              <label>Section Title<input type="text" value={content.gallerySection.title} onChange={(e) => update(["gallerySection", "title"], e.target.value)} /></label>
-            </div>
-            <div className="rich-field">
-              <span>Section Intro (Rich Text)</span>
-              <RichTextEditor value={content.gallerySection.body} onChange={(val) => update(["gallerySection", "body"], val)} onUploadImage={uploadImage} />
-            </div>
-
-            <h5>Gallery</h5>
-            {content.gallery.map((photo, idx) => (
-              <div key={`gallery-${idx}`} className="grid-2">
-                <label>Image URL<input type="text" value={photo.url} onChange={(e) => updateList("gallery", idx, "url", e.target.value)} /></label>
-                <label>
-                  Upload Gallery Image
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      e.target.value = "";
-                      if (!file) return;
-                      try {
-                        const url = await uploadImage(file);
-                        if (url) updateList("gallery", idx, "url", url);
-                      } catch (err) {
-                        console.error(err);
-                      }
-                    }}
-                  />
-                </label>
-                <label>Caption<input type="text" value={photo.caption} onChange={(e) => updateList("gallery", idx, "caption", e.target.value)} /></label>
-                <div className="form-actions"><button type="button" onClick={() => removeRow("gallery", idx)}>Remove</button></div>
-              </div>
-            ))}
-            <button type="button" className="ghost" onClick={() => addRow("gallery", { url: "", caption: "" })}>Add Photo</button>
-
             <div className="status" style={{ marginBottom: "1rem" }}>
               Publications and Media are managed in their own dedicated admin sections and are no longer meant to be managed from State Home.
             </div>
