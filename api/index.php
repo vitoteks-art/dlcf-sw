@@ -95,7 +95,7 @@ function can_view_reports(array $user): bool
 
 function can_manage_attendance_access_codes(array $user): bool
 {
-    return in_array($user['role'], ['administrator', 'state_cord', 'state_admin', 'associate_cord'], true);
+    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'region_admin', 'associate_cord'], true);
 }
 
 function can_access_attendance_without_code(array $user): bool
@@ -110,6 +110,95 @@ function can_access_attendance_without_code(array $user): bool
         'region_admin',
         'associate_cord',
     ], true);
+}
+
+function can_view_biodata_directory(array $user): bool
+{
+    return in_array($user['role'], [
+        'administrator',
+        'zonal_cord',
+        'zonal_admin',
+        'state_cord',
+        'state_admin',
+        'region_cord',
+        'region_admin',
+        'associate_cord',
+    ], true);
+}
+
+function normalize_biodata_tracking_payload(array $payload): array
+{
+    $programType = trim($payload['program_type'] ?? '');
+    $academicLevel = trim($payload['academic_level'] ?? '');
+    $entryYearRaw = trim((string) ($payload['entry_year'] ?? ''));
+    $expectedGradYearRaw = trim((string) ($payload['expected_graduation_year'] ?? ''));
+    $studentStatus = trim($payload['student_status'] ?? '');
+    $nyscStatus = trim($payload['nysc_status'] ?? '');
+    $nyscBatch = trim($payload['nysc_batch'] ?? '');
+    $nyscState = trim($payload['nysc_state'] ?? '');
+    $nyscStartDate = trim($payload['nysc_start_date'] ?? '');
+    $nyscEndDate = trim($payload['nysc_end_date'] ?? '');
+    $spiritualNotes = trim($payload['spiritual_notes'] ?? '');
+
+    $entryYear = $entryYearRaw !== '' ? (int) $entryYearRaw : null;
+    $expectedGraduationYear = $expectedGradYearRaw !== '' ? (int) $expectedGradYearRaw : null;
+    $currentYear = (int) date('Y') + 10;
+
+    if ($entryYear !== null && ($entryYear < 1900 || $entryYear > $currentYear)) {
+        json_error('Entry year is invalid', 422);
+    }
+    if ($expectedGraduationYear !== null && ($expectedGraduationYear < 1900 || $expectedGraduationYear > $currentYear)) {
+        json_error('Expected graduation year is invalid', 422);
+    }
+    if ($entryYear !== null && $expectedGraduationYear !== null && $expectedGraduationYear < $entryYear) {
+        json_error('Expected graduation year cannot be earlier than entry year', 422);
+    }
+
+    $allowedProgramTypes = ['', 'ND', 'HND', 'NCE', 'BSc', 'PG', 'Other'];
+    $allowedAcademicLevels = ['', '100', '200', '300', '400', '500', '600', 'PG', 'Graduated'];
+    $allowedStudentStatuses = ['', 'active_student', 'graduated', 'alumni_ready', 'alumni', 'deferred', 'withdrawn'];
+    $allowedNyscStatuses = ['', 'none', 'serving', 'completed'];
+
+    if (!in_array($programType, $allowedProgramTypes, true)) {
+        json_error('Invalid program type', 422);
+    }
+    if (!in_array($academicLevel, $allowedAcademicLevels, true)) {
+        json_error('Invalid academic level', 422);
+    }
+    if (!in_array($studentStatus, $allowedStudentStatuses, true)) {
+        json_error('Invalid student status', 422);
+    }
+    if (!in_array($nyscStatus, $allowedNyscStatuses, true)) {
+        json_error('Invalid NYSC status', 422);
+    }
+
+    $newBirthStatus = !empty($payload['new_birth_status']) ? 1 : 0;
+    $sanctificationStatus = !empty($payload['sanctification_status']) ? 1 : 0;
+    $holyGhostBaptismStatus = !empty($payload['holy_ghost_baptism_status']) ? 1 : 0;
+
+    if ($nyscStatus === 'none' || $nyscStatus === '') {
+        $nyscBatch = '';
+        $nyscState = '';
+        $nyscStartDate = '';
+        $nyscEndDate = '';
+    }
+
+    return [
+        'program_type' => $programType !== '' ? $programType : null,
+        'academic_level' => $academicLevel !== '' ? $academicLevel : null,
+        'entry_year' => $entryYear,
+        'expected_graduation_year' => $expectedGraduationYear,
+        'student_status' => $studentStatus !== '' ? $studentStatus : null,
+        'nysc_status' => $nyscStatus !== '' ? $nyscStatus : null,
+        'nysc_batch' => $nyscBatch !== '' ? $nyscBatch : null,
+        'nysc_state' => $nyscState !== '' ? $nyscState : null,
+        'nysc_start_date' => $nyscStartDate !== '' ? $nyscStartDate : null,
+        'nysc_end_date' => $nyscEndDate !== '' ? $nyscEndDate : null,
+        'new_birth_status' => $newBirthStatus,
+        'sanctification_status' => $sanctificationStatus,
+        'holy_ghost_baptism_status' => $holyGhostBaptismStatus,
+        'spiritual_notes' => $spiritualNotes !== '' ? $spiritualNotes : null,
+    ];
 }
 
 function attendance_access_session_key(): string
@@ -159,8 +248,14 @@ function find_fellowship_centre_by_id(mysqli $db, int $centreId): ?array
 
 function user_can_manage_code_for_centre(array $user, array $centre): bool
 {
-    if ($user['role'] === 'administrator') {
+    if (in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin'], true)) {
         return true;
+    }
+    if (in_array($user['role'], ['region_cord', 'region_admin'], true)) {
+        if (!empty($user['state']) && $user['state'] !== $centre['state']) {
+            return false;
+        }
+        return !empty($user['region']) && $user['region'] === $centre['region'];
     }
     if (in_array($user['role'], ['state_cord', 'state_admin'], true)) {
         return !empty($user['state']) && $user['state'] === $centre['state'];
@@ -2862,6 +2957,18 @@ if ($path === '/attendance-access-codes') {
             $types .= 's';
             $params[] = $user['state'];
         }
+        if (in_array($user['role'], ['region_cord', 'region_admin'], true)) {
+            if (!empty($user['state'])) {
+                $sql .= ' AND c.state = ?';
+                $types .= 's';
+                $params[] = $user['state'];
+            }
+            if (!empty($user['region'])) {
+                $sql .= ' AND c.region = ?';
+                $types .= 's';
+                $params[] = $user['region'];
+            }
+        }
         if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
             $sql .= ' AND c.fellowship_centre_id = ?';
             $types .= 'i';
@@ -4104,7 +4211,10 @@ if ($path === '/biodata/me') {
         if (empty($user['email'])) {
             json_error('User email not found', 400);
         }
-        $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.category,
+        $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.program_type,
+                       b.academic_level, b.entry_year, b.expected_graduation_year, b.student_status, b.nysc_status,
+                       b.nysc_batch, b.nysc_state, b.nysc_start_date, b.nysc_end_date, b.new_birth_status,
+                       b.sanctification_status, b.holy_ghost_baptism_status, b.spiritual_notes, b.category,
                        b.worker_status, b.membership_status, b.work_units, b.address, b.next_of_kin_name, b.next_of_kin_phone,
                        b.next_of_kin_relationship, b.state, b.region, b.cluster, fc.name AS fellowship_centre, b.created_at
                 FROM biodata b
@@ -4146,6 +4256,7 @@ if ($path === '/biodata/me') {
         $email = trim($payload['email'] ?? '');
         $profilePhoto = trim($payload['profile_photo'] ?? '');
         $school = trim($payload['school'] ?? '');
+        $tracking = normalize_biodata_tracking_payload($payload);
         $category = trim($payload['category'] ?? '');
         $workerStatus = trim($payload['worker_status'] ?? '');
         $membershipStatus = trim($payload['membership_status'] ?? '');
@@ -4199,10 +4310,12 @@ if ($path === '/biodata/me') {
         $existing = db_fetch_all($stmt);
         if ($existing) {
             $sql = 'UPDATE biodata SET fellowship_centre_id = ?, full_name = ?, gender = ?, age = ?, phone = ?, email = ?, state = ?, region = ?, cluster = ?, profile_photo = ?,
-                           school = ?, category = ?, worker_status = ?, membership_status = ?, work_units = ?, address = ?,
+                           school = ?, program_type = ?, academic_level = ?, entry_year = ?, expected_graduation_year = ?, student_status = ?,
+                           nysc_status = ?, nysc_batch = ?, nysc_state = ?, nysc_start_date = ?, nysc_end_date = ?, new_birth_status = ?,
+                           sanctification_status = ?, holy_ghost_baptism_status = ?, spiritual_notes = ?, category = ?, worker_status = ?, membership_status = ?, work_units = ?, address = ?,
                            next_of_kin_name = ?, next_of_kin_phone = ?, next_of_kin_relationship = ?, updated_at = NOW()
                     WHERE id = ?';
-            $stmt = db_prepare($db, $sql, 'ississsssssssssssssi', [
+            $stmt = db_prepare($db, $sql, 'ississssssssiissssssiisssssssssi', [
                 $centreId,
                 $fullName,
                 $gender,
@@ -4214,6 +4327,20 @@ if ($path === '/biodata/me') {
                 $cluster,
                 $profilePhoto,
                 $school,
+                $tracking['program_type'],
+                $tracking['academic_level'],
+                $tracking['entry_year'],
+                $tracking['expected_graduation_year'],
+                $tracking['student_status'],
+                $tracking['nysc_status'],
+                $tracking['nysc_batch'],
+                $tracking['nysc_state'],
+                $tracking['nysc_start_date'],
+                $tracking['nysc_end_date'],
+                $tracking['new_birth_status'],
+                $tracking['sanctification_status'],
+                $tracking['holy_ghost_baptism_status'],
+                $tracking['spiritual_notes'],
                 $category,
                 $workerStatus,
                 $membershipStatus,
@@ -4229,10 +4356,11 @@ if ($path === '/biodata/me') {
         }
 
         $sql = 'INSERT INTO biodata
-            (user_id, fellowship_centre_id, full_name, gender, age, phone, email, state, region, cluster, profile_photo, school, category, worker_status, membership_status, work_units, address,
-             next_of_kin_name, next_of_kin_phone, next_of_kin_relationship, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())';
-        $stmt = db_prepare($db, $sql, 'iississssssssssssss', [
+            (user_id, fellowship_centre_id, full_name, gender, age, phone, email, state, region, cluster, profile_photo, school, program_type, academic_level, entry_year, expected_graduation_year, student_status,
+             nysc_status, nysc_batch, nysc_state, nysc_start_date, nysc_end_date, new_birth_status, sanctification_status, holy_ghost_baptism_status, spiritual_notes,
+             category, worker_status, membership_status, work_units, address, next_of_kin_name, next_of_kin_phone, next_of_kin_relationship, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())';
+        $stmt = db_prepare($db, $sql, 'iississssssssiissssssiissssssssss', [
             $user['id'],
             $centreId,
             $fullName,
@@ -4245,6 +4373,20 @@ if ($path === '/biodata/me') {
             $cluster,
             $profilePhoto,
             $school,
+            $tracking['program_type'],
+            $tracking['academic_level'],
+            $tracking['entry_year'],
+            $tracking['expected_graduation_year'],
+            $tracking['student_status'],
+            $tracking['nysc_status'],
+            $tracking['nysc_batch'],
+            $tracking['nysc_state'],
+            $tracking['nysc_start_date'],
+            $tracking['nysc_end_date'],
+            $tracking['new_birth_status'],
+            $tracking['sanctification_status'],
+            $tracking['holy_ghost_baptism_status'],
+            $tracking['spiritual_notes'],
             $category,
             $workerStatus,
             $membershipStatus,
@@ -5356,6 +5498,9 @@ if ($path === '/biodata') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         require_auth();
         $user = current_user();
+        if (!can_view_biodata_directory($user)) {
+            json_error('Forbidden', 403);
+        }
         $filters = [
             'state' => $_GET['state'] ?? null,
             'region' => $_GET['region'] ?? null,
@@ -5363,14 +5508,17 @@ if ($path === '/biodata') {
             'search' => $_GET['search'] ?? null,
         ];
 
-        if ($user['role'] === 'region_cord' && $user['region']) {
+        if (in_array($user['role'], ['region_cord', 'region_admin'], true) && $user['region']) {
             $filters['region'] = $user['region'];
         }
-        if ($user['role'] === 'state_cord' && $user['state']) {
+        if (in_array($user['role'], ['state_cord', 'state_admin'], true) && $user['state']) {
             $filters['state'] = $user['state'];
         }
 
-        $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.category,
+        $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.program_type,
+                       b.academic_level, b.entry_year, b.expected_graduation_year, b.student_status, b.nysc_status,
+                       b.nysc_batch, b.nysc_state, b.nysc_start_date, b.nysc_end_date, b.new_birth_status,
+                       b.sanctification_status, b.holy_ghost_baptism_status, b.spiritual_notes, b.category,
                        b.worker_status, b.membership_status, b.work_units, b.address, b.next_of_kin_name, b.next_of_kin_phone,
                        b.next_of_kin_relationship, b.state, b.region, b.cluster, fc.name AS fellowship_centre, b.created_at
                 FROM biodata b
@@ -5418,13 +5566,102 @@ if ($path === '/biodata') {
     }
 }
 
+if ($path === '/biodata-reports/spiritual') {
+    require_method('GET');
+    require_auth();
+    $user = current_user();
+    if (!can_view_biodata_directory($user)) {
+        json_error('Forbidden', 403);
+    }
+
+    $sql = 'SELECT COUNT(*) AS total,
+                   SUM(CASE WHEN new_birth_status = 1 THEN 1 ELSE 0 END) AS new_birth_yes,
+                   SUM(CASE WHEN sanctification_status = 1 THEN 1 ELSE 0 END) AS sanctification_yes,
+                   SUM(CASE WHEN holy_ghost_baptism_status = 1 THEN 1 ELSE 0 END) AS holy_ghost_baptism_yes
+            FROM biodata b
+            JOIN fellowship_centres fc ON fc.id = b.fellowship_centre_id
+            WHERE 1=1';
+    $types = '';
+    $params = [];
+    if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+        $sql .= ' AND fc.state = ?';
+        $types .= 's';
+        $params[] = $user['state'];
+    }
+    if (in_array($user['role'], ['region_cord', 'region_admin'], true) && !empty($user['region'])) {
+        $sql .= ' AND fc.region = ?';
+        $types .= 's';
+        $params[] = $user['region'];
+    }
+    if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+        $sql .= ' AND fc.id = ?';
+        $types .= 'i';
+        $params[] = (int) $user['fellowship_centre_id'];
+    }
+    $stmt = db_prepare($db, $sql, $types, $params);
+    $stmt->execute();
+    $row = db_fetch_all($stmt)[0] ?? ['total' => 0, 'new_birth_yes' => 0, 'sanctification_yes' => 0, 'holy_ghost_baptism_yes' => 0];
+    $total = (int) ($row['total'] ?? 0);
+    $pct = fn($value) => $total > 0 ? round((((int) $value) / $total) * 100, 1) : 0;
+    json_ok([
+        'total' => $total,
+        'items' => [
+            ['label' => 'New Birth', 'yes' => (int) $row['new_birth_yes'], 'no' => $total - (int) $row['new_birth_yes'], 'percentage_yes' => $pct($row['new_birth_yes'])],
+            ['label' => 'Sanctification', 'yes' => (int) $row['sanctification_yes'], 'no' => $total - (int) $row['sanctification_yes'], 'percentage_yes' => $pct($row['sanctification_yes'])],
+            ['label' => 'Holy Ghost Baptism', 'yes' => (int) $row['holy_ghost_baptism_yes'], 'no' => $total - (int) $row['holy_ghost_baptism_yes'], 'percentage_yes' => $pct($row['holy_ghost_baptism_yes'])],
+        ],
+    ]);
+}
+
+if ($path === '/biodata-reports/lifecycle') {
+    require_method('GET');
+    require_auth();
+    $user = current_user();
+    if (!can_view_biodata_directory($user)) {
+        json_error('Forbidden', 403);
+    }
+
+    $sql = 'SELECT program_type, academic_level, student_status, nysc_status, nysc_batch, COUNT(*) AS total
+            FROM biodata b
+            JOIN fellowship_centres fc ON fc.id = b.fellowship_centre_id
+            WHERE 1=1';
+    $types = '';
+    $params = [];
+    if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+        $sql .= ' AND fc.state = ?';
+        $types .= 's';
+        $params[] = $user['state'];
+    }
+    if (in_array($user['role'], ['region_cord', 'region_admin'], true) && !empty($user['region'])) {
+        $sql .= ' AND fc.region = ?';
+        $types .= 's';
+        $params[] = $user['region'];
+    }
+    if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+        $sql .= ' AND fc.id = ?';
+        $types .= 'i';
+        $params[] = (int) $user['fellowship_centre_id'];
+    }
+    $sql .= ' GROUP BY program_type, academic_level, student_status, nysc_status, nysc_batch';
+    $stmt = db_prepare($db, $sql, $types, $params);
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    json_ok(['items' => $rows]);
+}
+
 if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         require_auth();
         $user = current_user();
+        if (!can_view_biodata_directory($user)) {
+            json_error('Forbidden', 403);
+        }
         $id = (int) $matches[1];
 
-        $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.category,
+        $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.program_type,
+                       b.academic_level, b.entry_year, b.expected_graduation_year, b.student_status, b.nysc_status,
+                       b.nysc_batch, b.nysc_state, b.nysc_start_date, b.nysc_end_date, b.new_birth_status,
+                       b.sanctification_status, b.holy_ghost_baptism_status, b.spiritual_notes, b.category,
                        b.worker_status, b.membership_status, b.work_units, b.address, b.next_of_kin_name, b.next_of_kin_phone,
                        b.next_of_kin_relationship, b.state, b.region, b.cluster, fc.name AS fellowship_centre, b.created_at
                 FROM biodata b
@@ -5437,11 +5674,11 @@ if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
             $sql .= ' AND fc.id = ?';
             $types .= 'i';
             $params[] = (int) $user['fellowship_centre_id'];
-        } elseif ($user['role'] === 'region_cord' && $user['region']) {
+        } elseif (in_array($user['role'], ['region_cord', 'region_admin'], true) && $user['region']) {
             $sql .= ' AND fc.region = ?';
             $types .= 's';
             $params[] = $user['region'];
-        } elseif ($user['role'] === 'state_cord' && $user['state']) {
+        } elseif (in_array($user['role'], ['state_cord', 'state_admin'], true) && $user['state']) {
             $sql .= ' AND fc.state = ?';
             $types .= 's';
             $params[] = $user['state'];

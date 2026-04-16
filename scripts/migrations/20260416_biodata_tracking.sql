@@ -1,0 +1,18 @@
+ALTER TABLE biodata
+  ADD COLUMN program_type VARCHAR(40) NULL AFTER school,
+  ADD COLUMN academic_level VARCHAR(40) NULL AFTER program_type,
+  ADD COLUMN entry_year YEAR NULL AFTER academic_level,
+  ADD COLUMN expected_graduation_year YEAR NULL AFTER entry_year,
+  ADD COLUMN student_status VARCHAR(40) NULL AFTER expected_graduation_year,
+  ADD COLUMN nysc_status VARCHAR(30) NULL AFTER student_status,
+  ADD COLUMN nysc_batch VARCHAR(30) NULL AFTER nysc_status,
+  ADD COLUMN nysc_state VARCHAR(120) NULL AFTER nysc_batch,
+  ADD COLUMN nysc_start_date DATE NULL AFTER nysc_state,
+  ADD COLUMN nysc_end_date DATE NULL AFTER nysc_start_date,
+  ADD COLUMN new_birth_status TINYINT(1) NOT NULL DEFAULT 0 AFTER nysc_end_date,
+  ADD COLUMN sanctification_status TINYINT(1) NOT NULL DEFAULT 0 AFTER new_birth_status,
+  ADD COLUMN holy_ghost_baptism_status TINYINT(1) NOT NULL DEFAULT 0 AFTER sanctification_status,
+  ADD COLUMN spiritual_notes TEXT NULL AFTER holy_ghost_baptism_status,
+  ADD INDEX biodata_student_status_idx (student_status),
+  ADD INDEX biodata_nysc_status_idx (nysc_status),
+  ADD INDEX biodata_program_type_idx (program_type);

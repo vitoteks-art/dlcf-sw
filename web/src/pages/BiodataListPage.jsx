@@ -19,12 +19,12 @@ export default function BiodataListPage({
   const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !canManageBiodata) {
       navigate("/");
     }
-  }, [navigate, user]);
+  }, [navigate, user, canManageBiodata]);
 
-  if (!user) {
+  if (!user || !canManageBiodata) {
     return null;
   }
 
@@ -134,7 +134,8 @@ export default function BiodataListPage({
                 <th>Centre</th>
                 <th>State</th>
                 <th>Region</th>
-                <th>Category</th>
+                <th>Student Status</th>
+                <th>NYSC Status</th>
                 <th>Details</th>
                 {canManageBiodata ? <th>Actions</th> : null}
               </tr>
@@ -149,7 +150,8 @@ export default function BiodataListPage({
                     <td>{row.fellowship_centre}</td>
                     <td>{row.state}</td>
                     <td>{row.region}</td>
-                    <td>{row.category}</td>
+                    <td>{row.student_status || "-"}</td>
+                    <td>{row.nysc_status || "-"}</td>
                     <td>
                       <button
                         type="button"
@@ -184,7 +186,7 @@ export default function BiodataListPage({
                   </tr>
                   {expandedId === row.id ? (
                     <tr>
-                      <td colSpan={canManageBiodata ? 9 : 8}>
+                      <td colSpan={canManageBiodata ? 10 : 9}>
                         <div className="details-panel">
                           {row.profile_photo ? (
                             <div className="details-photo">
@@ -209,6 +211,54 @@ export default function BiodataListPage({
                             <div>
                               <span className="detail-label">School</span>
                               <span className="detail-value">{row.school}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">Program Type</span>
+                              <span className="detail-value">{row.program_type || "-"}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">Academic Level</span>
+                              <span className="detail-value">{row.academic_level || "-"}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">Entry Year</span>
+                              <span className="detail-value">{row.entry_year || "-"}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">Expected Graduation</span>
+                              <span className="detail-value">{row.expected_graduation_year || "-"}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">Student Status</span>
+                              <span className="detail-value">{row.student_status || "-"}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">NYSC Status</span>
+                              <span className="detail-value">{row.nysc_status || "-"}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">NYSC Batch</span>
+                              <span className="detail-value">{row.nysc_batch || "-"}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">NYSC State</span>
+                              <span className="detail-value">{row.nysc_state || "-"}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">New Birth</span>
+                              <span className="detail-value">{row.new_birth_status ? "Yes" : "No"}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">Sanctification</span>
+                              <span className="detail-value">{row.sanctification_status ? "Yes" : "No"}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">Holy Ghost Baptism</span>
+                              <span className="detail-value">{row.holy_ghost_baptism_status ? "Yes" : "No"}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">Spiritual Notes</span>
+                              <span className="detail-value">{row.spiritual_notes || "-"}</span>
                             </div>
                             <div>
                               <span className="detail-label">Worker Status</span>

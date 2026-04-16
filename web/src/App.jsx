@@ -31,6 +31,8 @@ import GckPage from "./pages/GckPage";
 import GckReportPage from "./pages/GckReportPage";
 import BiodataPage from "./pages/BiodataPage";
 import BiodataListPage from "./pages/BiodataListPage";
+import BiodataSpiritualReportPage from "./pages/BiodataSpiritualReportPage";
+import BiodataLifecycleReportPage from "./pages/BiodataLifecycleReportPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import AboutPage from "./pages/AboutPage";
@@ -374,6 +376,20 @@ function App() {
     email: "",
     profile_photo: "",
     school: "",
+    program_type: "",
+    academic_level: "",
+    entry_year: "",
+    expected_graduation_year: "",
+    student_status: "active_student",
+    nysc_status: "none",
+    nysc_batch: "",
+    nysc_state: "",
+    nysc_start_date: "",
+    nysc_end_date: "",
+    new_birth_status: false,
+    sanctification_status: false,
+    holy_ghost_baptism_status: false,
+    spiritual_notes: "",
     category: "",
     worker_status: "Member",
     membership_status: "Member",
@@ -401,6 +417,8 @@ function App() {
   const [biodataFilterRegions, setBiodataFilterRegions] = useState([]);
   const [biodataFilterCentres, setBiodataFilterCentres] = useState([]);
   const [biodataData, setBiodataData] = useState([]);
+  const [biodataSpiritualReport, setBiodataSpiritualReport] = useState(null);
+  const [biodataLifecycleReport, setBiodataLifecycleReport] = useState([]);
   const [adminStates, setAdminStates] = useState([]);
   const [adminRegions, setAdminRegions] = useState([]);
   const [adminFellowships, setAdminFellowships] = useState([]);
@@ -600,7 +618,7 @@ function App() {
       "region_cord",
       "associate_cord",
     ].includes(user.role);
-  const canManageAttendanceCodes = user && ["administrator", "state_cord", "state_admin", "associate_cord"].includes(user.role);
+  const canManageAttendanceCodes = user && ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord", "region_admin", "associate_cord"].includes(user.role);
   const canAccessAttendanceDirectly = user && ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord", "region_admin", "associate_cord"].includes(user.role);
   const canPublishMedia =
     user &&
@@ -635,7 +653,7 @@ function App() {
   const canManageZonalCongress = canManageStatePosts;
   const canManageBiodata =
     user &&
-    ["administrator", "state_cord", "associate_cord", "region_cord"].includes(
+    ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord", "region_admin", "associate_cord"].includes(
       user.role
     );
   const canViewReportsOnly =
@@ -718,8 +736,16 @@ function App() {
 
   useEffect(() => {
     if (!canManageAttendanceCodes || !user) return;
-    const stateValue = user.state || adminAttendanceCodeForm.state || "";
-    const regionValue = user.role === "associate_cord" ? (user.region || adminAttendanceCodeForm.region || "") : adminAttendanceCodeForm.region;
+    const isGlobalScopeRole = ["administrator", "zonal_cord", "zonal_admin"].includes(user.role);
+    const isRegionScopeRole = ["region_cord", "region_admin"].includes(user.role);
+    const stateValue = isGlobalScopeRole
+      ? (adminAttendanceCodeForm.state || "")
+      : (user.state || adminAttendanceCodeForm.state || "");
+    const regionValue = user.role === "associate_cord"
+      ? (user.region || adminAttendanceCodeForm.region || "")
+      : isRegionScopeRole
+        ? (user.region || adminAttendanceCodeForm.region || "")
+        : adminAttendanceCodeForm.region;
     setAdminAttendanceCodeForm((prev) => ({
       ...prev,
       state: stateValue,
@@ -1357,6 +1383,7 @@ function App() {
       } catch {
         setAttendanceAccess({ authorized: false, requires_code: true, is_exempt_role: false, session: null });
       }
+      navigate("/profile");
     } catch (err) {
       setStatus(err.message);
     }
@@ -2074,6 +2101,20 @@ function App() {
         email: data.item.email || "",
         profile_photo: data.item.profile_photo || "",
         school: data.item.school || "",
+        program_type: data.item.program_type || "",
+        academic_level: data.item.academic_level || "",
+        entry_year: data.item.entry_year || "",
+        expected_graduation_year: data.item.expected_graduation_year || "",
+        student_status: data.item.student_status || "active_student",
+        nysc_status: data.item.nysc_status || "none",
+        nysc_batch: data.item.nysc_batch || "",
+        nysc_state: data.item.nysc_state || "",
+        nysc_start_date: data.item.nysc_start_date || "",
+        nysc_end_date: data.item.nysc_end_date || "",
+        new_birth_status: !!data.item.new_birth_status,
+        sanctification_status: !!data.item.sanctification_status,
+        holy_ghost_baptism_status: !!data.item.holy_ghost_baptism_status,
+        spiritual_notes: data.item.spiritual_notes || "",
         category: data.item.category || "",
         worker_status: data.item.worker_status || "Member",
         membership_status: data.item.membership_status || "Member",
@@ -2110,6 +2151,20 @@ function App() {
         email: data.item.email || "",
         profile_photo: data.item.profile_photo || "",
         school: data.item.school || "",
+        program_type: data.item.program_type || "",
+        academic_level: data.item.academic_level || "",
+        entry_year: data.item.entry_year || "",
+        expected_graduation_year: data.item.expected_graduation_year || "",
+        student_status: data.item.student_status || "active_student",
+        nysc_status: data.item.nysc_status || "none",
+        nysc_batch: data.item.nysc_batch || "",
+        nysc_state: data.item.nysc_state || "",
+        nysc_start_date: data.item.nysc_start_date || "",
+        nysc_end_date: data.item.nysc_end_date || "",
+        new_birth_status: !!data.item.new_birth_status,
+        sanctification_status: !!data.item.sanctification_status,
+        holy_ghost_baptism_status: !!data.item.holy_ghost_baptism_status,
+        spiritual_notes: data.item.spiritual_notes || "",
         category: data.item.category || "",
         worker_status: data.item.worker_status || "Member",
         membership_status: data.item.membership_status || "Member",
@@ -2155,6 +2210,26 @@ function App() {
       const params = new URLSearchParams(biodataFilters);
       const data = await apiFetch(`/biodata?${params.toString()}`);
       setBiodataData(data.items || []);
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const loadBiodataSpiritualReport = async () => {
+    setStatus("");
+    try {
+      const data = await apiFetch("/biodata-reports/spiritual");
+      setBiodataSpiritualReport(data);
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const loadBiodataLifecycleReport = async () => {
+    setStatus("");
+    try {
+      const data = await apiFetch("/biodata-reports/lifecycle");
+      setBiodataLifecycleReport(data.items || []);
     } catch (err) {
       setStatus(err.message);
     }
@@ -2911,13 +2986,20 @@ function App() {
   // Show standalone login page if user is not logged in
   if (!user) {
     return (
-      <LoginPage
-        login={login}
-        setLogin={setLogin}
-        handleLogin={handleLogin}
-        status={status}
-        states={states}
-      />
+      <Routes>
+        <Route
+          path="*"
+          element={
+            <LoginPage
+              login={login}
+              setLogin={setLogin}
+              handleLogin={handleLogin}
+              status={status}
+              states={states}
+            />
+          }
+        />
+      </Routes>
     );
   }
 
@@ -3014,7 +3096,9 @@ function App() {
           ) : null}
           {user ? <Link to="/profile">Profile</Link> : null}
           {user ? <Link to="/biodata">Biodata Form</Link> : null}
-          {user ? <Link to="/biodata-list">Biodata List</Link> : null}
+          {canManageBiodata ? <Link to="/biodata-list">Biodata List</Link> : null}
+          {canManageBiodata ? <Link to="/biodata-report/spiritual">Spiritual Report</Link> : null}
+          {canManageBiodata ? <Link to="/biodata-report/lifecycle">Lifecycle Report</Link> : null}
           {canViewAdmin ? <Link to="/admin">Admin</Link> : null}
         </nav>
       </aside>
@@ -3411,6 +3495,30 @@ function App() {
                   canManageBiodata={canManageBiodata}
                   onEditBiodata={loadBiodataEntry}
                   onDeleteBiodata={deleteBiodataEntry}
+                />
+              }
+            />
+            <Route
+              path="/biodata-report/spiritual"
+              element={
+                <BiodataSpiritualReportPage
+                  user={user}
+                  canManageBiodata={canManageBiodata}
+                  status={status}
+                  report={biodataSpiritualReport}
+                  loadReport={loadBiodataSpiritualReport}
+                />
+              }
+            />
+            <Route
+              path="/biodata-report/lifecycle"
+              element={
+                <BiodataLifecycleReportPage
+                  user={user}
+                  canManageBiodata={canManageBiodata}
+                  status={status}
+                  report={biodataLifecycleReport}
+                  loadReport={loadBiodataLifecycleReport}
                 />
               }
             />

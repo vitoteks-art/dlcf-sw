@@ -96,6 +96,34 @@ export default function ProfilePage({ user }) {
                   <span className="detail-value">{profile.school}</span>
                 </div>
                 <div>
+                  <span className="detail-label">Program Type</span>
+                  <span className="detail-value">{profile.program_type || "-"}</span>
+                </div>
+                <div>
+                  <span className="detail-label">Academic Level</span>
+                  <span className="detail-value">{profile.academic_level || "-"}</span>
+                </div>
+                <div>
+                  <span className="detail-label">Student Status</span>
+                  <span className="detail-value">{profile.student_status || "-"}</span>
+                </div>
+                <div>
+                  <span className="detail-label">NYSC Status</span>
+                  <span className="detail-value">{profile.nysc_status || "-"}</span>
+                </div>
+                <div>
+                  <span className="detail-label">New Birth</span>
+                  <span className="detail-value">{profile.new_birth_status ? "Yes" : "No"}</span>
+                </div>
+                <div>
+                  <span className="detail-label">Sanctification</span>
+                  <span className="detail-value">{profile.sanctification_status ? "Yes" : "No"}</span>
+                </div>
+                <div>
+                  <span className="detail-label">Holy Ghost Baptism</span>
+                  <span className="detail-value">{profile.holy_ghost_baptism_status ? "Yes" : "No"}</span>
+                </div>
+                <div>
                   <span className="detail-label">Category</span>
                   <span className="detail-value">{profile.category}</span>
                 </div>

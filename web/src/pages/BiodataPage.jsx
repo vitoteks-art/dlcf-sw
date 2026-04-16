@@ -261,6 +261,153 @@ export default function BiodataPage({
             </select>
           </label>
           <label>
+            Program Type
+            <select
+              value={biodata.program_type}
+              onChange={(e) => setBiodata({ ...biodata, program_type: e.target.value })}
+            >
+              <option value="">Select program type</option>
+              <option value="ND">ND</option>
+              <option value="HND">HND</option>
+              <option value="NCE">NCE</option>
+              <option value="BSc">BSc</option>
+              <option value="PG">PG</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+          <label>
+            Academic Level
+            <select
+              value={biodata.academic_level}
+              onChange={(e) => setBiodata({ ...biodata, academic_level: e.target.value })}
+            >
+              <option value="">Select level</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="300">300</option>
+              <option value="400">400</option>
+              <option value="500">500</option>
+              <option value="600">600</option>
+              <option value="PG">PG</option>
+              <option value="Graduated">Graduated</option>
+            </select>
+          </label>
+          <label>
+            Entry Year
+            <input
+              type="number"
+              value={biodata.entry_year}
+              onChange={(e) => setBiodata({ ...biodata, entry_year: e.target.value })}
+            />
+          </label>
+          <label>
+            Expected Graduation Year
+            <input
+              type="number"
+              value={biodata.expected_graduation_year}
+              onChange={(e) =>
+                setBiodata({ ...biodata, expected_graduation_year: e.target.value })
+              }
+            />
+          </label>
+          <label>
+            Student Status
+            <select
+              value={biodata.student_status}
+              onChange={(e) => setBiodata({ ...biodata, student_status: e.target.value })}
+            >
+              <option value="active_student">Active Student</option>
+              <option value="graduated">Graduated</option>
+              <option value="alumni_ready">Alumni Ready</option>
+              <option value="alumni">Alumni</option>
+              <option value="deferred">Deferred</option>
+              <option value="withdrawn">Withdrawn</option>
+            </select>
+          </label>
+          <label>
+            NYSC Status
+            <select
+              value={biodata.nysc_status}
+              onChange={(e) => setBiodata({ ...biodata, nysc_status: e.target.value })}
+            >
+              <option value="none">None</option>
+              <option value="serving">Serving</option>
+              <option value="completed">Completed</option>
+            </select>
+          </label>
+          {biodata.nysc_status !== "none" ? (
+            <>
+              <label>
+                NYSC Batch
+                <input
+                  type="text"
+                  value={biodata.nysc_batch}
+                  onChange={(e) => setBiodata({ ...biodata, nysc_batch: e.target.value })}
+                />
+              </label>
+              <label>
+                NYSC State
+                <input
+                  type="text"
+                  value={biodata.nysc_state}
+                  onChange={(e) => setBiodata({ ...biodata, nysc_state: e.target.value })}
+                />
+              </label>
+              <label>
+                NYSC Start Date
+                <input
+                  type="date"
+                  value={biodata.nysc_start_date}
+                  onChange={(e) => setBiodata({ ...biodata, nysc_start_date: e.target.value })}
+                />
+              </label>
+              <label>
+                NYSC End Date
+                <input
+                  type="date"
+                  value={biodata.nysc_end_date}
+                  onChange={(e) => setBiodata({ ...biodata, nysc_end_date: e.target.value })}
+                />
+              </label>
+            </>
+          ) : null}
+          <label>
+            <input
+              type="checkbox"
+              checked={biodata.new_birth_status}
+              onChange={(e) => setBiodata({ ...biodata, new_birth_status: e.target.checked })}
+            />{" "}
+            New Birth
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={biodata.sanctification_status}
+              onChange={(e) =>
+                setBiodata({ ...biodata, sanctification_status: e.target.checked })
+              }
+            />{" "}
+            Sanctification
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={biodata.holy_ghost_baptism_status}
+              onChange={(e) =>
+                setBiodata({ ...biodata, holy_ghost_baptism_status: e.target.checked })
+              }
+            />{" "}
+            Holy Ghost Baptism
+          </label>
+          <label className="full-span">
+            Spiritual Notes
+            <textarea
+              value={biodata.spiritual_notes}
+              onChange={(e) => setBiodata({ ...biodata, spiritual_notes: e.target.value })}
+              rows="3"
+            />
+          </label>
+          <label>
             Category
             <select
               value={biodata.category}
