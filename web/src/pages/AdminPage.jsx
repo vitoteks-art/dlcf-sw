@@ -12,6 +12,7 @@ import AdminStateCongress from "../components/admin/AdminStateCongress";
 import AdminZonalCongress from "../components/admin/AdminZonalCongress";
 import AdminMedia from "../components/admin/AdminMedia";
 import AdminPublications from "../components/admin/AdminPublications";
+import AdminAttendanceCodes from "../components/admin/AdminAttendanceCodes";
 
 export default function AdminPage(props) {
   const {
@@ -116,6 +117,7 @@ export default function AdminPage(props) {
     { id: "zonal-congress", label: "Zonal Congress", show: canManageZonalCongress },
     { id: "media", label: "Media", show: canManageMedia || canPublishMedia },
     { id: "publications", label: "Publications", show: canManagePublications },
+    { id: "attendance-codes", label: "Attendance Codes", show: props.canManageAttendanceCodes },
     { id: "categories", label: "Categories", show: canManageCategories },
   ].filter(t => t.show);
 
@@ -166,6 +168,7 @@ export default function AdminPage(props) {
         {activeTab === "zonal-congress" && <AdminZonalCongress {...props} />}
         {activeTab === "media" && <AdminMedia {...props} />}
         {activeTab === "publications" && <AdminPublications {...props} />}
+        {activeTab === "attendance-codes" && <AdminAttendanceCodes {...props} />}
         {activeTab === "categories" && <AdminCategories {...props} />}
       </div>
     </section>

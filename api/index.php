@@ -93,6 +93,149 @@ function can_view_reports(array $user): bool
     ], true);
 }
 
+function can_manage_attendance_access_codes(array $user): bool
+{
+    return in_array($user['role'], ['administrator', 'state_cord', 'state_admin', 'associate_cord'], true);
+}
+
+function can_access_attendance_without_code(array $user): bool
+{
+    return in_array($user['role'], [
+        'administrator',
+        'zonal_cord',
+        'zonal_admin',
+        'state_cord',
+        'state_admin',
+        'region_cord',
+        'region_admin',
+        'associate_cord',
+    ], true);
+}
+
+function attendance_access_session_key(): string
+{
+    return 'attendance_access';
+}
+
+function current_attendance_access_session(): ?array
+{
+    return $_SESSION[attendance_access_session_key()] ?? null;
+}
+
+function clear_attendance_access_session(): void
+{
+    unset($_SESSION[attendance_access_session_key()]);
+}
+
+function write_attendance_audit_log(mysqli $db, ?int $codeId, ?int $sessionId, ?int $actorUserId, string $action, array $metadata = []): void
+{
+    $stmt = db_prepare(
+        $db,
+        'INSERT INTO attendance_access_audit_logs (attendance_access_code_id, attendance_access_session_id, actor_user_id, action, metadata_json, created_at)
+         VALUES (?, ?, ?, ?, ?, NOW())',
+        'iiiss',
+        [$codeId, $sessionId, $actorUserId, $action, json_encode($metadata)]
+    );
+    $stmt->execute();
+}
+
+function generate_attendance_access_code_value(): string
+{
+    return 'ATD-' . strtoupper(substr(bin2hex(random_bytes(6)), 0, 12));
+}
+
+function find_fellowship_centre_by_id(mysqli $db, int $centreId): ?array
+{
+    $stmt = db_prepare(
+        $db,
+        'SELECT id, name, state, region FROM fellowship_centres WHERE id = ? LIMIT 1',
+        'i',
+        [$centreId]
+    );
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    return $rows[0] ?? null;
+}
+
+function user_can_manage_code_for_centre(array $user, array $centre): bool
+{
+    if ($user['role'] === 'administrator') {
+        return true;
+    }
+    if (in_array($user['role'], ['state_cord', 'state_admin'], true)) {
+        return !empty($user['state']) && $user['state'] === $centre['state'];
+    }
+    if ($user['role'] === 'associate_cord') {
+        return !empty($user['fellowship_centre_id']) && (int) $user['fellowship_centre_id'] === (int) $centre['id'];
+    }
+    return false;
+}
+
+function hydrate_attendance_access_session(mysqli $db): ?array
+{
+    $session = current_attendance_access_session();
+    if (!$session || empty($session['id']) || empty($session['token'])) {
+        return null;
+    }
+
+    $stmt = db_prepare(
+        $db,
+        'SELECT s.id, s.attendance_access_code_id, s.user_id, s.fellowship_centre_id, s.state, s.region, s.status,
+                c.status AS code_status, fc.name AS fellowship_centre
+         FROM attendance_access_sessions s
+         JOIN attendance_access_codes c ON c.id = s.attendance_access_code_id
+         JOIN fellowship_centres fc ON fc.id = s.fellowship_centre_id
+         WHERE s.id = ? LIMIT 1',
+        'i',
+        [(int) $session['id']]
+    );
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    $row = $rows[0] ?? null;
+    if (!$row) {
+        clear_attendance_access_session();
+        return null;
+    }
+
+    if ((int) $row['user_id'] !== (int) (current_user()['id'] ?? 0)) {
+        clear_attendance_access_session();
+        return null;
+    }
+
+    if (($row['status'] ?? '') !== 'active' || ($row['code_status'] ?? '') !== 'active') {
+        clear_attendance_access_session();
+        return null;
+    }
+
+    $stmt = db_prepare(
+        $db,
+        'SELECT session_token_hash FROM attendance_access_sessions WHERE id = ? LIMIT 1',
+        'i',
+        [(int) $row['id']]
+    );
+    $stmt->execute();
+    $tokenRows = db_fetch_all($stmt);
+    $storedHash = $tokenRows[0]['session_token_hash'] ?? '';
+    if (!$storedHash || !password_verify((string) $session['token'], $storedHash)) {
+        clear_attendance_access_session();
+        return null;
+    }
+
+    $stmt = db_prepare($db, 'UPDATE attendance_access_sessions SET last_seen_at = NOW(), updated_at = NOW() WHERE id = ?', 'i', [(int) $row['id']]);
+    $stmt->execute();
+
+    return [
+        'id' => (int) $row['id'],
+        'attendance_access_code_id' => (int) $row['attendance_access_code_id'],
+        'user_id' => (int) $row['user_id'],
+        'fellowship_centre_id' => (int) $row['fellowship_centre_id'],
+        'fellowship_centre' => $row['fellowship_centre'],
+        'state' => $row['state'],
+        'region' => $row['region'],
+        'status' => $row['status'],
+    ];
+}
+
 function require_report_access(): array
 {
     require_auth();
@@ -708,6 +851,118 @@ if ($path === '/me') {
     require_method('GET');
     require_auth();
     json_ok(['user' => current_user()]);
+}
+
+if ($path === '/attendance-access/me') {
+    require_method('GET');
+    require_auth();
+    $user = current_user();
+    $session = hydrate_attendance_access_session($db);
+    $isExemptRole = can_access_attendance_without_code($user);
+    json_ok([
+        'authorized' => $isExemptRole || (bool) $session,
+        'requires_code' => !$isExemptRole,
+        'is_exempt_role' => $isExemptRole,
+        'session' => $session,
+    ]);
+}
+
+if ($path === '/attendance-access/activate') {
+    require_method('POST');
+    require_auth();
+    require_csrf();
+    $user = current_user();
+    if (can_access_attendance_without_code($user)) {
+        json_ok(['message' => 'Attendance access already available for this role']);
+    }
+
+    $payload = read_json();
+    $code = strtoupper(trim($payload['code'] ?? ''));
+    if ($code === '') {
+        json_error('Access code is required', 422);
+    }
+
+    $stmt = db_prepare(
+        $db,
+        'SELECT c.id, c.code_hash, c.fellowship_centre_id, c.state, c.region, c.status, fc.name AS fellowship_centre
+         FROM attendance_access_codes c
+         JOIN fellowship_centres fc ON fc.id = c.fellowship_centre_id
+         WHERE c.status = ?
+         ORDER BY c.id DESC',
+        's',
+        ['active']
+    );
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    $matched = null;
+    foreach ($rows as $row) {
+        if (password_verify($code, $row['code_hash'])) {
+            $matched = $row;
+            break;
+        }
+    }
+
+    if (!$matched) {
+        write_attendance_audit_log($db, null, null, (int) $user['id'], 'failed_attempt', ['reason' => 'invalid_code']);
+        json_error('Invalid or revoked access code', 403);
+    }
+
+    $token = bin2hex(random_bytes(24));
+    $tokenHash = password_hash($token, PASSWORD_DEFAULT);
+    $stmt = db_prepare(
+        $db,
+        'INSERT INTO attendance_access_sessions
+         (attendance_access_code_id, user_id, session_token_hash, fellowship_centre_id, state, region, status, ip_address, user_agent, last_seen_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())',
+        'iisisssss',
+        [
+            (int) $matched['id'],
+            (int) $user['id'],
+            $tokenHash,
+            (int) $matched['fellowship_centre_id'],
+            $matched['state'],
+            $matched['region'],
+            'active',
+            $_SERVER['REMOTE_ADDR'] ?? null,
+            substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500),
+        ]
+    );
+    $stmt->execute();
+    $sessionId = (int) $db->insert_id;
+
+    $_SESSION[attendance_access_session_key()] = [
+        'id' => $sessionId,
+        'token' => $token,
+    ];
+
+    $stmt = db_prepare($db, 'UPDATE attendance_access_codes SET last_used_at = NOW(), updated_at = NOW() WHERE id = ?', 'i', [(int) $matched['id']]);
+    $stmt->execute();
+    write_attendance_audit_log($db, (int) $matched['id'], $sessionId, (int) $user['id'], 'activated', []);
+
+    json_ok([
+        'authorized' => true,
+        'session' => [
+            'id' => $sessionId,
+            'attendance_access_code_id' => (int) $matched['id'],
+            'fellowship_centre_id' => (int) $matched['fellowship_centre_id'],
+            'fellowship_centre' => $matched['fellowship_centre'],
+            'state' => $matched['state'],
+            'region' => $matched['region'],
+        ],
+    ]);
+}
+
+if ($path === '/attendance-access/logout') {
+    require_method('POST');
+    require_auth();
+    require_csrf();
+    $session = current_attendance_access_session();
+    if ($session && !empty($session['id'])) {
+        $stmt = db_prepare($db, 'UPDATE attendance_access_sessions SET status = ?, revoked_at = NOW(), updated_at = NOW() WHERE id = ?', 'si', ['closed', (int) $session['id']]);
+        $stmt->execute();
+    }
+    clear_attendance_access_session();
+    json_ok(['message' => 'Attendance access cleared']);
 }
 
 if ($path === '/admin/uploads') {
@@ -2583,6 +2838,147 @@ if ($path === '/admin/users') {
     }
 }
 
+if ($path === '/attendance-access-codes') {
+    require_auth();
+    $user = current_user();
+    if (!can_manage_attendance_access_codes($user)) {
+        json_error('Forbidden', 403);
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        $sql = 'SELECT c.id, c.code_label, c.scope_type, c.fellowship_centre_id, fc.name AS fellowship_centre, c.state, c.region,
+                       c.status, c.created_by, creator.name AS created_by_name, c.revoked_by, revoker.name AS revoked_by_name,
+                       c.last_used_at, c.revoked_at, c.created_at
+                FROM attendance_access_codes c
+                JOIN fellowship_centres fc ON fc.id = c.fellowship_centre_id
+                JOIN users creator ON creator.id = c.created_by
+                LEFT JOIN users revoker ON revoker.id = c.revoked_by
+                WHERE 1=1';
+        $types = '';
+        $params = [];
+
+        if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+            $sql .= ' AND c.state = ?';
+            $types .= 's';
+            $params[] = $user['state'];
+        }
+        if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+            $sql .= ' AND c.fellowship_centre_id = ?';
+            $types .= 'i';
+            $params[] = (int) $user['fellowship_centre_id'];
+        }
+        $sql .= ' ORDER BY c.created_at DESC';
+        $stmt = db_prepare($db, $sql, $types, $params);
+        $stmt->execute();
+        $rows = db_fetch_all($stmt);
+        json_ok(['items' => $rows]);
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        require_csrf();
+        $payload = read_json();
+        $centreId = (int) ($payload['fellowship_centre_id'] ?? 0);
+        $codeLabel = trim($payload['code_label'] ?? '');
+        if ($centreId <= 0) {
+            json_error('Fellowship centre is required', 422);
+        }
+        $centre = find_fellowship_centre_by_id($db, $centreId);
+        if (!$centre) {
+            json_error('Fellowship centre not found', 404);
+        }
+        if (!user_can_manage_code_for_centre($user, $centre)) {
+            json_error('Forbidden', 403);
+        }
+
+        $plainCode = generate_attendance_access_code_value();
+        $stmt = db_prepare(
+            $db,
+            'INSERT INTO attendance_access_codes (code_hash, code_label, scope_type, fellowship_centre_id, state, region, status, created_by, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            'sssisssi',
+            [
+                password_hash($plainCode, PASSWORD_DEFAULT),
+                $codeLabel !== '' ? $codeLabel : null,
+                'fellowship_centre',
+                $centreId,
+                $centre['state'],
+                $centre['region'],
+                'active',
+                (int) $user['id'],
+            ]
+        );
+        $stmt->execute();
+        $id = (int) $db->insert_id;
+        write_attendance_audit_log($db, $id, null, (int) $user['id'], 'created', ['fellowship_centre_id' => $centreId]);
+
+        json_ok([
+            'id' => $id,
+            'code' => $plainCode,
+            'item' => [
+                'id' => $id,
+                'code_label' => $codeLabel,
+                'scope_type' => 'fellowship_centre',
+                'fellowship_centre_id' => $centreId,
+                'fellowship_centre' => $centre['name'],
+                'state' => $centre['state'],
+                'region' => $centre['region'],
+                'status' => 'active',
+                'created_by' => (int) $user['id'],
+                'created_by_name' => $user['name'],
+                'created_at' => date('Y-m-d H:i:s'),
+                'last_used_at' => null,
+            ],
+        ], 201);
+    }
+}
+
+if (preg_match('#^/attendance-access-codes/(\d+)/revoke$#', $path, $matches)) {
+    require_method('POST');
+    require_auth();
+    require_csrf();
+    $user = current_user();
+    if (!can_manage_attendance_access_codes($user)) {
+        json_error('Forbidden', 403);
+    }
+
+    $id = (int) $matches[1];
+    $stmt = db_prepare(
+        $db,
+        'SELECT c.id, c.created_by, c.fellowship_centre_id, c.state, c.region, c.status, fc.name AS fellowship_centre
+         FROM attendance_access_codes c
+         JOIN fellowship_centres fc ON fc.id = c.fellowship_centre_id
+         WHERE c.id = ? LIMIT 1',
+        'i',
+        [$id]
+    );
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    $code = $rows[0] ?? null;
+    if (!$code) {
+        json_error('Access code not found', 404);
+    }
+    if (($code['status'] ?? '') === 'revoked') {
+        json_error('Access code already revoked', 409);
+    }
+
+    $centre = [
+        'id' => (int) $code['fellowship_centre_id'],
+        'state' => $code['state'],
+        'region' => $code['region'],
+    ];
+    $isCreator = (int) $code['created_by'] === (int) $user['id'];
+    if (!$isCreator && !user_can_manage_code_for_centre($user, $centre)) {
+        json_error('Forbidden', 403);
+    }
+
+    $stmt = db_prepare($db, 'UPDATE attendance_access_codes SET status = ?, revoked_by = ?, revoked_at = NOW(), updated_at = NOW() WHERE id = ?', 'sii', ['revoked', (int) $user['id'], $id]);
+    $stmt->execute();
+    $stmt = db_prepare($db, 'UPDATE attendance_access_sessions SET status = ?, revoked_at = NOW(), updated_at = NOW() WHERE attendance_access_code_id = ? AND status = ?', 'sis', ['revoked', $id, 'active']);
+    $stmt->execute();
+    write_attendance_audit_log($db, $id, null, (int) $user['id'], 'revoked', []);
+    json_ok(['message' => 'Attendance access code revoked']);
+}
+
 if (preg_match('#^/admin/users/(\\d+)$#', $path, $matches)) {
     require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'associate_cord']);
     require_csrf();
@@ -2701,6 +3097,11 @@ if ($path === '/attendance/details') {
     require_method('GET');
     require_auth();
     $user = current_user();
+    $attendanceAccessSession = hydrate_attendance_access_session($db);
+    $isExemptAttendanceUser = can_access_attendance_without_code($user);
+    if (!$isExemptAttendanceUser && !$attendanceAccessSession) {
+        json_error('Attendance access code required', 403);
+    }
     $entryDate = $_GET['entry_date'] ?? '';
     $serviceDay = $_GET['service_day'] ?? '';
     $centreName = trim($_GET['fellowship_centre'] ?? '');
@@ -2712,7 +3113,9 @@ if ($path === '/attendance/details') {
     }
 
     $centreId = null;
-    if ($user['role'] === 'associate_cord') {
+    if ($attendanceAccessSession) {
+        $centreId = (int) $attendanceAccessSession['fellowship_centre_id'];
+    } elseif ($user['role'] === 'associate_cord') {
         if (empty($user['fellowship_centre_id'])) {
             json_error('No fellowship centre assigned to this user', 403);
         }
@@ -2791,6 +3194,11 @@ if ($path === '/attendance') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         require_auth();
         $user = current_user();
+        $attendanceAccessSession = hydrate_attendance_access_session($db);
+        $isExemptAttendanceUser = can_access_attendance_without_code($user);
+        if (!$isExemptAttendanceUser && !$attendanceAccessSession) {
+            json_error('Attendance access code required', 403);
+        }
         $filters = [
             'start' => $_GET['start'] ?? null,
             'end' => $_GET['end'] ?? null,
@@ -2831,7 +3239,13 @@ if ($path === '/attendance') {
             $types .= 's';
             $params[] = $filters['region'];
         }
-        if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+        if ($attendanceAccessSession) {
+            $sql .= ' AND fc.id = ?';
+            $types .= 'i';
+            $params[] = (int) $attendanceAccessSession['fellowship_centre_id'];
+            $filters['state'] = $attendanceAccessSession['state'];
+            $filters['region'] = $attendanceAccessSession['region'];
+        } elseif ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
             $sql .= ' AND fc.id = ?';
             $types .= 'i';
             $params[] = (int) $user['fellowship_centre_id'];
@@ -2853,6 +3267,11 @@ if ($path === '/attendance') {
         require_auth();
         require_csrf();
         $user = current_user();
+        $attendanceAccessSession = hydrate_attendance_access_session($db);
+        $isExemptAttendanceUser = can_access_attendance_without_code($user);
+        if (!$isExemptAttendanceUser && !$attendanceAccessSession) {
+            json_error('Attendance access code required', 403);
+        }
         $payload = read_json();
         $user = current_user();
 
@@ -2863,13 +3282,26 @@ if ($path === '/attendance') {
         $region = trim($payload['region'] ?? '');
         $counts = $payload['counts'] ?? [];
 
-        if ($entryDate === '' || $serviceDay === '' || $centreName === '' || $state === '' || $region === '') {
+        if ($entryDate === '' || $serviceDay === '') {
+            json_error('Missing required fields', 422);
+        }
+
+        if ($attendanceAccessSession) {
+            $centreId = (int) $attendanceAccessSession['fellowship_centre_id'];
+            $centreName = $attendanceAccessSession['fellowship_centre'];
+            $state = $attendanceAccessSession['state'];
+            $region = $attendanceAccessSession['region'];
+        }
+
+        if ($centreName === '' || $state === '' || $region === '') {
             json_error('Missing required fields', 422);
         }
 
         $db->begin_transaction();
         try {
-            if ($user['role'] === 'associate_cord') {
+            if ($attendanceAccessSession) {
+                $centreId = (int) $attendanceAccessSession['fellowship_centre_id'];
+            } elseif ($user['role'] === 'associate_cord') {
                 if (empty($user['fellowship_centre_id'])) {
                     json_error('No fellowship centre assigned to this user', 403);
                 }
@@ -2919,11 +3351,15 @@ if ($path === '/attendance') {
                 json_error('Attendance already submitted for this date and service', 409);
             }
 
-            $stmt = db_prepare($db, 'INSERT INTO attendance_entries (fellowship_centre_id, service_day, entry_date, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())', 'issi', [
+            $attendanceAccessCodeId = $attendanceAccessSession ? (int) $attendanceAccessSession['attendance_access_code_id'] : null;
+            $attendanceAccessSessionId = $attendanceAccessSession ? (int) $attendanceAccessSession['id'] : null;
+            $stmt = db_prepare($db, 'INSERT INTO attendance_entries (fellowship_centre_id, service_day, entry_date, created_by, attendance_access_code_id, attendance_access_session_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())', 'issiii', [
                 $centreId,
                 $serviceDay,
                 $entryDate,
                 current_user()['id'],
+                $attendanceAccessCodeId,
+                $attendanceAccessSessionId,
             ]);
             $stmt->execute();
             $entryId = $db->insert_id;
@@ -2944,6 +3380,9 @@ if ($path === '/attendance') {
             }
 
             $db->commit();
+            if ($attendanceAccessSession) {
+                write_attendance_audit_log($db, (int) $attendanceAccessSession['attendance_access_code_id'], (int) $attendanceAccessSession['id'], (int) $user['id'], 'used_for_submission', ['attendance_entry_id' => $entryId]);
+            }
             json_ok(['id' => $entryId], 201);
         } catch (Throwable $e) {
             $db->rollback();

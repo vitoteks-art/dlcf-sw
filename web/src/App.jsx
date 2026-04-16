@@ -480,6 +480,13 @@ function App() {
   });
   const [editUserRegions, setEditUserRegions] = useState([]);
   const [editUserCentres, setEditUserCentres] = useState([]);
+  const [attendanceAccess, setAttendanceAccess] = useState({ authorized: false, requires_code: true, is_exempt_role: false, session: null });
+  const [attendanceCode, setAttendanceCode] = useState("");
+  const [adminAttendanceCodes, setAdminAttendanceCodes] = useState([]);
+  const [adminAttendanceCodeForm, setAdminAttendanceCodeForm] = useState({ state: "", region: "", fellowship_centre_id: "", code_label: "" });
+  const [adminAttendanceCodeRegions, setAdminAttendanceCodeRegions] = useState([]);
+  const [adminAttendanceCodeCentres, setAdminAttendanceCodeCentres] = useState([]);
+  const [adminAttendanceCodeResult, setAdminAttendanceCodeResult] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const stateSlugs = useMemo(() => {
@@ -593,6 +600,8 @@ function App() {
       "region_cord",
       "associate_cord",
     ].includes(user.role);
+  const canManageAttendanceCodes = user && ["administrator", "state_cord", "state_admin", "associate_cord"].includes(user.role);
+  const canAccessAttendanceDirectly = user && ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord", "region_admin", "associate_cord"].includes(user.role);
   const canPublishMedia =
     user &&
     [
@@ -701,6 +710,43 @@ function App() {
       .then((data) => setAllCentres(data.items || []))
       .catch(() => setAllCentres([]));
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!user) return;
+    loadAttendanceAccess();
+  }, [user]);
+
+  useEffect(() => {
+    if (!canManageAttendanceCodes || !user) return;
+    const stateValue = user.state || adminAttendanceCodeForm.state || "";
+    const regionValue = user.role === "associate_cord" ? (user.region || adminAttendanceCodeForm.region || "") : adminAttendanceCodeForm.region;
+    setAdminAttendanceCodeForm((prev) => ({
+      ...prev,
+      state: stateValue,
+      region: regionValue,
+    }));
+    if (stateValue) {
+      loadAdminAttendanceCodeRegions(stateValue);
+      if (regionValue) {
+        loadAdminAttendanceCodeCentres(stateValue, regionValue);
+      }
+    }
+    loadAdminAttendanceCodes();
+  }, [canManageAttendanceCodes, user]);
+
+  useEffect(() => {
+    if (!canManageAttendanceCodes) return;
+    if (adminAttendanceCodeForm.state) {
+      loadAdminAttendanceCodeRegions(adminAttendanceCodeForm.state);
+    }
+  }, [adminAttendanceCodeForm.state]);
+
+  useEffect(() => {
+    if (!canManageAttendanceCodes) return;
+    if (adminAttendanceCodeForm.state && adminAttendanceCodeForm.region) {
+      loadAdminAttendanceCodeCentres(adminAttendanceCodeForm.state, adminAttendanceCodeForm.region);
+    }
+  }, [adminAttendanceCodeForm.state, adminAttendanceCodeForm.region]);
 
   useEffect(() => {
     if (!user) return;
@@ -1305,6 +1351,12 @@ function App() {
       });
       setUser(data.user);
       setLogin({ email: "", password: "" });
+      try {
+        const access = await apiFetch("/attendance-access/me");
+        setAttendanceAccess(access);
+      } catch {
+        setAttendanceAccess({ authorized: false, requires_code: true, is_exempt_role: false, session: null });
+      }
     } catch (err) {
       setStatus(err.message);
     }
@@ -1315,6 +1367,75 @@ function App() {
     try {
       await apiFetch("/logout", { method: "POST" });
       setUser(null);
+      setAttendanceAccess({ authorized: false, requires_code: true, is_exempt_role: false, session: null });
+      setAttendanceCode("");
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const loadAttendanceAccess = async () => {
+    if (!user) return;
+    try {
+      const data = await apiFetch("/attendance-access/me");
+      setAttendanceAccess(data);
+      if (data?.session) {
+        setAttendance((prev) => ({
+          ...prev,
+          state: data.session.state || prev.state,
+          region: data.session.region || prev.region,
+          fellowship_centre: data.session.fellowship_centre || prev.fellowship_centre,
+        }));
+      }
+    } catch {
+      setAttendanceAccess({ authorized: false, requires_code: true, is_exempt_role: false, session: null });
+      setAttendance((prev) => ({
+        ...prev,
+        state: canAccessAttendanceDirectly ? prev.state : "",
+        region: canAccessAttendanceDirectly ? prev.region : "",
+        fellowship_centre: canAccessAttendanceDirectly ? prev.fellowship_centre : "",
+      }));
+    }
+  };
+
+  const activateAttendanceCode = async (event) => {
+    event.preventDefault();
+    setStatus("");
+    try {
+      await ensureCsrf();
+      const data = await apiFetch("/attendance-access/activate", {
+        method: "POST",
+        body: JSON.stringify({ code: attendanceCode }),
+      });
+      setAttendanceAccess({ authorized: true, requires_code: true, is_exempt_role: false, session: data.session });
+      setAttendance((prev) => ({
+        ...prev,
+        state: data.session.state || prev.state,
+        region: data.session.region || prev.region,
+        fellowship_centre: data.session.fellowship_centre || prev.fellowship_centre,
+      }));
+      setAttendanceCode("");
+      setStatus("Attendance access granted.");
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const clearAttendanceAccess = async () => {
+    setStatus("");
+    try {
+      await ensureCsrf();
+      await apiFetch("/attendance-access/logout", { method: "POST" });
+      setAttendanceAccess({ authorized: false, requires_code: true, is_exempt_role: false, session: null });
+      if (!canAccessAttendanceDirectly) {
+        setAttendance((prev) => ({
+          ...prev,
+          state: "",
+          region: "",
+          fellowship_centre: "",
+        }));
+      }
+      setStatus("Attendance access cleared.");
     } catch (err) {
       setStatus(err.message);
     }
@@ -2097,6 +2218,73 @@ function App() {
     }
   };
 
+  const loadAdminAttendanceCodeRegions = async (state) => {
+    if (!state) {
+      setAdminAttendanceCodeRegions([]);
+      return;
+    }
+    try {
+      const data = await apiFetch(`/meta/regions?state=${encodeURIComponent(state)}`);
+      setAdminAttendanceCodeRegions(data.items || []);
+    } catch {
+      setAdminAttendanceCodeRegions([]);
+    }
+  };
+
+  const loadAdminAttendanceCodeCentres = async (state, region) => {
+    if (!state || !region) {
+      setAdminAttendanceCodeCentres([]);
+      return;
+    }
+    try {
+      const data = await apiFetch(`/admin/fellowships?state=${encodeURIComponent(state)}&region=${encodeURIComponent(region)}`);
+      setAdminAttendanceCodeCentres(data.items || []);
+    } catch {
+      setAdminAttendanceCodeCentres([]);
+    }
+  };
+
+  const loadAdminAttendanceCodes = async () => {
+    try {
+      const data = await apiFetch("/attendance-access-codes");
+      setAdminAttendanceCodes(data.items || []);
+    } catch {
+      setAdminAttendanceCodes([]);
+    }
+  };
+
+  const handleGenerateAttendanceCode = async (event) => {
+    event.preventDefault();
+    setStatus("");
+    setAdminAttendanceCodeResult(null);
+    try {
+      await ensureCsrf();
+      const data = await apiFetch("/attendance-access-codes", {
+        method: "POST",
+        body: JSON.stringify(adminAttendanceCodeForm),
+      });
+      setAdminAttendanceCodeResult(data);
+      setStatus("Attendance code generated.");
+      setAdminAttendanceCodeForm((prev) => ({ ...prev, code_label: "" }));
+      loadAdminAttendanceCodes();
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const handleRevokeAttendanceCode = async (id) => {
+    setStatus("");
+    try {
+      await ensureCsrf();
+      await apiFetch(`/attendance-access-codes/${id}/revoke`, { method: "POST" });
+      setStatus("Attendance code revoked.");
+      loadAdminAttendanceCodes();
+      loadAttendanceAccess();
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
   const loadAdminWorkUnits = async () => {
     try {
       const data = await apiFetch("/admin/work-units");
@@ -2492,6 +2680,7 @@ function App() {
     canManageWorkUnits,
     canManageRoles,
     canManageUsers,
+    canManageAttendanceCodes,
     canPublishMedia,
     canManageMedia,
     canManagePublications,
@@ -2624,6 +2813,15 @@ function App() {
     loadAdminStatePosts,
     loadAdminCategories,
     loadAdminStateHome,
+    adminAttendanceCodes,
+    adminAttendanceCodeForm,
+    setAdminAttendanceCodeForm,
+    adminAttendanceCodeRegions,
+    adminAttendanceCodeCentres,
+    adminAttendanceCodeResult,
+    loadAdminAttendanceCodes,
+    handleGenerateAttendanceCode,
+    handleRevokeAttendanceCode,
     handleAddUser,
     handleEditUser,
     handleDeleteUser,
@@ -2866,13 +3064,19 @@ function App() {
                   setAttendance={setAttendance}
                   attendanceRegions={attendanceRegions}
                   attendanceCentres={attendanceCentres}
-                  updateCount={updateCount}
-                  total={total}
-                  attendanceEntryId={attendanceEntryId}
-                  loadAttendanceEntry={loadAttendanceEntry}
-                />
-              }
-            />
+                updateCount={updateCount}
+                total={total}
+                attendanceEntryId={attendanceEntryId}
+                loadAttendanceEntry={loadAttendanceEntry}
+                attendanceAccess={attendanceAccess}
+                attendanceCode={attendanceCode}
+                setAttendanceCode={setAttendanceCode}
+                activateAttendanceCode={activateAttendanceCode}
+                clearAttendanceAccess={clearAttendanceAccess}
+                canAccessAttendanceDirectly={canAccessAttendanceDirectly}
+              />
+            }
+          />
             <Route
               path="/gck"
               element={

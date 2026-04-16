@@ -2,6 +2,7 @@ INSERT INTO roles (name, created_at, updated_at) VALUES
   ('member', NOW(), NOW()),
   ('worker', NOW(), NOW()),
   ('associate_cord', NOW(), NOW()),
+  ('region_admin', NOW(), NOW()),
   ('region_cord', NOW(), NOW()),
   ('state_admin', NOW(), NOW()),
   ('state_cord', NOW(), NOW()),

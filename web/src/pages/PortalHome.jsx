@@ -18,6 +18,12 @@ export default function PortalHome({
   total,
   attendanceEntryId,
   loadAttendanceEntry,
+  attendanceAccess,
+  attendanceCode,
+  setAttendanceCode,
+  activateAttendanceCode,
+  clearAttendanceAccess,
+  canAccessAttendanceDirectly,
 }) {
   return (
     <>
@@ -72,6 +78,36 @@ export default function PortalHome({
                 </div>
                 <div className="total-pill">Total: {total}</div>
               </div>
+              {!canAccessAttendanceDirectly && !attendanceAccess?.authorized ? (
+                <form onSubmit={activateAttendanceCode} className="form compact-form" style={{ marginBottom: 16 }}>
+                  <label>
+                    Attendance Access Code
+                    <input
+                      type="text"
+                      value={attendanceCode}
+                      onChange={(e) => setAttendanceCode(e.target.value)}
+                      placeholder="Enter access code"
+                      required
+                    />
+                  </label>
+                  <div className="form-actions">
+                    <button type="submit">Continue</button>
+                  </div>
+                </form>
+              ) : null}
+
+              {!canAccessAttendanceDirectly && attendanceAccess?.authorized ? (
+                <div className="status" style={{ marginBottom: 16 }}>
+                  Attendance access granted for {attendanceAccess?.session?.fellowship_centre}, {attendanceAccess?.session?.state}, {attendanceAccess?.session?.region}.
+                  <div style={{ marginTop: 8 }}>
+                    <button type="button" className="btn-outline" onClick={clearAttendanceAccess}>
+                      Exit Access
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {canAccessAttendanceDirectly || attendanceAccess?.authorized ? (
               <form onSubmit={submitAttendance} className="form attendance-form">
                 <div className="grid">
                   <label>
@@ -112,6 +148,7 @@ export default function PortalHome({
                         })
                       }
                       required
+                      disabled={!canAccessAttendanceDirectly && attendanceAccess?.authorized}
                     >
                       <option value="">Select state</option>
                       {states.map((state) => (
@@ -134,6 +171,7 @@ export default function PortalHome({
                       }
                       required
                       disabled={!attendance.state}
+                      
                     >
                       <option value="">Select region</option>
                       {attendanceRegions.map((region) => (
@@ -197,15 +235,18 @@ export default function PortalHome({
                   <button type="submit">
                     {attendanceEntryId ? "Update Attendance" : "Save Attendance"}
                   </button>
-                  <button
-                    type="button"
-                    className="btn-outline"
-                    onClick={loadAttendanceEntry}
-                  >
-                    Load Existing
-                  </button>
+                  {canAccessAttendanceDirectly ? (
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      onClick={loadAttendanceEntry}
+                    >
+                      Load Existing
+                    </button>
+                  ) : null}
                 </div>
               </form>
+              ) : null}
             </section>
           </div>
         )}
