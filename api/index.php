@@ -3,6 +3,8 @@ require __DIR__ . '/lib/response.php';
 require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/auth.php';
 
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
 $config = require __DIR__ . '/config.php';
 // Increase session lifetime to 24 hours
 ini_set('session.gc_maxlifetime', 86400);
@@ -128,6 +130,7 @@ function can_view_biodata_directory(array $user): bool
 
 function normalize_biodata_tracking_payload(array $payload): array
 {
+    $category = strtolower(trim($payload['category'] ?? ''));
     $programType = trim($payload['program_type'] ?? '');
     $academicLevel = trim($payload['academic_level'] ?? '');
     $entryYearRaw = trim((string) ($payload['entry_year'] ?? ''));
@@ -175,6 +178,18 @@ function normalize_biodata_tracking_payload(array $payload): array
     $newBirthStatus = !empty($payload['new_birth_status']) ? 1 : 0;
     $sanctificationStatus = !empty($payload['sanctification_status']) ? 1 : 0;
     $holyGhostBaptismStatus = !empty($payload['holy_ghost_baptism_status']) ? 1 : 0;
+
+    if ($category !== 'student') {
+        $programType = '';
+        $academicLevel = '';
+        $entryYear = null;
+        $expectedGraduationYear = null;
+        $studentStatus = '';
+    }
+
+    if ($category !== 'corper') {
+        $nyscStatus = '';
+    }
 
     if ($nyscStatus === 'none' || $nyscStatus === '') {
         $nyscBatch = '';
@@ -4246,76 +4261,125 @@ if ($path === '/biodata/me') {
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         require_auth();
         require_csrf();
-        $user = current_user();
-        $payload = read_json();
+        try {
+            $user = current_user();
+            $payload = read_json();
 
-        $fullName = trim($payload['full_name'] ?? '');
-        $gender = $payload['gender'] ?? '';
-        $age = (int) ($payload['age'] ?? 0);
-        $phone = trim($payload['phone'] ?? '');
-        $email = trim($payload['email'] ?? '');
-        $profilePhoto = trim($payload['profile_photo'] ?? '');
-        $school = trim($payload['school'] ?? '');
-        $tracking = normalize_biodata_tracking_payload($payload);
-        $category = trim($payload['category'] ?? '');
-        $workerStatus = trim($payload['worker_status'] ?? '');
-        $membershipStatus = trim($payload['membership_status'] ?? '');
-        $workUnits = $payload['work_units'] ?? [];
-        $address = trim($payload['address'] ?? '');
-        $nextOfKinName = trim($payload['next_of_kin_name'] ?? '');
-        $nextOfKinPhone = trim($payload['next_of_kin_phone'] ?? '');
-        $nextOfKinRelationship = trim($payload['next_of_kin_relationship'] ?? '');
-        $state = trim($payload['state'] ?? '');
-        $region = trim($payload['region'] ?? '');
-        $cluster = trim($payload['cluster'] ?? '');
-        $centreName = trim($payload['fellowship_centre'] ?? '');
+            $fullName = trim($payload['full_name'] ?? '');
+            $gender = $payload['gender'] ?? '';
+            $age = (int) ($payload['age'] ?? 0);
+            $phone = trim($payload['phone'] ?? '');
+            $email = trim($payload['email'] ?? '');
+            $profilePhoto = trim($payload['profile_photo'] ?? '');
+            $school = trim($payload['school'] ?? '');
+            $tracking = normalize_biodata_tracking_payload($payload);
+            $category = trim($payload['category'] ?? '');
+            $workerStatus = trim($payload['worker_status'] ?? '');
+            $membershipStatus = trim($payload['membership_status'] ?? '');
+            $workUnits = $payload['work_units'] ?? [];
+            $address = trim($payload['address'] ?? '');
+            $nextOfKinName = trim($payload['next_of_kin_name'] ?? '');
+            $nextOfKinPhone = trim($payload['next_of_kin_phone'] ?? '');
+            $nextOfKinRelationship = trim($payload['next_of_kin_relationship'] ?? '');
+            $state = trim($payload['state'] ?? '');
+            $region = trim($payload['region'] ?? '');
+            $cluster = trim($payload['cluster'] ?? '');
+            $centreName = trim($payload['fellowship_centre'] ?? '');
 
-        if ($user['email'] && strcasecmp($email, $user['email']) !== 0) {
-            json_error('Email must match your account email', 422);
-        }
-        if ($profilePhoto !== '') {
-            if (strncmp($profilePhoto, 'data:image/', 11) !== 0) {
-                json_error('Invalid profile photo format', 422);
+            if ($user['email'] && strcasecmp($email, $user['email']) !== 0) {
+                json_error('Email must match your account email', 422);
             }
-            if (strlen($profilePhoto) > 2000000) {
-                json_error('Profile photo must be 2MB or smaller', 422);
+            if ($profilePhoto !== '') {
+                if (strncmp($profilePhoto, 'data:image/', 11) !== 0) {
+                    json_error('Invalid profile photo format', 422);
+                }
+                if (strlen($profilePhoto) > 2000000) {
+                    json_error('Profile photo must be 2MB or smaller', 422);
+                }
             }
-        }
 
-        if (
-            $fullName === '' || $gender === '' || $age <= 0 || $phone === '' || $email === '' ||
-            $school === '' || $category === '' || $workerStatus === '' || $membershipStatus === '' ||
-            !is_array($workUnits) || count($workUnits) === 0 ||
-            $address === '' || $nextOfKinName === '' || $nextOfKinPhone === '' || $nextOfKinRelationship === '' ||
-            $state === '' || $region === '' || $centreName === ''
-        ) {
-            json_error('Missing required fields', 422);
-        }
+            $schoolRequired = !in_array(strtolower($category), ['youth', 'children'], true);
 
-        $stmt = db_prepare($db, 'SELECT id FROM fellowship_centres WHERE name = ? AND state = ? AND region = ? LIMIT 1', 'sss', [$centreName, $state, $region]);
-        $stmt->execute();
-        $centreRow = db_fetch_all($stmt);
-        if ($centreRow) {
-            $centreId = (int) $centreRow[0]['id'];
-        } else {
-            $stmt = db_prepare($db, 'INSERT INTO fellowship_centres (name, state, region, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', 'sss', [$centreName, $state, $region]);
+            if (
+                $fullName === '' || $gender === '' || $age <= 0 || $phone === '' || $email === '' ||
+                ($schoolRequired && $school === '') || $category === '' || $workerStatus === '' || $membershipStatus === '' ||
+                !is_array($workUnits) || count($workUnits) === 0 ||
+                $address === '' || $nextOfKinName === '' || $nextOfKinPhone === '' || $nextOfKinRelationship === '' ||
+                $state === '' || $region === '' || $centreName === ''
+            ) {
+                json_error('Missing required fields', 422);
+            }
+
+            $stmt = db_prepare($db, 'SELECT id FROM fellowship_centres WHERE name = ? AND state = ? AND region = ? LIMIT 1', 'sss', [$centreName, $state, $region]);
             $stmt->execute();
-            $centreId = $db->insert_id;
-        }
+            $centreRow = db_fetch_all($stmt);
+            if ($centreRow) {
+                $centreId = (int) $centreRow[0]['id'];
+            } else {
+                $stmt = db_prepare($db, 'INSERT INTO fellowship_centres (name, state, region, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', 'sss', [$centreName, $state, $region]);
+                $stmt->execute();
+                $centreId = $db->insert_id;
+            }
 
-        $cluster = $cluster === '' ? null : $cluster;
+            $cluster = $cluster === '' ? null : $cluster;
 
-        $stmt = db_prepare($db, 'SELECT id FROM biodata WHERE user_id = ? LIMIT 1', 'i', [$user['id']]);
-        $stmt->execute();
-        $existing = db_fetch_all($stmt);
-        if ($existing) {
-            $sql = 'UPDATE biodata SET fellowship_centre_id = ?, full_name = ?, gender = ?, age = ?, phone = ?, email = ?, state = ?, region = ?, cluster = ?, profile_photo = ?,
-                           school = ?, program_type = ?, academic_level = ?, entry_year = ?, expected_graduation_year = ?, student_status = ?,
-                           nysc_status = ?, nysc_batch = ?, nysc_state = ?, nysc_start_date = ?, nysc_end_date = ?, new_birth_status = ?,
-                           sanctification_status = ?, holy_ghost_baptism_status = ?, spiritual_notes = ?, category = ?, worker_status = ?, membership_status = ?, work_units = ?, address = ?,
-                           next_of_kin_name = ?, next_of_kin_phone = ?, next_of_kin_relationship = ?, updated_at = NOW()
-                    WHERE id = ?';
-            $stmt = db_prepare($db, $sql, 'ississssssssiissssssiisssssssssi', [
+            $stmt = db_prepare($db, 'SELECT id FROM biodata WHERE user_id = ? LIMIT 1', 'i', [$user['id']]);
+            $stmt->execute();
+            $existing = db_fetch_all($stmt);
+            if ($existing) {
+                $sql = 'UPDATE biodata SET fellowship_centre_id = ?, full_name = ?, gender = ?, age = ?, phone = ?, email = ?, state = ?, region = ?, cluster = ?, profile_photo = ?,
+                               school = ?, program_type = ?, academic_level = ?, entry_year = ?, expected_graduation_year = ?, student_status = ?,
+                               nysc_status = ?, nysc_batch = ?, nysc_state = ?, nysc_start_date = ?, nysc_end_date = ?, new_birth_status = ?,
+                               sanctification_status = ?, holy_ghost_baptism_status = ?, spiritual_notes = ?, category = ?, worker_status = ?, membership_status = ?, work_units = ?, address = ?,
+                               next_of_kin_name = ?, next_of_kin_phone = ?, next_of_kin_relationship = ?, updated_at = NOW()
+                        WHERE id = ?';
+                $stmt = db_prepare($db, $sql, 'ississsssssssiissssssiiisssssssssi', [
+                    $centreId,
+                    $fullName,
+                    $gender,
+                    $age,
+                    $phone,
+                    $email,
+                    $state,
+                    $region,
+                    $cluster,
+                    $profilePhoto,
+                    $school,
+                    $tracking['program_type'],
+                    $tracking['academic_level'],
+                    $tracking['entry_year'],
+                    $tracking['expected_graduation_year'],
+                    $tracking['student_status'],
+                    $tracking['nysc_status'],
+                    $tracking['nysc_batch'],
+                    $tracking['nysc_state'],
+                    $tracking['nysc_start_date'],
+                    $tracking['nysc_end_date'],
+                    $tracking['new_birth_status'],
+                    $tracking['sanctification_status'],
+                    $tracking['holy_ghost_baptism_status'],
+                    $tracking['spiritual_notes'],
+                    $category,
+                    $workerStatus,
+                    $membershipStatus,
+                    json_encode(array_values($workUnits)),
+                    $address,
+                    $nextOfKinName,
+                    $nextOfKinPhone,
+                    $nextOfKinRelationship,
+                    (int) $existing[0]['id'],
+                ]);
+                $stmt->execute();
+                json_ok(['message' => 'Profile updated']);
+            }
+
+            $sql = 'INSERT INTO biodata
+                (user_id, fellowship_centre_id, full_name, gender, age, phone, email, state, region, cluster, profile_photo, school, program_type, academic_level, entry_year, expected_graduation_year, student_status,
+                 nysc_status, nysc_batch, nysc_state, nysc_start_date, nysc_end_date, new_birth_status, sanctification_status, holy_ghost_baptism_status, spiritual_notes,
+                 category, worker_status, membership_status, work_units, address, next_of_kin_name, next_of_kin_phone, next_of_kin_relationship, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())';
+            $stmt = db_prepare($db, $sql, 'iississsssssssiissssssiiisssssssss', [
+                $user['id'],
                 $centreId,
                 $fullName,
                 $gender,
@@ -4349,55 +4413,12 @@ if ($path === '/biodata/me') {
                 $nextOfKinName,
                 $nextOfKinPhone,
                 $nextOfKinRelationship,
-                (int) $existing[0]['id'],
             ]);
             $stmt->execute();
-            json_ok(['message' => 'Profile updated']);
+            json_ok(['message' => 'Profile created'], 201);
+        } catch (Throwable $e) {
+            json_error('Biodata update failed: ' . $e->getMessage(), 500);
         }
-
-        $sql = 'INSERT INTO biodata
-            (user_id, fellowship_centre_id, full_name, gender, age, phone, email, state, region, cluster, profile_photo, school, program_type, academic_level, entry_year, expected_graduation_year, student_status,
-             nysc_status, nysc_batch, nysc_state, nysc_start_date, nysc_end_date, new_birth_status, sanctification_status, holy_ghost_baptism_status, spiritual_notes,
-             category, worker_status, membership_status, work_units, address, next_of_kin_name, next_of_kin_phone, next_of_kin_relationship, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())';
-        $stmt = db_prepare($db, $sql, 'iississssssssiissssssiissssssssss', [
-            $user['id'],
-            $centreId,
-            $fullName,
-            $gender,
-            $age,
-            $phone,
-            $email,
-            $state,
-            $region,
-            $cluster,
-            $profilePhoto,
-            $school,
-            $tracking['program_type'],
-            $tracking['academic_level'],
-            $tracking['entry_year'],
-            $tracking['expected_graduation_year'],
-            $tracking['student_status'],
-            $tracking['nysc_status'],
-            $tracking['nysc_batch'],
-            $tracking['nysc_state'],
-            $tracking['nysc_start_date'],
-            $tracking['nysc_end_date'],
-            $tracking['new_birth_status'],
-            $tracking['sanctification_status'],
-            $tracking['holy_ghost_baptism_status'],
-            $tracking['spiritual_notes'],
-            $category,
-            $workerStatus,
-            $membershipStatus,
-            json_encode(array_values($workUnits)),
-            $address,
-            $nextOfKinName,
-            $nextOfKinPhone,
-            $nextOfKinRelationship,
-        ]);
-        $stmt->execute();
-        json_ok(['message' => 'Profile created'], 201);
     }
 }
 

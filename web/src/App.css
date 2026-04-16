@@ -272,7 +272,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -293,14 +294,16 @@ input[type="datetime-local"] {
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: none;
   border-color: rgba(58, 160, 255, 0.7);
   box-shadow: 0 0 0 3px rgba(58, 160, 255, 0.25);
   transform: translateY(-1px);
 }
 
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: rgba(151, 163, 182, 0.7);
 }
 
@@ -310,12 +313,20 @@ input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 select:-webkit-autofill,
 select:-webkit-autofill:hover,
-select:-webkit-autofill:focus {
+select:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--text);
   caret-color: var(--text);
   box-shadow: 0 0 0px 1000px var(--panel-2) inset;
   border: 1px solid var(--border);
   transition: background-color 9999s ease-in-out 0s;
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
 }
 
 button {
