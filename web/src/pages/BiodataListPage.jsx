@@ -19,6 +19,14 @@ export default function BiodataListPage({
 }) {
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState(null);
+  const historyFieldLabels = {
+    student_status: "Student Status",
+    nysc_status: "NYSC Status",
+    membership_status: "Membership Status",
+    category: "Category",
+    marital_status: "Marital Status",
+    worker_status: "Worker Status",
+  };
 
   useEffect(() => {
     if (!user || !canManageBiodata) {
@@ -339,7 +347,7 @@ export default function BiodataListPage({
                                   <tbody>
                                     {biodataHistoryById[row.id].map((entry, index) => (
                                       <tr key={`${entry.field_name}-${entry.changed_at}-${index}`}>
-                                        <td>{entry.field_name}</td>
+                                        <td>{historyFieldLabels[entry.field_name] || entry.field_name}</td>
                                         <td>{entry.old_value || "-"}</td>
                                         <td>{entry.new_value || "-"}</td>
                                         <td>{entry.changed_at}</td>
