@@ -95,6 +95,72 @@ function can_view_reports(array $user): bool
     ], true);
 }
 
+function can_view_attendance_reports(array $user): bool
+{
+    return in_array($user['role'], [
+        'administrator',
+        'zonal_cord',
+        'zonal_admin',
+        'state_cord',
+        'state_admin',
+        'region_cord',
+        'region_admin',
+        'associate_cord',
+    ], true);
+}
+
+function can_submit_gck_directly(array $user): bool
+{
+    return in_array($user['role'], [
+        'administrator',
+        'zonal_cord',
+        'zonal_admin',
+        'state_cord',
+        'state_admin',
+        'region_cord',
+        'region_admin',
+        'associate_cord',
+    ], true);
+}
+
+function can_view_gck_reports(array $user): bool
+{
+    return can_submit_gck_directly($user);
+}
+
+function can_manage_state_congress_registration(array $user): bool
+{
+    return in_array($user['role'], ['administrator', 'state_cord', 'state_admin'], true)
+        || user_has_work_unit($user, 'Registration Officers Committee');
+}
+
+function can_view_state_congress_reports(array $user): bool
+{
+    return in_array($user['role'], ['administrator', 'state_cord', 'state_admin'], true)
+        || user_has_work_unit($user, 'Registration Officers Committee');
+}
+
+function apply_state_region_centre_scope(array $user, ?string &$state, ?string &$region, ?int &$centreId = null): void
+{
+    if (in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin'], true)) {
+        return;
+    }
+    if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+        $state = $user['state'];
+    }
+    if (in_array($user['role'], ['region_cord', 'region_admin'], true)) {
+        if (!empty($user['state'])) {
+            $state = $user['state'];
+        }
+        if (!empty($user['region'])) {
+            $region = $user['region'];
+        }
+    }
+    if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+        $centreId = (int) $user['fellowship_centre_id'];
+    }
+}
+
 function can_manage_attendance_access_codes(array $user): bool
 {
     return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'region_admin', 'associate_cord'], true);
@@ -3219,6 +3285,9 @@ if ($path === '/attendance/details') {
     require_method('GET');
     require_auth();
     $user = current_user();
+    if (!can_view_attendance_reports($user) && !hydrate_attendance_access_session($db)) {
+        json_error('Forbidden', 403);
+    }
     $attendanceAccessSession = hydrate_attendance_access_session($db);
     $isExemptAttendanceUser = can_access_attendance_without_code($user);
     if (!$isExemptAttendanceUser && !$attendanceAccessSession) {
@@ -3246,12 +3315,7 @@ if ($path === '/attendance/details') {
         if ($centreName === '' || $state === '' || $region === '') {
             json_error('fellowship_centre, state, and region are required', 422);
         }
-        if ($user['role'] === 'region_cord' && $user['region']) {
-            $region = $user['region'];
-        }
-        if ($user['role'] === 'state_cord' && $user['state']) {
-            $state = $user['state'];
-        }
+        apply_state_region_centre_scope($user, $state, $region, $centreId);
         $stmt = db_prepare($db, 'SELECT id FROM fellowship_centres WHERE name = ? AND state = ? AND region = ? LIMIT 1', 'sss', [$centreName, $state, $region]);
         $stmt->execute();
         $centreRow = db_fetch_all($stmt);
@@ -3316,6 +3380,9 @@ if ($path === '/attendance') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         require_auth();
         $user = current_user();
+        if (!can_view_attendance_reports($user) && !hydrate_attendance_access_session($db)) {
+            json_error('Forbidden', 403);
+        }
         $attendanceAccessSession = hydrate_attendance_access_session($db);
         $isExemptAttendanceUser = can_access_attendance_without_code($user);
         if (!$isExemptAttendanceUser && !$attendanceAccessSession) {
@@ -3345,12 +3412,8 @@ if ($path === '/attendance') {
             $types .= 's';
             $params[] = $filters['end'];
         }
-        if ($user['role'] === 'region_cord' && $user['region']) {
-            $filters['region'] = $user['region'];
-        }
-        if ($user['role'] === 'state_cord' && $user['state']) {
-            $filters['state'] = $user['state'];
-        }
+        $centreScopeId = null;
+        apply_state_region_centre_scope($user, $filters['state'], $filters['region'], $centreScopeId);
         if ($filters['state']) {
             $sql .= ' AND fc.state = ?';
             $types .= 's';
@@ -3367,10 +3430,10 @@ if ($path === '/attendance') {
             $params[] = (int) $attendanceAccessSession['fellowship_centre_id'];
             $filters['state'] = $attendanceAccessSession['state'];
             $filters['region'] = $attendanceAccessSession['region'];
-        } elseif ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+        } elseif ($centreScopeId) {
             $sql .= ' AND fc.id = ?';
             $types .= 'i';
-            $params[] = (int) $user['fellowship_centre_id'];
+            $params[] = $centreScopeId;
         }
         if ($filters['service_day']) {
             $sql .= ' AND ae.service_day = ?';
@@ -3669,6 +3732,9 @@ if ($path === '/gck') {
         require_csrf();
         $payload = read_json();
         $user = current_user();
+        if (!can_submit_gck_directly($user)) {
+            json_error('Forbidden', 403);
+        }
 
         $reportMonth = trim($payload['report_month'] ?? '');
         $centreName = trim($payload['fellowship_centre'] ?? '');
@@ -3727,12 +3793,7 @@ if ($path === '/gck') {
             $state = $centre['state'];
             $region = $centre['region'];
         } else {
-            if ($user['role'] === 'region_cord' && $user['region']) {
-                $region = $user['region'];
-            }
-            if ($user['role'] === 'state_cord' && $user['state']) {
-                $state = $user['state'];
-            }
+            apply_state_region_centre_scope($user, $state, $region, $centreId);
         }
 
         if ($centreName === '' || $state === '' || $region === '') {
@@ -3821,6 +3882,9 @@ if ($path === '/gck/details') {
     require_method('GET');
     require_auth();
     $user = current_user();
+    if (!can_view_gck_reports($user)) {
+        json_error('Forbidden', 403);
+    }
 
     $reportMonth = trim($_GET['report_month'] ?? '');
     $centreName = trim($_GET['fellowship_centre'] ?? '');
@@ -3841,12 +3905,7 @@ if ($path === '/gck/details') {
         if ($centreName === '' || $state === '' || $region === '') {
             json_error('fellowship_centre, state, and region are required', 422);
         }
-        if ($user['role'] === 'region_cord' && $user['region']) {
-            $region = $user['region'];
-        }
-        if ($user['role'] === 'state_cord' && $user['state']) {
-            $state = $user['state'];
-        }
+        apply_state_region_centre_scope($user, $state, $region, $centreId);
         $stmt = db_prepare($db, 'SELECT id FROM fellowship_centres WHERE name = ? AND state = ? AND region = ? LIMIT 1', 'sss', [$centreName, $state, $region]);
         $stmt->execute();
         $centreRow = db_fetch_all($stmt);
@@ -3928,6 +3987,9 @@ if (preg_match('#^/gck/(\\d+)$#', $path, $matches)) {
     require_auth();
     require_csrf();
     $user = current_user();
+    if (!can_submit_gck_directly($user)) {
+        json_error('Forbidden', 403);
+    }
     $id = (int) $matches[1];
     $payload = read_json();
     $sessions = $payload['sessions'] ?? [];
@@ -3992,11 +4054,11 @@ if (preg_match('#^/gck/(\\d+)$#', $path, $matches)) {
         if ((int) $user['fellowship_centre_id'] !== (int) $report['fellowship_centre_id']) {
             json_error('Forbidden', 403);
         }
-    } elseif ($user['role'] === 'region_cord' && $user['region']) {
+    } elseif (in_array($user['role'], ['region_cord', 'region_admin'], true) && $user['region']) {
         if ($user['region'] !== $report['region']) {
             json_error('Forbidden', 403);
         }
-    } elseif ($user['role'] === 'state_cord' && $user['state']) {
+    } elseif (in_array($user['role'], ['state_cord', 'state_admin'], true) && $user['state']) {
         if ($user['state'] !== $report['state']) {
             json_error('Forbidden', 403);
         }
@@ -4061,16 +4123,14 @@ if ($path === '/gck/summary') {
     require_method('GET');
     require_auth();
     $user = current_user();
+    if (!can_view_gck_reports($user)) {
+        json_error('Forbidden', 403);
+    }
     $reportMonth = $_GET['report_month'] ?? null;
     $state = $_GET['state'] ?? null;
     $region = $_GET['region'] ?? null;
-
-    if ($user['role'] === 'region_cord' && $user['region']) {
-        $region = $user['region'];
-    }
-    if ($user['role'] === 'state_cord' && $user['state']) {
-        $state = $user['state'];
-    }
+    $centreScopeId = null;
+    apply_state_region_centre_scope($user, $state, $region, $centreScopeId);
 
     $sql = 'SELECT fc.name AS fellowship_centre, fc.state, fc.region,
                    gr.report_month, gs.session_label, gs.session_date,
@@ -4097,10 +4157,10 @@ if ($path === '/gck/summary') {
         $types .= 's';
         $params[] = $region;
     }
-    if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+    if ($centreScopeId) {
         $sql .= ' AND fc.id = ?';
         $types .= 'i';
-        $params[] = (int) $user['fellowship_centre_id'];
+        $params[] = $centreScopeId;
     }
     $sql .= ' GROUP BY fc.name, fc.state, fc.region, gr.report_month, gs.session_label, gs.session_date, gc.category, gc.gender
               ORDER BY fc.name, gs.session_date';
@@ -4652,7 +4712,12 @@ if (preg_match('#^/retreat-registrations/(\\d+)$#', $path, $matches)) {
 
 if ($path === '/state-congress-registrations') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        require_auth();
         require_csrf();
+        $user = current_user();
+        if (!can_manage_state_congress_registration($user)) {
+            json_error('Forbidden', 403);
+        }
         $payload = read_json();
 
         $title = $payload['title'] ?? '';
@@ -4667,6 +4732,9 @@ if ($path === '/state-congress-registrations') {
         $state = trim($payload['state'] ?? '');
         $region = trim($payload['region'] ?? '');
         $fellowshipCentre = trim($payload['fellowship_centre'] ?? '');
+
+        $centreScopeId = null;
+        apply_state_region_centre_scope($user, $state, $region, $centreScopeId);
 
         if (
             $title === '' || $fullName === '' || $gender === '' || $email === '' || $phone === '' ||
@@ -4712,7 +4780,7 @@ if ($path === '/state-congress-registrations/lookup') {
     require_method('GET');
     require_auth();
     $user = current_user();
-    if (!user_has_work_unit($user, 'Registration Officers Committee') && !in_array($user['role'], ['administrator'], true)) {
+    if (!can_manage_state_congress_registration($user)) {
         json_error('Forbidden', 403);
     }
     $registrationMonth = $_GET['registration_month'] ?? '';
@@ -4752,7 +4820,7 @@ if (preg_match('#^/state-congress-registrations/(\\d+)$#', $path, $matches)) {
     require_auth();
     require_csrf();
     $user = current_user();
-    if (!user_has_work_unit($user, 'Registration Officers Committee') && !in_array($user['role'], ['administrator'], true)) {
+    if (!can_manage_state_congress_registration($user)) {
         json_error('Forbidden', 403);
     }
     $id = (int) $matches[1];
@@ -4770,6 +4838,9 @@ if (preg_match('#^/state-congress-registrations/(\\d+)$#', $path, $matches)) {
     $state = trim($payload['state'] ?? '');
     $region = trim($payload['region'] ?? '');
     $fellowshipCentre = trim($payload['fellowship_centre'] ?? '');
+
+    $centreScopeId = null;
+    apply_state_region_centre_scope($user, $state, $region, $centreScopeId);
 
     if (
         $title === '' || $fullName === '' || $gender === '' || $email === '' || $phone === '' ||
@@ -4805,7 +4876,11 @@ if (preg_match('#^/state-congress-registrations/(\\d+)$#', $path, $matches)) {
 
 if ($path === '/state-congress-reports/regions-by-day') {
     require_method('GET');
-    $user = require_report_access();
+    require_auth();
+    $user = current_user();
+    if (!can_view_state_congress_reports($user)) {
+        json_error('Forbidden', 403);
+    }
     $filters = [
         'state' => trim($_GET['state'] ?? ''),
         'region' => trim($_GET['region'] ?? ''),
@@ -4856,7 +4931,11 @@ if ($path === '/state-congress-reports/regions-by-day') {
 
 if ($path === '/state-congress-reports/categories-by-region') {
     require_method('GET');
-    $user = require_report_access();
+    require_auth();
+    $user = current_user();
+    if (!can_view_state_congress_reports($user)) {
+        json_error('Forbidden', 403);
+    }
     $filters = [
         'state' => trim($_GET['state'] ?? ''),
         'region' => trim($_GET['region'] ?? ''),
@@ -4905,7 +4984,11 @@ if ($path === '/state-congress-reports/categories-by-region') {
 
 if ($path === '/state-congress-reports/membership-by-region') {
     require_method('GET');
-    $user = require_report_access();
+    require_auth();
+    $user = current_user();
+    if (!can_view_state_congress_reports($user)) {
+        json_error('Forbidden', 403);
+    }
     $filters = [
         'state' => trim($_GET['state'] ?? ''),
         'region' => trim($_GET['region'] ?? ''),
@@ -4954,7 +5037,11 @@ if ($path === '/state-congress-reports/membership-by-region') {
 
 if ($path === '/state-congress-reports/membership-by-institution') {
     require_method('GET');
-    $user = require_report_access();
+    require_auth();
+    $user = current_user();
+    if (!can_view_state_congress_reports($user)) {
+        json_error('Forbidden', 403);
+    }
     $filters = [
         'state' => trim($_GET['state'] ?? ''),
         'region' => trim($_GET['region'] ?? ''),
@@ -5016,7 +5103,11 @@ if ($path === '/state-congress-reports/membership-by-institution') {
 
 if ($path === '/state-congress-reports/membership-by-cluster') {
     require_method('GET');
-    $user = require_report_access();
+    require_auth();
+    $user = current_user();
+    if (!can_view_state_congress_reports($user)) {
+        json_error('Forbidden', 403);
+    }
     $filters = [
         'state' => trim($_GET['state'] ?? ''),
         'region' => trim($_GET['region'] ?? ''),

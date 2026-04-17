@@ -620,6 +620,14 @@ function App() {
     ].includes(user.role);
   const canManageAttendanceCodes = user && ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord", "region_admin", "associate_cord"].includes(user.role);
   const canAccessAttendanceDirectly = user && ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord", "region_admin", "associate_cord"].includes(user.role);
+  const canViewAttendanceReports = canAccessAttendanceDirectly;
+  const canSubmitGckDirectly = canAccessAttendanceDirectly;
+  const canViewGckReports = canAccessAttendanceDirectly;
+  const canManageStateCongressRegistration =
+    user &&
+    (["administrator", "state_cord", "state_admin"].includes(user.role) ||
+      userWorkUnits.includes("Registration Officers Committee"));
+  const canViewStateCongressReports = canManageStateCongressRegistration;
   const canPublishMedia =
     user &&
     [
@@ -3039,12 +3047,12 @@ function App() {
           <Link to="/">Home</Link>
           <Link to="/publications">Gospel Library</Link>
           <Link to="/portal">Attendance Portal</Link>
-          {user ? <Link to="/attendance-report">Attendance Reports</Link> : null}
-          <Link to="/gck">GCK Attendance</Link>
-          {user ? <Link to="/gck-report">GCK Reports</Link> : null}
+          {canViewAttendanceReports ? <Link to="/attendance-report">Attendance Reports</Link> : null}
+          {canSubmitGckDirectly ? <Link to="/gck">GCK Attendance</Link> : null}
+          {canViewGckReports ? <Link to="/gck-report">GCK Reports</Link> : null}
           <Link to="/stmc">STMC</Link>
           <Link to="/zonal-congress">Zonal Congress</Link>
-          <Link to="/state-congress">State Congress</Link>
+          {canManageStateCongressRegistration ? <Link to="/state-congress">State Congress</Link> : null}
           <Link to="/retreat">Retreat</Link>
           {canViewAdmin ? (
             <Link to="/retreat-report">Retreat Reports</Link>
@@ -3059,27 +3067,27 @@ function App() {
               Retreat Report by Centre
             </Link>
           ) : null}
-          {canViewAdmin ? (
+          {canViewStateCongressReports ? (
             <Link to="/state-congress-report/regions">
               State Congress Report by Region
             </Link>
           ) : null}
-          {canViewAdmin ? (
+          {canViewStateCongressReports ? (
             <Link to="/state-congress-report/categories">
               State Congress Report by Category
             </Link>
           ) : null}
-          {canViewAdmin ? (
+          {canViewStateCongressReports ? (
             <Link to="/state-congress-report/membership">
               State Congress Report by Membership
             </Link>
           ) : null}
-          {canViewAdmin ? (
+          {canViewStateCongressReports ? (
             <Link to="/state-congress-report/institutions">
               State Congress Report by Institution
             </Link>
           ) : null}
-          {canViewAdmin ? (
+          {canViewStateCongressReports ? (
             <Link to="/state-congress-report/clusters">
               State Congress Report by Cluster
             </Link>
@@ -3166,6 +3174,7 @@ function App() {
               element={
                 <GckPage
                   user={user}
+                  canSubmitDirectly={canSubmitGckDirectly}
                   status={status}
                   gckReport={gckReport}
                   setGckReport={setGckReport}
@@ -3183,6 +3192,7 @@ function App() {
               element={
                 <AttendanceReportPage
                   user={user}
+                  canViewAdmin={canViewAttendanceReports}
                   status={status}
                   report={report}
                   setReport={setReport}
@@ -3198,6 +3208,7 @@ function App() {
               element={
                 <GckReportPage
                   user={user}
+                  canViewAdmin={canViewGckReports}
                   status={status}
                   gckSummaryFilters={gckSummaryFilters}
                   setGckSummaryFilters={setGckSummaryFilters}
@@ -3253,6 +3264,8 @@ function App() {
               path="/state-congress"
               element={
                 <StateCongressPage
+                  user={user}
+                  canManage={canManageStateCongressRegistration}
                   clusters={stateCongressClusters}
                   status={status}
                   submitStateCongress={submitStateCongress}
@@ -3272,7 +3285,7 @@ function App() {
               element={
                 <StateCongressRegionReportPage
                   user={user}
-                  canViewAdmin={canViewAdmin}
+                  canViewAdmin={canViewStateCongressReports}
                   status={status}
                   stateCongressReportFilters={stateCongressReportFilters}
                   setStateCongressReportFilters={setStateCongressReportFilters}
@@ -3289,7 +3302,7 @@ function App() {
               element={
                 <StateCongressCategoryReportPage
                   user={user}
-                  canViewAdmin={canViewAdmin}
+                  canViewAdmin={canViewStateCongressReports}
                   status={status}
                   stateCongressCategoryFilters={stateCongressCategoryFilters}
                   setStateCongressCategoryFilters={setStateCongressCategoryFilters}
@@ -3306,7 +3319,7 @@ function App() {
               element={
                 <StateCongressMembershipReportPage
                   user={user}
-                  canViewAdmin={canViewAdmin}
+                  canViewAdmin={canViewStateCongressReports}
                   status={status}
                   stateCongressMembershipFilters={stateCongressMembershipFilters}
                   setStateCongressMembershipFilters={setStateCongressMembershipFilters}
@@ -3322,7 +3335,7 @@ function App() {
               element={
                 <StateCongressInstitutionReportPage
                   user={user}
-                  canViewAdmin={canViewAdmin}
+                  canViewAdmin={canViewStateCongressReports}
                   status={status}
                   stateCongressInstitutionFilters={stateCongressInstitutionFilters}
                   setStateCongressInstitutionFilters={setStateCongressInstitutionFilters}
@@ -3338,7 +3351,7 @@ function App() {
               element={
                 <StateCongressClusterReportPage
                   user={user}
-                  canViewAdmin={canViewAdmin}
+                  canViewAdmin={canViewStateCongressReports}
                   status={status}
                   stateCongressClusterFilters={stateCongressClusterFilters}
                   setStateCongressClusterFilters={setStateCongressClusterFilters}
