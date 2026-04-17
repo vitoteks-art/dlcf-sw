@@ -24,7 +24,7 @@ export default function GckReportPage({
   const sessions = useMemo(() => {
     const map = new Map();
     gckSummary.forEach((row) => {
-      const label = row.session_label || "Session";
+      const label = row.session_label || "Program";
       const date = row.session_date || "";
       const key = `${label}|${date}`;
       if (!map.has(key)) {
@@ -44,7 +44,7 @@ export default function GckReportPage({
         byCentre.set(centre, {});
       }
       const centreData = byCentre.get(centre);
-      const label = row.session_label || "Session";
+      const label = row.session_label || "Program";
       const date = row.session_date || "";
       const sessionKey = `${label}|${date}`;
       if (!centreData[sessionKey]) {
@@ -73,7 +73,7 @@ export default function GckReportPage({
       };
     });
     gckSummary.forEach((row) => {
-      const label = row.session_label || "Session";
+      const label = row.session_label || "Program";
       const date = row.session_date || "";
       const sessionKey = `${label}|${date}`;
       const key = `${row.category || ""}:${row.gender || ""}`;

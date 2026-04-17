@@ -3880,15 +3880,15 @@ if ($path === '/gck') {
 
             foreach ($sessions as $session) {
                 $label = trim($session['label'] ?? '');
-                $period = trim($session['period'] ?? '');
+                $program = trim($session['program'] ?? ($session['period'] ?? ''));
                 $date = trim($session['date'] ?? '');
                 $counts = $session['counts'] ?? [];
                 if ($label === '' || $date === '') {
                     continue;
                 }
                 $labelForSave = $label;
-                if ($period !== '') {
-                    $labelForSave = $label . ' - ' . $period;
+                if ($program !== '') {
+                    $labelForSave = $label . ' - ' . $program;
                 }
 
                 $stmt = db_prepare($db, 'INSERT INTO gck_sessions (report_id, session_label, session_date, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', 'iss', [
@@ -4059,7 +4059,7 @@ if (preg_match('#^/gck/(\\d+)$#', $path, $matches)) {
     $nextMonthKey = (clone $reportMonthDate)->modify('first day of next month')->format('Y-m');
     foreach ($sessions as $session) {
         $date = trim($session['date'] ?? '');
-        $period = trim($session['period'] ?? '');
+        $program = trim($session['program'] ?? ($session['period'] ?? ''));
         if ($date === '') {
             continue;
         }

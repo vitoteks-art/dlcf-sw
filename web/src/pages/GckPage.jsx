@@ -8,8 +8,21 @@ const createEmptyCounts = () => ({
   children: { male: 0, female: 0 },
 });
 
+const programOptions = [
+  "Crusade Sessions",
+  "Ministers’ Conferences",
+  "Impact Academy",
+  "Sunday Worship Service / SHS",
+];
+
 export default function GckPage({
   user,
+  canSubmitDirectly,
+  attendanceAccess,
+  attendanceCode,
+  setAttendanceCode,
+  activateAttendanceCode,
+  clearAttendanceAccess,
   status,
   gckReport,
   setGckReport,
@@ -21,6 +34,7 @@ export default function GckPage({
   states,
 }) {
   const navigate = useNavigate();
+  const isCodeAuthorized = !canSubmitDirectly && attendanceAccess?.authorized;
 
   useEffect(() => {
     if (!user) {
@@ -30,10 +44,10 @@ export default function GckPage({
 
   const addSession = () => {
     setGckReport((prev) => ({
-      ...prev,
-      sessions: [
-        ...prev.sessions,
-        { label: "", period: "", date: "", counts: createEmptyCounts() },
+        ...prev,
+        sessions: [
+          ...prev.sessions,
+        { label: "", program: "", date: "", counts: createEmptyCounts() },
       ],
     }));
   };
@@ -110,6 +124,36 @@ export default function GckPage({
 
       {status ? <div className="status">{status}</div> : null}
 
+      {!canSubmitDirectly && !attendanceAccess?.authorized ? (
+        <form onSubmit={activateAttendanceCode} className="form compact-form" style={{ marginBottom: 16 }}>
+          <label>
+            Attendance Access Code
+            <input
+              type="text"
+              value={attendanceCode}
+              onChange={(e) => setAttendanceCode(e.target.value)}
+              placeholder="Enter access code"
+              required
+            />
+          </label>
+          <div className="form-actions">
+            <button type="submit">Continue</button>
+          </div>
+        </form>
+      ) : null}
+
+      {!canSubmitDirectly && attendanceAccess?.authorized ? (
+        <div className="status" style={{ marginBottom: 16 }}>
+          GCK access granted for {attendanceAccess?.session?.fellowship_centre}, {attendanceAccess?.session?.state}, {attendanceAccess?.session?.region}.
+          <div style={{ marginTop: 8 }}>
+            <button type="button" className="btn-outline" onClick={clearAttendanceAccess}>
+              Exit Access
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {canSubmitDirectly || isCodeAuthorized ? (
       <form onSubmit={submitGckReport} className="form">
         <div className="grid">
           <label>
@@ -118,6 +162,9 @@ export default function GckPage({
               type="month"
               value={gckReport.report_month}
               onChange={(e) =>
+                isCodeAuthorized
+                  ? null
+                  :
                 setGckReport({ ...gckReport, report_month: e.target.value })
               }
               required
@@ -128,6 +175,9 @@ export default function GckPage({
             <select
               value={gckReport.state}
               onChange={(e) =>
+                isCodeAuthorized
+                  ? null
+                  :
                 setGckReport({
                   ...gckReport,
                   state: e.target.value,
@@ -135,6 +185,7 @@ export default function GckPage({
                   fellowship_centre: "",
                 })
               }
+              disabled={isCodeAuthorized}
             >
               <option value="">Select state</option>
               {states.map((state) => (
@@ -149,13 +200,16 @@ export default function GckPage({
             <select
               value={gckReport.region}
               onChange={(e) =>
+                isCodeAuthorized
+                  ? null
+                  :
                 setGckReport({
                   ...gckReport,
                   region: e.target.value,
                   fellowship_centre: "",
                 })
               }
-              disabled={!gckReport.state}
+              disabled={isCodeAuthorized || !gckReport.state}
             >
               <option value="">Select region</option>
               {gckRegions.map((region) => (
@@ -170,12 +224,15 @@ export default function GckPage({
             <select
               value={gckReport.fellowship_centre}
               onChange={(e) =>
+                isCodeAuthorized
+                  ? null
+                  :
                 setGckReport({
                   ...gckReport,
                   fellowship_centre: e.target.value,
                 })
               }
-              disabled={!gckReport.region}
+              disabled={isCodeAuthorized || !gckReport.region}
             >
               <option value="">Select centre</option>
               {gckCentres.map((centre) => (
@@ -188,10 +245,10 @@ export default function GckPage({
         </div>
 
         <div className="gck-session-header">
-          <h3>Sessions / Days</h3>
+          <h3>Programs / Days</h3>
           <div className="form-actions">
             <button type="button" className="btn-outline" onClick={addSession}>
-              Add Day
+              Add Program Entry
             </button>
             <button
               type="button"
@@ -206,7 +263,7 @@ export default function GckPage({
         <div className="gck-sessions">
           {gckReport.sessions.length === 0 ? (
             <p className="small-text">
-              No sessions added yet. Click “Add Day” to start.
+              No program entries added yet. Click “Add Program Entry” to start.
             </p>
           ) : (
             gckReport.sessions.map((session, index) => (
@@ -225,16 +282,20 @@ export default function GckPage({
                     />
                   </label>
                   <label>
-                    Session
+                    Program
                     <select
-                      value={session.period || ""}
+                      value={session.program || ""}
                       onChange={(e) =>
-                        updateSessionField(index, "period", e.target.value)
+                        updateSessionField(index, "program", e.target.value)
                       }
+                      required
                     >
-                      <option value="">Select session</option>
-                      <option value="Morning">Morning</option>
-                      <option value="Evening">Evening</option>
+                      <option value="">Select program</option>
+                      {programOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <label>
@@ -297,6 +358,7 @@ export default function GckPage({
           </button>
         </div>
       </form>
+      ) : null}
     </section>
   );
 }
