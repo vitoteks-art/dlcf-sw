@@ -415,6 +415,8 @@ function App() {
     region: "",
     fellowship_centre: "",
     search: "",
+    student_status: "",
+    nysc_status: "",
   });
   const [biodataFilterRegions, setBiodataFilterRegions] = useState([]);
   const [biodataFilterCentres, setBiodataFilterCentres] = useState([]);

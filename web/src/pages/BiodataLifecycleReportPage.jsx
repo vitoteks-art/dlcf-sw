@@ -10,6 +10,34 @@ function summarize(items, field) {
   return Array.from(map.entries());
 }
 
+function prettyLabel(field, value) {
+  const labels = {
+    student_status: {
+      active_student: "Active Student",
+      graduated: "Graduated",
+      alumni_ready: "Alumni Ready",
+      alumni: "Alumni",
+      deferred: "Deferred",
+      withdrawn: "Withdrawn",
+      Unspecified: "Unspecified",
+    },
+    nysc_status: {
+      none: "No NYSC",
+      serving: "Serving",
+      completed: "Completed",
+      Unspecified: "Unspecified",
+    },
+    academic_level: {
+      Unspecified: "Unspecified",
+    },
+    program_type: {
+      Unspecified: "Unspecified",
+    },
+  };
+
+  return labels[field]?.[value] || value;
+}
+
 export default function BiodataLifecycleReportPage({ user, canManageBiodata, status, report, loadReport }) {
   const navigate = useNavigate();
 
@@ -28,7 +56,7 @@ export default function BiodataLifecycleReportPage({ user, canManageBiodata, sta
   const studentStatuses = summarize(report, "student_status");
   const nyscStatuses = summarize(report, "nysc_status");
 
-  const renderTable = (title, rows) => (
+  const renderTable = (title, rows, field) => (
     <div className="card" style={{ marginTop: 16 }}>
       <h4>{title}</h4>
       <table className="data-table">
@@ -41,7 +69,7 @@ export default function BiodataLifecycleReportPage({ user, canManageBiodata, sta
         <tbody>
           {rows.map(([label, total]) => (
             <tr key={label}>
-              <td>{label}</td>
+              <td>{prettyLabel(field, label)}</td>
               <td>{total}</td>
             </tr>
           ))}
@@ -63,10 +91,10 @@ export default function BiodataLifecycleReportPage({ user, canManageBiodata, sta
         </Link>
       </div>
       {status ? <div className="status">{status}</div> : null}
-      {renderTable("Program Type Breakdown", programTypes)}
-      {renderTable("Academic Level Breakdown", academicLevels)}
-      {renderTable("Student Status Breakdown", studentStatuses)}
-      {renderTable("NYSC Status Breakdown", nyscStatuses)}
+      {renderTable("Program Type Summary", programTypes, "program_type")}
+      {renderTable("Academic Level Summary", academicLevels, "academic_level")}
+      {renderTable("Student Status Summary", studentStatuses, "student_status")}
+      {renderTable("NYSC Status Summary", nyscStatuses, "nysc_status")}
     </section>
   );
 }

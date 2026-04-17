@@ -128,6 +128,43 @@ export default function BiodataListPage({
               }
             />
           </label>
+          <label>
+            Student Status
+            <select
+              value={biodataFilters.student_status || ""}
+              onChange={(e) =>
+                setBiodataFilters({
+                  ...biodataFilters,
+                  student_status: e.target.value,
+                })
+              }
+            >
+              <option value="">All</option>
+              <option value="active_student">Active Student</option>
+              <option value="graduated">Graduated</option>
+              <option value="alumni_ready">Alumni Ready</option>
+              <option value="alumni">Alumni</option>
+              <option value="deferred">Deferred</option>
+              <option value="withdrawn">Withdrawn</option>
+            </select>
+          </label>
+          <label>
+            NYSC Status
+            <select
+              value={biodataFilters.nysc_status || ""}
+              onChange={(e) =>
+                setBiodataFilters({
+                  ...biodataFilters,
+                  nysc_status: e.target.value,
+                })
+              }
+            >
+              <option value="">All</option>
+              <option value="none">No NYSC</option>
+              <option value="serving">Serving</option>
+              <option value="completed">Completed</option>
+            </select>
+          </label>
         </div>
         <button type="submit">Load Biodata</button>
       </form>

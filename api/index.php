@@ -5743,6 +5743,16 @@ if ($path === '/biodata') {
             $params[] = $term;
             $params[] = $term;
         }
+        if (!empty($filters['student_status'])) {
+            $sql .= ' AND b.student_status = ?';
+            $types .= 's';
+            $params[] = $filters['student_status'];
+        }
+        if (!empty($filters['nysc_status'])) {
+            $sql .= ' AND b.nysc_status = ?';
+            $types .= 's';
+            $params[] = $filters['nysc_status'];
+        }
         $sql .= ' ORDER BY b.created_at DESC';
 
         $stmt = db_prepare($db, $sql, $types, $params);
