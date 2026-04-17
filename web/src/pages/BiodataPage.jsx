@@ -248,6 +248,32 @@ export default function BiodataPage({
             ) : null}
           </label>
           <label>
+            Date of Birth
+            <input
+              type="date"
+              value={biodata.date_of_birth}
+              onChange={(e) =>
+                setBiodata({ ...biodata, date_of_birth: e.target.value })
+              }
+            />
+          </label>
+          <label>
+            Marital Status
+            <select
+              value={biodata.marital_status}
+              onChange={(e) =>
+                setBiodata({ ...biodata, marital_status: e.target.value })
+              }
+            >
+              <option value="">Select marital status</option>
+              <option value="Single">Single</option>
+              <option value="Married">Married</option>
+              <option value="Engaged">Engaged</option>
+              <option value="Widowed">Widowed</option>
+              <option value="Separated">Separated</option>
+            </select>
+          </label>
+          <label>
             School
             <select
               value={biodata.school}

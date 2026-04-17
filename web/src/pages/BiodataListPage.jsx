@@ -213,6 +213,14 @@ export default function BiodataListPage({
                               <span className="detail-value">{row.school}</span>
                             </div>
                             <div>
+                              <span className="detail-label">Date of Birth</span>
+                              <span className="detail-value">{row.date_of_birth || "-"}</span>
+                            </div>
+                            <div>
+                              <span className="detail-label">Marital Status</span>
+                              <span className="detail-value">{row.marital_status || "-"}</span>
+                            </div>
+                            <div>
                               <span className="detail-label">Program Type</span>
                               <span className="detail-value">{row.program_type || "-"}</span>
                             </div>

@@ -96,6 +96,14 @@ export default function ProfilePage({ user }) {
                   <span className="detail-value">{profile.school}</span>
                 </div>
                 <div>
+                  <span className="detail-label">Date of Birth</span>
+                  <span className="detail-value">{profile.date_of_birth || "-"}</span>
+                </div>
+                <div>
+                  <span className="detail-label">Marital Status</span>
+                  <span className="detail-value">{profile.marital_status || "-"}</span>
+                </div>
+                <div>
                   <span className="detail-label">Program Type</span>
                   <span className="detail-value">{profile.program_type || "-"}</span>
                 </div>

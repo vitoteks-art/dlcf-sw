@@ -197,6 +197,8 @@ function can_view_biodata_directory(array $user): bool
 function normalize_biodata_tracking_payload(array $payload): array
 {
     $category = strtolower(trim($payload['category'] ?? ''));
+    $dateOfBirth = trim($payload['date_of_birth'] ?? '');
+    $maritalStatus = trim($payload['marital_status'] ?? '');
     $programType = trim($payload['program_type'] ?? '');
     $academicLevel = trim($payload['academic_level'] ?? '');
     $entryYearRaw = trim((string) ($payload['entry_year'] ?? ''));
@@ -227,6 +229,14 @@ function normalize_biodata_tracking_payload(array $payload): array
     $allowedAcademicLevels = ['', '100', '200', '300', '400', '500', '600', 'PG', 'Graduated'];
     $allowedStudentStatuses = ['', 'active_student', 'graduated', 'alumni_ready', 'alumni', 'deferred', 'withdrawn'];
     $allowedNyscStatuses = ['', 'none', 'serving', 'completed'];
+    $allowedMaritalStatuses = ['', 'Single', 'Married', 'Engaged', 'Widowed', 'Separated'];
+
+    if ($dateOfBirth !== '') {
+        $parsedDob = DateTime::createFromFormat('Y-m-d', $dateOfBirth);
+        if (!$parsedDob || $parsedDob->format('Y-m-d') !== $dateOfBirth) {
+            json_error('Date of birth is invalid', 422);
+        }
+    }
 
     if (!in_array($programType, $allowedProgramTypes, true)) {
         json_error('Invalid program type', 422);
@@ -239,6 +249,9 @@ function normalize_biodata_tracking_payload(array $payload): array
     }
     if (!in_array($nyscStatus, $allowedNyscStatuses, true)) {
         json_error('Invalid NYSC status', 422);
+    }
+    if (!in_array($maritalStatus, $allowedMaritalStatuses, true)) {
+        json_error('Invalid marital status', 422);
     }
 
     $newBirthStatus = !empty($payload['new_birth_status']) ? 1 : 0;
@@ -265,6 +278,8 @@ function normalize_biodata_tracking_payload(array $payload): array
     }
 
     return [
+        'date_of_birth' => $dateOfBirth !== '' ? $dateOfBirth : null,
+        'marital_status' => $maritalStatus !== '' ? $maritalStatus : null,
         'program_type' => $programType !== '' ? $programType : null,
         'academic_level' => $academicLevel !== '' ? $academicLevel : null,
         'entry_year' => $entryYear,
@@ -4297,7 +4312,7 @@ if ($path === '/biodata/me') {
         if (empty($user['email'])) {
             json_error('User email not found', 400);
         }
-        $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.program_type,
+        $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.date_of_birth, b.marital_status, b.program_type,
                        b.academic_level, b.entry_year, b.expected_graduation_year, b.student_status, b.nysc_status,
                        b.nysc_batch, b.nysc_state, b.nysc_start_date, b.nysc_end_date, b.new_birth_status,
                        b.sanctification_status, b.holy_ghost_baptism_status, b.spiritual_notes, b.category,
@@ -4399,12 +4414,12 @@ if ($path === '/biodata/me') {
             $existing = db_fetch_all($stmt);
             if ($existing) {
                 $sql = 'UPDATE biodata SET fellowship_centre_id = ?, full_name = ?, gender = ?, age = ?, phone = ?, email = ?, state = ?, region = ?, cluster = ?, profile_photo = ?,
-                               school = ?, program_type = ?, academic_level = ?, entry_year = ?, expected_graduation_year = ?, student_status = ?,
+                               school = ?, date_of_birth = ?, marital_status = ?, program_type = ?, academic_level = ?, entry_year = ?, expected_graduation_year = ?, student_status = ?,
                                nysc_status = ?, nysc_batch = ?, nysc_state = ?, nysc_start_date = ?, nysc_end_date = ?, new_birth_status = ?,
                                sanctification_status = ?, holy_ghost_baptism_status = ?, spiritual_notes = ?, category = ?, worker_status = ?, membership_status = ?, work_units = ?, address = ?,
                                next_of_kin_name = ?, next_of_kin_phone = ?, next_of_kin_relationship = ?, updated_at = NOW()
                         WHERE id = ?';
-                $stmt = db_prepare($db, $sql, 'ississsssssssiissssssiiisssssssssi', [
+                $stmt = db_prepare($db, $sql, 'ississsssssssssiissssssiiisssssssssi', [
                     $centreId,
                     $fullName,
                     $gender,
@@ -4416,6 +4431,8 @@ if ($path === '/biodata/me') {
                     $cluster,
                     $profilePhoto,
                     $school,
+                    $tracking['date_of_birth'],
+                    $tracking['marital_status'],
                     $tracking['program_type'],
                     $tracking['academic_level'],
                     $tracking['entry_year'],
@@ -4445,11 +4462,11 @@ if ($path === '/biodata/me') {
             }
 
             $sql = 'INSERT INTO biodata
-                (user_id, fellowship_centre_id, full_name, gender, age, phone, email, state, region, cluster, profile_photo, school, program_type, academic_level, entry_year, expected_graduation_year, student_status,
+                (user_id, fellowship_centre_id, full_name, gender, age, phone, email, state, region, cluster, profile_photo, school, date_of_birth, marital_status, program_type, academic_level, entry_year, expected_graduation_year, student_status,
                  nysc_status, nysc_batch, nysc_state, nysc_start_date, nysc_end_date, new_birth_status, sanctification_status, holy_ghost_baptism_status, spiritual_notes,
                  category, worker_status, membership_status, work_units, address, next_of_kin_name, next_of_kin_phone, next_of_kin_relationship, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())';
-            $stmt = db_prepare($db, $sql, 'iississsssssssiissssssiiisssssssss', [
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())';
+            $stmt = db_prepare($db, $sql, 'iississsssssssssiissssssiiisssssssss', [
                 $user['id'],
                 $centreId,
                 $fullName,
@@ -4462,6 +4479,8 @@ if ($path === '/biodata/me') {
                 $cluster,
                 $profilePhoto,
                 $school,
+                $tracking['date_of_birth'],
+                $tracking['marital_status'],
                 $tracking['program_type'],
                 $tracking['academic_level'],
                 $tracking['entry_year'],
@@ -5638,7 +5657,7 @@ if ($path === '/biodata') {
             $filters['state'] = $user['state'];
         }
 
-        $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.program_type,
+        $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.date_of_birth, b.marital_status, b.program_type,
                        b.academic_level, b.entry_year, b.expected_graduation_year, b.student_status, b.nysc_status,
                        b.nysc_batch, b.nysc_state, b.nysc_start_date, b.nysc_end_date, b.new_birth_status,
                        b.sanctification_status, b.holy_ghost_baptism_status, b.spiritual_notes, b.category,
@@ -5900,11 +5919,11 @@ if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
 
         $cluster = $cluster === '' ? null : $cluster;
 
-        $sql = 'UPDATE biodata SET full_name = ?, gender = ?, age = ?, phone = ?, email = ?, state = ?, region = ?, cluster = ?, profile_photo = ?, school = ?,
+        $sql = 'UPDATE biodata SET full_name = ?, gender = ?, age = ?, phone = ?, email = ?, state = ?, region = ?, cluster = ?, profile_photo = ?, school = ?, date_of_birth = ?, marital_status = ?,
                        category = ?, worker_status = ?, membership_status = ?, work_units = ?, address = ?,
                        next_of_kin_name = ?, next_of_kin_phone = ?, next_of_kin_relationship = ?, updated_at = NOW()
                 WHERE id = ?';
-        $stmt = db_prepare($db, $sql, 'ssisssssssssssssssi', [
+        $stmt = db_prepare($db, $sql, 'ssisssssssssssssssssi', [
             $fullName,
             $gender,
             $age,
@@ -5915,6 +5934,8 @@ if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
             $cluster,
             $profilePhoto,
             $school,
+            trim($payload['date_of_birth'] ?? '') !== '' ? trim($payload['date_of_birth']) : null,
+            trim($payload['marital_status'] ?? '') !== '' ? trim($payload['marital_status']) : null,
             $category,
             $workerStatus,
             $membershipStatus,
