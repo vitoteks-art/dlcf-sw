@@ -10,10 +10,12 @@ export default function BiodataListPage({
   biodataFilterRegions,
   biodataFilterCentres,
   biodataData,
+  biodataHistoryById,
   states,
   canManageBiodata,
   onEditBiodata,
   onDeleteBiodata,
+  onLoadBiodataHistory,
 }) {
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState(null);
@@ -157,7 +159,13 @@ export default function BiodataListPage({
                         type="button"
                         className="btn-sm btn-outline"
                         onClick={() =>
-                          setExpandedId(expandedId === row.id ? null : row.id)
+                          {
+                            const next = expandedId === row.id ? null : row.id;
+                            setExpandedId(next);
+                            if (next === row.id && !biodataHistoryById[row.id]) {
+                              onLoadBiodataHistory(row.id);
+                            }
+                          }
                         }
                       >
                         {expandedId === row.id ? "Hide" : "View"}
@@ -310,6 +318,37 @@ export default function BiodataListPage({
                                 {row.next_of_kin_relationship}
                               </span>
                             </div>
+                          </div>
+                          <div className="card" style={{ marginTop: "1rem" }}>
+                            <h4>Lifecycle History</h4>
+                            {!biodataHistoryById[row.id] ? (
+                              <p className="small-text">Loading history...</p>
+                            ) : biodataHistoryById[row.id].length === 0 ? (
+                              <p className="small-text">No history entries yet.</p>
+                            ) : (
+                              <div className="report">
+                                <table>
+                                  <thead>
+                                    <tr>
+                                      <th>Field</th>
+                                      <th>Old Value</th>
+                                      <th>New Value</th>
+                                      <th>Changed At</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {biodataHistoryById[row.id].map((entry, index) => (
+                                      <tr key={`${entry.field_name}-${entry.changed_at}-${index}`}>
+                                        <td>{entry.field_name}</td>
+                                        <td>{entry.old_value || "-"}</td>
+                                        <td>{entry.new_value || "-"}</td>
+                                        <td>{entry.changed_at}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>

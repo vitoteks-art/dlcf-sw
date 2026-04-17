@@ -6051,4 +6051,48 @@ if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
     }
 }
 
+if (preg_match('#^/biodata/(\d+)/history$#', $path, $matches)) {
+    require_method('GET');
+    require_auth();
+    $user = current_user();
+    if (!can_view_biodata_directory($user)) {
+        json_error('Forbidden', 403);
+    }
+
+    $id = (int) $matches[1];
+    $stmt = db_prepare($db, 'SELECT b.id, fc.id AS centre_id, fc.state, fc.region
+                             FROM biodata b
+                             JOIN fellowship_centres fc ON fc.id = b.fellowship_centre_id
+                             WHERE b.id = ? LIMIT 1', 'i', [$id]);
+    $stmt->execute();
+    $targetRows = db_fetch_all($stmt);
+    if (!$targetRows) {
+        json_error('Not found', 404);
+    }
+    $target = $targetRows[0];
+    if ($user['role'] === 'associate_cord') {
+        if (empty($user['fellowship_centre_id']) || (int) $target['centre_id'] !== (int) $user['fellowship_centre_id']) {
+            json_error('Forbidden', 403);
+        }
+    }
+    if ($user['role'] === 'region_cord') {
+        if (empty($user['region']) || $target['region'] !== $user['region']) {
+            json_error('Forbidden', 403);
+        }
+    }
+    if ($user['role'] === 'state_cord') {
+        if (empty($user['state']) || $target['state'] !== $user['state']) {
+            json_error('Forbidden', 403);
+        }
+    }
+
+    $stmt = db_prepare($db, 'SELECT field_name, old_value, new_value, changed_by_user_id, changed_at
+                             FROM biodata_status_history
+                             WHERE biodata_id = ?
+                             ORDER BY changed_at DESC, id DESC', 'i', [$id]);
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    json_ok(['items' => $rows]);
+}
+
 json_error('Not found', 404);

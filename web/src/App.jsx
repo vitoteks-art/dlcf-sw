@@ -419,6 +419,7 @@ function App() {
   const [biodataFilterRegions, setBiodataFilterRegions] = useState([]);
   const [biodataFilterCentres, setBiodataFilterCentres] = useState([]);
   const [biodataData, setBiodataData] = useState([]);
+  const [biodataHistoryById, setBiodataHistoryById] = useState({});
   const [biodataSpiritualReport, setBiodataSpiritualReport] = useState(null);
   const [biodataLifecycleReport, setBiodataLifecycleReport] = useState([]);
   const [adminStates, setAdminStates] = useState([]);
@@ -2229,6 +2230,11 @@ function App() {
     }
   };
 
+  const loadBiodataHistory = async (id) => {
+    const data = await apiFetch(`/biodata/${id}/history`);
+    setBiodataHistoryById((prev) => ({ ...prev, [id]: data.items || [] }));
+  };
+
   const loadBiodataSpiritualReport = async () => {
     setStatus("");
     try {
@@ -3521,10 +3527,12 @@ function App() {
                   biodataFilterRegions={biodataFilterRegions}
                   biodataFilterCentres={biodataFilterCentres}
                   biodataData={biodataData}
+                  biodataHistoryById={biodataHistoryById}
                   states={states}
                   canManageBiodata={canManageBiodata}
                   onEditBiodata={loadBiodataEntry}
                   onDeleteBiodata={deleteBiodataEntry}
+                  onLoadBiodataHistory={loadBiodataHistory}
                 />
               }
             />
