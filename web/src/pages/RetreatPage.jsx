@@ -44,14 +44,17 @@ export default function RetreatPage({
     setRetreat((prev) => ({
       ...prev,
       full_name: item.full_name || prev.full_name,
+      gender: item.gender || prev.gender,
       email: item.email || prev.email,
       phone: item.phone || prev.phone,
       state: item.state || prev.state,
       region: item.region || prev.region,
       fellowship_centre: item.fellowship_centre || prev.fellowship_centre,
       category: item.category || prev.category,
+      membership_status: item.membership_status || prev.membership_status,
       cluster: item.cluster || prev.cluster,
     }));
+    setLookupStatus("Biodata loaded into the retreat form.");
     setLookupResults([]);
   };
 

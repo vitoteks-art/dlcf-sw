@@ -3732,7 +3732,8 @@ if ($path === '/gck') {
         require_csrf();
         $payload = read_json();
         $user = current_user();
-        if (!can_submit_gck_directly($user)) {
+        $attendanceAccessSession = hydrate_attendance_access_session($db);
+        if (!can_submit_gck_directly($user) && !$attendanceAccessSession) {
             json_error('Forbidden', 403);
         }
 
@@ -3777,7 +3778,12 @@ if ($path === '/gck') {
         }
 
         $centreId = null;
-        if ($user['role'] === 'associate_cord') {
+        if ($attendanceAccessSession) {
+            $centreId = (int) $attendanceAccessSession['fellowship_centre_id'];
+            $centreName = $attendanceAccessSession['fellowship_centre'];
+            $state = $attendanceAccessSession['state'];
+            $region = $attendanceAccessSession['region'];
+        } elseif ($user['role'] === 'associate_cord') {
             if (empty($user['fellowship_centre_id'])) {
                 json_error('No fellowship centre assigned to this user', 403);
             }
@@ -3882,7 +3888,8 @@ if ($path === '/gck/details') {
     require_method('GET');
     require_auth();
     $user = current_user();
-    if (!can_view_gck_reports($user)) {
+    $attendanceAccessSession = hydrate_attendance_access_session($db);
+    if (!can_view_gck_reports($user) && !$attendanceAccessSession) {
         json_error('Forbidden', 403);
     }
 
@@ -3896,7 +3903,9 @@ if ($path === '/gck/details') {
     }
 
     $centreId = null;
-    if ($user['role'] === 'associate_cord') {
+    if ($attendanceAccessSession) {
+        $centreId = (int) $attendanceAccessSession['fellowship_centre_id'];
+    } elseif ($user['role'] === 'associate_cord') {
         if (empty($user['fellowship_centre_id'])) {
             json_error('No fellowship centre assigned to this user', 403);
         }
@@ -4253,7 +4262,7 @@ if ($path === '/biodata/lookup') {
         json_ok(['items' => []]);
     }
     $like = '%' . $search . '%';
-    $sql = 'SELECT b.id, b.full_name, b.gender, b.phone, b.email, b.worker_status,
+    $sql = 'SELECT b.id, b.full_name, b.gender, b.phone, b.email, b.category, b.membership_status, b.worker_status,
                    b.cluster, fc.name AS fellowship_centre, b.state, b.region
             FROM biodata b
             JOIN fellowship_centres fc ON fc.id = b.fellowship_centre_id
@@ -4272,7 +4281,9 @@ if ($path === '/biodata/lookup') {
             'state' => $row['state'],
             'region' => $row['region'],
             'fellowship_centre' => $row['fellowship_centre'],
-            'category' => $row['worker_status'] ?? '',
+            'category' => $row['category'] ?? '',
+            'membership_status' => $row['membership_status'] ?? '',
+            'worker_status' => $row['worker_status'] ?? '',
             'cluster' => $row['cluster'] ?? '',
         ];
     }, $rows);
