@@ -324,6 +324,30 @@ function write_attendance_audit_log(mysqli $db, ?int $codeId, ?int $sessionId, ?
     $stmt->execute();
 }
 
+function write_biodata_history_changes(mysqli $db, int $biodataId, ?int $changedByUserId, array $before, array $after, array $fields): void
+{
+    foreach ($fields as $field) {
+        $oldValue = array_key_exists($field, $before) ? $before[$field] : null;
+        $newValue = array_key_exists($field, $after) ? $after[$field] : null;
+
+        $oldValue = $oldValue === '' ? null : $oldValue;
+        $newValue = $newValue === '' ? null : $newValue;
+
+        if ((string) $oldValue === (string) $newValue) {
+            continue;
+        }
+
+        $stmt = db_prepare(
+            $db,
+            'INSERT INTO biodata_status_history (biodata_id, field_name, old_value, new_value, changed_by_user_id, changed_at)
+             VALUES (?, ?, ?, ?, ?, NOW())',
+            'isssi',
+            [$biodataId, $field, $oldValue, $newValue, $changedByUserId]
+        );
+        $stmt->execute();
+    }
+}
+
 function generate_attendance_access_code_value(): string
 {
     return 'ATD-' . strtoupper(substr(bin2hex(random_bytes(6)), 0, 12));
@@ -4412,7 +4436,12 @@ if ($path === '/biodata/me') {
             $stmt = db_prepare($db, 'SELECT id FROM biodata WHERE user_id = ? LIMIT 1', 'i', [$user['id']]);
             $stmt->execute();
             $existing = db_fetch_all($stmt);
+            $historyFields = ['student_status', 'nysc_status', 'membership_status', 'category', 'marital_status', 'worker_status'];
             if ($existing) {
+                $existingId = (int) $existing[0]['id'];
+                $stmt = db_prepare($db, 'SELECT student_status, nysc_status, membership_status, category, marital_status, worker_status FROM biodata WHERE id = ? LIMIT 1', 'i', [$existingId]);
+                $stmt->execute();
+                $beforeHistory = db_fetch_all($stmt)[0] ?? [];
                 $sql = 'UPDATE biodata SET fellowship_centre_id = ?, full_name = ?, gender = ?, age = ?, phone = ?, email = ?, state = ?, region = ?, cluster = ?, profile_photo = ?,
                                school = ?, date_of_birth = ?, marital_status = ?, program_type = ?, academic_level = ?, entry_year = ?, expected_graduation_year = ?, student_status = ?,
                                nysc_status = ?, nysc_batch = ?, nysc_state = ?, nysc_start_date = ?, nysc_end_date = ?, new_birth_status = ?,
@@ -4455,9 +4484,18 @@ if ($path === '/biodata/me') {
                     $nextOfKinName,
                     $nextOfKinPhone,
                     $nextOfKinRelationship,
-                    (int) $existing[0]['id'],
+                    $existingId,
                 ]);
                 $stmt->execute();
+                $afterHistory = [
+                    'student_status' => $tracking['student_status'],
+                    'nysc_status' => $tracking['nysc_status'],
+                    'membership_status' => $membershipStatus,
+                    'category' => $category,
+                    'marital_status' => $tracking['marital_status'],
+                    'worker_status' => $workerStatus,
+                ];
+                write_biodata_history_changes($db, $existingId, (int) $user['id'], $beforeHistory, $afterHistory, $historyFields);
                 json_ok(['message' => 'Profile updated']);
             }
 
@@ -4505,6 +4543,15 @@ if ($path === '/biodata/me') {
                 $nextOfKinRelationship,
             ]);
             $stmt->execute();
+            $newBiodataId = (int) $db->insert_id;
+            write_biodata_history_changes($db, $newBiodataId, (int) $user['id'], [], [
+                'student_status' => $tracking['student_status'],
+                'nysc_status' => $tracking['nysc_status'],
+                'membership_status' => $membershipStatus,
+                'category' => $category,
+                'marital_status' => $tracking['marital_status'],
+                'worker_status' => $workerStatus,
+            ], $historyFields);
             json_ok(['message' => 'Profile created'], 201);
         } catch (Throwable $e) {
             json_error('Biodata update failed: ' . $e->getMessage(), 500);
@@ -5918,6 +5965,10 @@ if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
         }
 
         $cluster = $cluster === '' ? null : $cluster;
+        $historyFields = ['student_status', 'nysc_status', 'membership_status', 'category', 'marital_status', 'worker_status'];
+        $stmt = db_prepare($db, 'SELECT student_status, nysc_status, membership_status, category, marital_status, worker_status FROM biodata WHERE id = ? LIMIT 1', 'i', [$id]);
+        $stmt->execute();
+        $beforeHistory = db_fetch_all($stmt)[0] ?? [];
 
         $sql = 'UPDATE biodata SET full_name = ?, gender = ?, age = ?, phone = ?, email = ?, state = ?, region = ?, cluster = ?, profile_photo = ?, school = ?, date_of_birth = ?, marital_status = ?,
                        category = ?, worker_status = ?, membership_status = ?, work_units = ?, address = ?,
@@ -5947,6 +5998,14 @@ if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
             $id,
         ]);
         $stmt->execute();
+        write_biodata_history_changes($db, $id, (int) $user['id'], $beforeHistory, [
+            'student_status' => $beforeHistory['student_status'] ?? null,
+            'nysc_status' => $beforeHistory['nysc_status'] ?? null,
+            'membership_status' => $membershipStatus,
+            'category' => $category,
+            'marital_status' => trim($payload['marital_status'] ?? '') !== '' ? trim($payload['marital_status']) : null,
+            'worker_status' => $workerStatus,
+        ], $historyFields);
         json_ok(['message' => 'Biodata updated']);
     }
 
