@@ -3048,7 +3048,7 @@ function App() {
           <Link to="/publications">Gospel Library</Link>
           <Link to="/portal">Attendance Portal</Link>
           {canViewAttendanceReports ? <Link to="/attendance-report">Attendance Reports</Link> : null}
-          {canSubmitGckDirectly ? <Link to="/gck">GCK Attendance</Link> : null}
+          <Link to="/gck">GCK Attendance</Link>
           {canViewGckReports ? <Link to="/gck-report">GCK Reports</Link> : null}
           <Link to="/stmc">STMC</Link>
           <Link to="/zonal-congress">Zonal Congress</Link>
@@ -3175,6 +3175,11 @@ function App() {
                 <GckPage
                   user={user}
                   canSubmitDirectly={canSubmitGckDirectly}
+                  attendanceAccess={attendanceAccess}
+                  attendanceCode={attendanceCode}
+                  setAttendanceCode={setAttendanceCode}
+                  activateAttendanceCode={activateAttendanceCode}
+                  clearAttendanceAccess={clearAttendanceAccess}
                   status={status}
                   gckReport={gckReport}
                   setGckReport={setGckReport}
@@ -3248,6 +3253,8 @@ function App() {
                   status={status}
                   zonalRegistration={zonalRegistration}
                   setZonalRegistration={setZonalRegistration}
+                  setZonalRegions={setZonalRegions}
+                  setZonalCentres={setZonalCentres}
                   zonalRegions={zonalRegions}
                   zonalCentres={zonalCentres}
                   zonalClusters={zonalClusters}
@@ -3271,6 +3278,8 @@ function App() {
                   submitStateCongress={submitStateCongress}
                   stateCongress={stateCongress}
                   setStateCongress={setStateCongress}
+                  setStateCongressRegions={setStateCongressRegions}
+                  setStateCongressCentres={setStateCongressCentres}
                   loadStateCongressEntry={loadStateCongressEntry}
                   stateCongressEntryId={stateCongressEntryId}
                   stateCongressRegions={stateCongressRegions}
@@ -3407,6 +3416,8 @@ function App() {
                   submitRetreat={submitRetreat}
                   retreat={retreat}
                   setRetreat={setRetreat}
+                  setRetreatRegions={setRetreatRegions}
+                  setRetreatCentres={setRetreatCentres}
                   loadRetreatEntry={loadRetreatEntry}
                   retreatEntryId={retreatEntryId}
                   retreatRegions={retreatRegions}

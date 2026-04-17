@@ -8,6 +8,8 @@ export default function StateCongressPage({
   submitStateCongress,
   stateCongress,
   setStateCongress,
+  setStateCongressRegions,
+  setStateCongressCentres,
   loadStateCongressEntry,
   stateCongressEntryId,
   stateCongressRegions,
@@ -79,17 +81,36 @@ export default function StateCongressPage({
   };
 
   const applyBiodata = (item) => {
+    const nextState = item.state || "";
+    const nextRegion = item.region || "";
+    const nextCentre = item.fellowship_centre || "";
+
     setStateCongress((prev) => ({
       ...prev,
       full_name: item.full_name || prev.full_name,
+      gender: item.gender || prev.gender,
       email: item.email || prev.email,
       phone: item.phone || prev.phone,
-      state: item.state || prev.state,
-      region: item.region || prev.region,
-      fellowship_centre: item.fellowship_centre || prev.fellowship_centre,
+      state: nextState || prev.state,
+      region: nextRegion || prev.region,
+      fellowship_centre: nextCentre || prev.fellowship_centre,
       category: item.category || prev.category,
+      membership_status: item.membership_status || prev.membership_status,
       cluster: item.cluster || prev.cluster,
     }));
+    if (nextState) {
+      apiFetch(`/meta/regions?state=${encodeURIComponent(nextState)}`)
+        .then((data) => setStateCongressRegions(data.items || []))
+        .catch(() => setStateCongressRegions([]));
+    }
+    if (nextState && nextRegion) {
+      apiFetch(
+        `/meta/fellowships?state=${encodeURIComponent(nextState)}&region=${encodeURIComponent(nextRegion)}`
+      )
+        .then((data) => setStateCongressCentres(data.items || []))
+        .catch(() => setStateCongressCentres([]));
+    }
+    setLookupStatus("Biodata loaded into the registration form.");
     setLookupResults([]);
   };
 
@@ -361,15 +382,19 @@ export default function StateCongressPage({
           {lookupResults.length > 0 ? (
             <div className="admin-list">
               {lookupResults.map((item) => (
-                <button
-                  type="button"
-                  key={item.id}
-                  className="admin-list-item"
-                  onClick={() => applyBiodata(item)}
-                >
-                  <span>{item.full_name}</span>
-                  <span className="small-text">{item.phone || item.email}</span>
-                </button>
+                <div key={item.id} className="admin-list-item" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                  <div>
+                    <div>{item.full_name}</div>
+                    <div className="small-text">{item.phone || item.email}</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    onClick={() => applyBiodata(item)}
+                  >
+                    Use Biodata
+                  </button>
+                </div>
               ))}
             </div>
           ) : null}
