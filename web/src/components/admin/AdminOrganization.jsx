@@ -136,6 +136,16 @@ function InstitutionsPanel({
                         <p>Oyo State (Central), University of Ibadan</p>
                         <p>Lagos State, University of Lagos</p>
                     </div>
+                    <div className="form-actions">
+                        <a
+                            href="http://72.60.215.204:8095/dlcf-sw/institution-bulk-upload-sample.xlsx"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn-outline"
+                        >
+                            Download Sample Template
+                        </a>
+                    </div>
                     {uploadPreviewCount > 0 ? <p className="small-text">{uploadPreviewCount} rows detected.</p> : null}
                     <div className="form-actions">
                         <button type="submit" disabled={uploading || !uploadFile}>
