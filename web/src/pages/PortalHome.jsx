@@ -234,6 +234,51 @@ export default function PortalHome({
                     </div>
                   ))}
                 </div>
+
+                <div className="card" style={{ marginTop: 16 }}>
+                  <div className="card-header">
+                    <div>
+                      <h3>Service Summary</h3>
+                      <p className="lede">Capture visitors, converts, and tithe and offering for this service.</p>
+                    </div>
+                  </div>
+                  <div className="grid">
+                    <label>
+                      Visitors
+                      <input
+                        type="number"
+                        min="0"
+                        value={attendance.visitors ?? ""}
+                        onChange={(e) =>
+                          setAttendance({ ...attendance, visitors: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Converts
+                      <input
+                        type="number"
+                        min="0"
+                        value={attendance.converts ?? ""}
+                        onChange={(e) =>
+                          setAttendance({ ...attendance, converts: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Tithe and Offering
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={attendance.tithe_and_offering ?? ""}
+                        onChange={(e) =>
+                          setAttendance({ ...attendance, tithe_and_offering: e.target.value })
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
                 <div className="form-actions">
                   <button type="submit">
                     {attendanceEntryId ? "Update Attendance" : "Save Attendance"}

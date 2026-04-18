@@ -183,6 +183,9 @@ function App() {
     region: "",
     fellowship_centre: "",
     service_day: "sunday_ws",
+    visitors: "",
+    converts: "",
+    tithe_and_offering: "",
     counts: emptyCounts,
   });
   const [attendanceEntryId, setAttendanceEntryId] = useState("");
@@ -1530,6 +1533,9 @@ function App() {
       state: data.state || attendance.state,
       region: data.region || attendance.region,
       fellowship_centre: data.fellowship_centre || attendance.fellowship_centre,
+      visitors: data.visitors ?? "",
+      converts: data.converts ?? "",
+      tithe_and_offering: data.tithe_and_offering ?? "",
       counts: data.counts || emptyCounts,
     });
     setAttendanceEntryId(String(data.id || ""));

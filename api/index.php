@@ -3455,7 +3455,7 @@ if ($path === '/attendance/details') {
 
     $stmt = db_prepare(
         $db,
-        'SELECT ae.id, ae.entry_date, ae.service_day, fc.name AS fellowship_centre, fc.state, fc.region
+        'SELECT ae.id, ae.entry_date, ae.service_day, ae.visitors, ae.converts, ae.tithe_and_offering, fc.name AS fellowship_centre, fc.state, fc.region
          FROM attendance_entries ae
          JOIN fellowship_centres fc ON fc.id = ae.fellowship_centre_id
          WHERE ae.fellowship_centre_id = ? AND ae.service_day = ? AND ae.entry_date = ? LIMIT 1',
@@ -3497,6 +3497,9 @@ if ($path === '/attendance/details') {
         'fellowship_centre' => $entry['fellowship_centre'],
         'state' => $entry['state'],
         'region' => $entry['region'],
+        'visitors' => (int) ($entry['visitors'] ?? 0),
+        'converts' => (int) ($entry['converts'] ?? 0),
+        'tithe_and_offering' => (float) ($entry['tithe_and_offering'] ?? 0),
         'counts' => $counts,
     ]);
 }
@@ -3591,6 +3594,9 @@ if ($path === '/attendance') {
         $state = trim($payload['state'] ?? '');
         $region = trim($payload['region'] ?? '');
         $counts = $payload['counts'] ?? [];
+        $visitors = max(0, (int) ($payload['visitors'] ?? 0));
+        $converts = max(0, (int) ($payload['converts'] ?? 0));
+        $titheAndOffering = max(0, (float) ($payload['tithe_and_offering'] ?? 0));
 
         if ($entryDate === '' || $serviceDay === '') {
             json_error('Missing required fields', 422);
@@ -3663,10 +3669,13 @@ if ($path === '/attendance') {
 
             $attendanceAccessCodeId = $attendanceAccessSession ? (int) $attendanceAccessSession['attendance_access_code_id'] : null;
             $attendanceAccessSessionId = $attendanceAccessSession ? (int) $attendanceAccessSession['id'] : null;
-            $stmt = db_prepare($db, 'INSERT INTO attendance_entries (fellowship_centre_id, service_day, entry_date, created_by, attendance_access_code_id, attendance_access_session_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())', 'issiii', [
+            $stmt = db_prepare($db, 'INSERT INTO attendance_entries (fellowship_centre_id, service_day, entry_date, visitors, converts, tithe_and_offering, created_by, attendance_access_code_id, attendance_access_session_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())', 'issiidiii', [
                 $centreId,
                 $serviceDay,
                 $entryDate,
+                $visitors,
+                $converts,
+                $titheAndOffering,
                 current_user()['id'],
                 $attendanceAccessCodeId,
                 $attendanceAccessSessionId,
@@ -3710,6 +3719,9 @@ if (preg_match('#^/attendance/(\\d+)$#', $path, $matches)) {
     $id = (int) $matches[1];
     $payload = read_json();
     $counts = $payload['counts'] ?? [];
+    $visitors = max(0, (int) ($payload['visitors'] ?? 0));
+    $converts = max(0, (int) ($payload['converts'] ?? 0));
+    $titheAndOffering = max(0, (float) ($payload['tithe_and_offering'] ?? 0));
 
     $stmt = db_prepare(
         $db,
@@ -3761,7 +3773,7 @@ if (preg_match('#^/attendance/(\\d+)$#', $path, $matches)) {
             }
         }
 
-        $stmt = db_prepare($db, 'UPDATE attendance_entries SET updated_at = NOW() WHERE id = ?', 'i', [$id]);
+        $stmt = db_prepare($db, 'UPDATE attendance_entries SET visitors = ?, converts = ?, tithe_and_offering = ?, updated_at = NOW() WHERE id = ?', 'iidi', [$visitors, $converts, $titheAndOffering, $id]);
         $stmt->execute();
         $db->commit();
         json_ok(['message' => 'Attendance updated']);
@@ -4346,7 +4358,7 @@ if ($path === '/reports/summary') {
     }
 
     $sql = 'SELECT fc.name AS fellowship_centre, fc.state, fc.region,
-                   ae.service_day, ac.category, ac.gender, SUM(ac.count) AS total
+                   ae.service_day, ae.visitors, ae.converts, ae.tithe_and_offering, ac.category, ac.gender, SUM(ac.count) AS total
             FROM attendance_entries ae
             JOIN fellowship_centres fc ON fc.id = ae.fellowship_centre_id
             JOIN attendance_counts ac ON ac.attendance_entry_id = ae.id
@@ -4383,7 +4395,7 @@ if ($path === '/reports/summary') {
         $types .= 'i';
         $params[] = (int) $user['fellowship_centre_id'];
     }
-    $sql .= ' GROUP BY fc.name, fc.state, fc.region, ae.service_day, ac.category, ac.gender ORDER BY fc.name';
+    $sql .= ' GROUP BY fc.name, fc.state, fc.region, ae.service_day, ae.visitors, ae.converts, ae.tithe_and_offering, ac.category, ac.gender ORDER BY fc.name';
 
     $stmt = db_prepare($db, $sql, $types, $params);
     $stmt->execute();

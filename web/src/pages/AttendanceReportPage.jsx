@@ -38,10 +38,21 @@ export default function AttendanceReportPage({
       const centreData = byCentre.get(centre);
       const serviceDay = row.service_day || "unknown";
       if (!centreData[serviceDay]) {
-        centreData[serviceDay] = {};
+        centreData[serviceDay] = {
+          metrics: {
+            visitors: 0,
+            converts: 0,
+            tithe_and_offering: 0,
+          },
+        };
       }
       const key = `${row.category || ""}:${row.gender || ""}`;
       centreData[serviceDay][key] = Number(row.total) || 0;
+      centreData[serviceDay].metrics = {
+        visitors: Number(row.visitors) || 0,
+        converts: Number(row.converts) || 0,
+        tithe_and_offering: Number(row.tithe_and_offering) || 0,
+      };
     });
     return Array.from(byCentre.entries()).map(([centre, values]) => ({
       centre,
@@ -58,12 +69,20 @@ export default function AttendanceReportPage({
           totals[group.key][`${category}:${gender}`] = 0;
         });
       });
+      totals[group.key].visitors = 0;
+      totals[group.key].converts = 0;
+      totals[group.key].tithe_and_offering = 0;
     });
     reportData.forEach((row) => {
       const serviceDay = row.service_day || "unknown";
       const key = `${row.category || ""}:${row.gender || ""}`;
       if (totals[serviceDay] && totals[serviceDay][key] !== undefined) {
         totals[serviceDay][key] += Number(row.total) || 0;
+      }
+      if (totals[serviceDay]) {
+        totals[serviceDay].visitors += Number(row.visitors) || 0;
+        totals[serviceDay].converts += Number(row.converts) || 0;
+        totals[serviceDay].tithe_and_offering += Number(row.tithe_and_offering) || 0;
       }
     });
     return totals;
@@ -263,7 +282,7 @@ export default function AttendanceReportPage({
                   <th rowSpan="3">S/N</th>
                   <th rowSpan="3">District</th>
                   {serviceDayGroups.map((group) => (
-                    <th key={group.key} colSpan="7">
+                    <th key={group.key} colSpan="10">
                       {group.label}
                     </th>
                   ))}
@@ -281,6 +300,15 @@ export default function AttendanceReportPage({
                     </th>,
                     <th key={`${group.key}-total`} rowSpan="2">
                       Total
+                    </th>,
+                    <th key={`${group.key}-visitors`} rowSpan="2">
+                      Visitors
+                    </th>,
+                    <th key={`${group.key}-converts`} rowSpan="2">
+                      Converts
+                    </th>,
+                    <th key={`${group.key}-tithe`} rowSpan="2">
+                      Tithe & Offering
                     </th>,
                   ])}
                 </tr>
@@ -316,6 +344,9 @@ export default function AttendanceReportPage({
                         youthFemale +
                         childrenMale +
                         childrenFemale;
+                      const visitors = row.values[group.key]?.metrics?.visitors || 0;
+                      const converts = row.values[group.key]?.metrics?.converts || 0;
+                      const titheAndOffering = row.values[group.key]?.metrics?.tithe_and_offering || 0;
                       return [
                         <td key={`${row.centre}-${group.key}-adult-m`}>
                           {adultMale}
@@ -336,6 +367,9 @@ export default function AttendanceReportPage({
                           {childrenFemale}
                         </td>,
                         <td key={`${row.centre}-${group.key}-total`}>{total}</td>,
+                        <td key={`${row.centre}-${group.key}-visitors`}>{visitors}</td>,
+                        <td key={`${row.centre}-${group.key}-converts`}>{converts}</td>,
+                        <td key={`${row.centre}-${group.key}-tithe`}>{titheAndOffering}</td>,
                       ];
                     })}
                   </tr>
@@ -363,6 +397,9 @@ export default function AttendanceReportPage({
                       youthFemale +
                       childrenMale +
                       childrenFemale;
+                    const visitors = totalsByService[group.key]?.visitors || 0;
+                    const converts = totalsByService[group.key]?.converts || 0;
+                    const titheAndOffering = totalsByService[group.key]?.tithe_and_offering || 0;
                     return [
                       <td key={`${group.key}-total-adult-m`}>{adultMale}</td>,
                       <td key={`${group.key}-total-adult-f`}>{adultFemale}</td>,
@@ -371,6 +408,9 @@ export default function AttendanceReportPage({
                       <td key={`${group.key}-total-children-m`}>{childrenMale}</td>,
                       <td key={`${group.key}-total-children-f`}>{childrenFemale}</td>,
                       <td key={`${group.key}-total-sum`}>{total}</td>,
+                      <td key={`${group.key}-total-visitors`}>{visitors}</td>,
+                      <td key={`${group.key}-total-converts`}>{converts}</td>,
+                      <td key={`${group.key}-total-tithe`}>{titheAndOffering}</td>,
                     ];
                   })}
                 </tr>
