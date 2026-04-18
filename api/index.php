@@ -4174,10 +4174,10 @@ if ($path === '/gck/summary') {
     if (!can_view_gck_reports($user)) {
         json_error('Forbidden', 403);
     }
-    $reportMonth = $_GET['report_month'] ?? null;
-    $state = $_GET['state'] ?? null;
-    $region = $_GET['region'] ?? null;
-    $fellowshipCentre = $_GET['fellowship_centre'] ?? null;
+    $reportMonth = trim((string) ($_GET['report_month'] ?? ''));
+    $state = trim((string) ($_GET['state'] ?? ''));
+    $region = trim((string) ($_GET['region'] ?? ''));
+    $fellowshipCentre = trim((string) ($_GET['fellowship_centre'] ?? ''));
     $centreScopeId = null;
     apply_state_region_centre_scope($user, $state, $region, $centreScopeId);
 
@@ -4191,22 +4191,22 @@ if ($path === '/gck/summary') {
             WHERE 1=1';
     $types = '';
     $params = [];
-    if ($reportMonth) {
+    if ($reportMonth !== '') {
         $sql .= ' AND gr.report_month = ?';
         $types .= 's';
         $params[] = $reportMonth;
     }
-    if ($state) {
+    if ($state !== '') {
         $sql .= ' AND fc.state = ?';
         $types .= 's';
         $params[] = $state;
     }
-    if ($region) {
+    if ($region !== '') {
         $sql .= ' AND fc.region = ?';
         $types .= 's';
         $params[] = $region;
     }
-    if ($fellowshipCentre) {
+    if ($fellowshipCentre !== '') {
         $sql .= ' AND fc.name = ?';
         $types .= 's';
         $params[] = $fellowshipCentre;
@@ -4223,7 +4223,7 @@ if ($path === '/gck/summary') {
     $stmt->execute();
     $rows = db_fetch_all($stmt);
     $coordinator = '';
-    if ($state) {
+    if ($state !== '') {
         $stmt = db_prepare($db, 'SELECT name FROM users WHERE role = ? AND state = ? ORDER BY id DESC LIMIT 1', 'ss', ['state_cord', $state]);
         $stmt->execute();
         $coordRows = db_fetch_all($stmt);
