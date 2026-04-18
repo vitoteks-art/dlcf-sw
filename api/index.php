@@ -2549,6 +2549,92 @@ if ($path === '/admin/institutions') {
     }
 }
 
+if ($path === '/admin/institutions/bulk') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        json_error('Method not allowed', 405);
+    }
+    $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
+    require_csrf();
+    $payload = read_json();
+    $items = $payload['items'] ?? null;
+    if (!is_array($items) || empty($items)) {
+        json_error('Items are required', 422);
+    }
+
+    $inserted = 0;
+    $skipped = 0;
+    $errors = [];
+    $seen = [];
+
+    try {
+        $db->begin_transaction();
+
+        foreach ($items as $index => $item) {
+            $rowNumber = $index + 2;
+            $state = trim((string) ($item['state'] ?? ''));
+            $name = trim((string) ($item['institution_name'] ?? ($item['name'] ?? '')));
+
+            if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+                if ($state !== '' && $state !== $user['state']) {
+                    $skipped++;
+                    $errors[] = [
+                        'row' => $rowNumber,
+                        'message' => 'Row ' . $rowNumber . ': state is outside your allowed scope.',
+                    ];
+                    continue;
+                }
+                $state = $user['state'];
+            }
+
+            if ($state === '' || $name === '') {
+                $skipped++;
+                $errors[] = [
+                    'row' => $rowNumber,
+                    'message' => 'Row ' . $rowNumber . ': state and institution_name are required.',
+                ];
+                continue;
+            }
+
+            $dedupeKey = strtolower($state . '||' . $name);
+            if (isset($seen[$dedupeKey])) {
+                $skipped++;
+                $errors[] = [
+                    'row' => $rowNumber,
+                    'message' => 'Row ' . $rowNumber . ': duplicate row in upload file.',
+                ];
+                continue;
+            }
+            $seen[$dedupeKey] = true;
+
+            $stmt = db_prepare($db, 'SELECT id FROM institutions WHERE state_name = ? AND name = ? LIMIT 1', 'ss', [$state, $name]);
+            $stmt->execute();
+            $existing = db_fetch_all($stmt);
+            if ($existing) {
+                $skipped++;
+                $errors[] = [
+                    'row' => $rowNumber,
+                    'message' => 'Row ' . $rowNumber . ': institution already exists for this state.',
+                ];
+                continue;
+            }
+
+            $stmt = db_prepare($db, 'INSERT INTO institutions (state_name, name, created_at, updated_at) VALUES (?, ?, NOW(), NOW())', 'ss', [$state, $name]);
+            $stmt->execute();
+            $inserted++;
+        }
+
+        $db->commit();
+        json_ok([
+            'inserted' => $inserted,
+            'skipped' => $skipped,
+            'errors' => $errors,
+        ]);
+    } catch (Throwable $e) {
+        $db->rollback();
+        json_error('Failed to import institutions', 500);
+    }
+}
+
 if (preg_match('#^/admin/institutions/(\\d+)$#', $path, $matches)) {
     $user = require_roles(['administrator', 'zonal_cord', 'state_cord']);
     require_csrf();

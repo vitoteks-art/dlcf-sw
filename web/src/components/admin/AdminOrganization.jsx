@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import * as XLSX from "xlsx";
 
 export default function AdminOrganization(props) {
     const [activeTab, setActiveTab] = useState("institutions");
@@ -51,13 +52,119 @@ function InstitutionsPanel({
     adminInstitutionEditState,
     setAdminInstitutionEditState,
     handleAddInstitution,
+    handleBulkInstitutionUpload,
     handleEditInstitution,
     handleDeleteInstitution,
     stateOptions
 }) {
     const isEditing = !!adminInstitutionEditId;
+    const [uploadFile, setUploadFile] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState("");
+    const [uploadErrors, setUploadErrors] = useState([]);
+    const [uploadPreviewCount, setUploadPreviewCount] = useState(0);
+
+    const extractField = (row, field) => {
+        const key = Object.keys(row).find((k) => k.toLowerCase().trim() === field);
+        return key ? String(row[key]).trim() : "";
+    };
+
+    const handleUpload = async (event) => {
+        event.preventDefault();
+        if (!uploadFile) {
+            setUploadStatus("Select an Excel (.xlsx) file to upload.");
+            return;
+        }
+
+        setUploading(true);
+        setUploadStatus("");
+        setUploadErrors([]);
+
+        try {
+            const data = await uploadFile.arrayBuffer();
+            const workbook = XLSX.read(data, { type: "array" });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+            const items = rows
+                .map((row) => ({
+                    state: extractField(row, "state"),
+                    institution_name: extractField(row, "institution_name"),
+                }))
+                .filter((row) => row.state || row.institution_name);
+
+            if (items.length === 0) {
+                setUploadStatus("No rows found. Ensure columns are state and institution_name.");
+                setUploadPreviewCount(0);
+                return;
+            }
+
+            setUploadPreviewCount(items.length);
+            const response = await handleBulkInstitutionUpload(items);
+            setUploadStatus(`Import completed. Added ${response.inserted || 0}, skipped ${response.skipped || 0}.`);
+            setUploadErrors(response.errors || []);
+            setUploadFile(null);
+        } catch (err) {
+            setUploadStatus(err.message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
     return (
         <div className="panel-content">
+            <div className="form-card card">
+                <h4>Bulk Upload Institutions</h4>
+                <form onSubmit={handleUpload} className="form compact-form">
+                    <div className="grid-2">
+                        <label>
+                            Excel File
+                            <input
+                                type="file"
+                                accept=".xlsx"
+                                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                            />
+                        </label>
+                        <label>
+                            Required Columns
+                            <input type="text" value="state, institution_name" disabled />
+                        </label>
+                    </div>
+                    <p className="small-text">Upload an Excel file with these columns: state, institution_name.</p>
+                    <div className="small-text">
+                        <p>Example:</p>
+                        <p>Oyo State (Central), University of Ibadan</p>
+                        <p>Lagos State, University of Lagos</p>
+                    </div>
+                    {uploadPreviewCount > 0 ? <p className="small-text">{uploadPreviewCount} rows detected.</p> : null}
+                    <div className="form-actions">
+                        <button type="submit" disabled={uploading || !uploadFile}>
+                            {uploading ? "Importing institutions..." : "Upload and Import"}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setUploadFile(null);
+                                setUploadStatus("");
+                                setUploadErrors([]);
+                                setUploadPreviewCount(0);
+                            }}
+                        >
+                            Clear
+                        </button>
+                    </div>
+                    {uploadStatus ? <p className="small-text">{uploadStatus}</p> : null}
+                    {uploadErrors.length > 0 ? (
+                        <div className="small-text">
+                            {uploadErrors.slice(0, 8).map((item, idx) => (
+                                <p key={`${item.row}-${idx}`}>{item.message}</p>
+                            ))}
+                            {uploadErrors.length > 8 ? <p>+{uploadErrors.length - 8} more errors</p> : null}
+                        </div>
+                    ) : null}
+                </form>
+            </div>
+
             <div className="form-card card">
                 <h4>{isEditing ? "Edit Institution" : "Add New Institution"}</h4>
                 <form onSubmit={isEditing ? handleEditInstitution : handleAddInstitution} className="form compact-form">

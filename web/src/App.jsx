@@ -2332,6 +2332,79 @@ function App() {
     }
   };
 
+  const handleAddInstitution = async (event) => {
+    event.preventDefault();
+    setStatus("");
+    try {
+      await apiFetch("/admin/institutions", {
+        method: "POST",
+        body: JSON.stringify({
+          state: adminInstitutionState,
+          name: adminInstitutionName,
+        }),
+      });
+      setStatus("Institution added.");
+      setAdminInstitutionName("");
+      loadAdminInstitutions(adminInstitutionState);
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const handleBulkInstitutionUpload = async (items) => {
+    setStatus("");
+    const response = await apiFetch("/admin/institutions/bulk", {
+      method: "POST",
+      body: JSON.stringify({ items }),
+    });
+    setStatus(`Institution import completed. Added ${response.inserted || 0}, skipped ${response.skipped || 0}.`);
+    if (adminInstitutionState) {
+      loadAdminInstitutions(adminInstitutionState);
+    }
+    return response;
+  };
+
+  const handleEditInstitution = async (event) => {
+    event.preventDefault();
+    if (!adminInstitutionEditId) return;
+    setStatus("");
+    try {
+      await apiFetch(`/admin/institutions/${adminInstitutionEditId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          state: adminInstitutionEditState,
+          name: adminInstitutionEditName,
+        }),
+      });
+      setStatus("Institution updated.");
+      setAdminInstitutionEditId("");
+      setAdminInstitutionEditName("");
+      setAdminInstitutionEditState("");
+      loadAdminInstitutions(adminInstitutionState || adminInstitutionEditState);
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const handleDeleteInstitution = async (id) => {
+    if (!window.confirm("Delete this institution?")) {
+      return;
+    }
+    setStatus("");
+    try {
+      await apiFetch(`/admin/institutions/${id}`, { method: "DELETE" });
+      setStatus("Institution deleted.");
+      if (String(adminInstitutionEditId) === String(id)) {
+        setAdminInstitutionEditId("");
+        setAdminInstitutionEditName("");
+        setAdminInstitutionEditState("");
+      }
+      loadAdminInstitutions(adminInstitutionState);
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
   const loadAdminFellowships = async (state, region) => {
     if (!state || !region) {
       setAdminFellowships([]);
@@ -2956,6 +3029,10 @@ function App() {
     handleAddUser,
     handleEditUser,
     handleDeleteUser,
+    handleAddInstitution,
+    handleBulkInstitutionUpload,
+    handleEditInstitution,
+    handleDeleteInstitution,
     handleAddRole,
     handleEditRole,
     handleDeleteRole,
