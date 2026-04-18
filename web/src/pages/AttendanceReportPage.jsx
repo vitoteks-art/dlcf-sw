@@ -89,19 +89,33 @@ export default function AttendanceReportPage({
   }, [reportData, serviceDayGroups, categories, genders]);
 
   const buildWorksheetData = () => {
-    const headers = ["S/N", "DISTRICT"];
+    const monthLabel = report.start
+      ? new Date(report.start).toLocaleString("en-US", { month: "long", year: "numeric" }).toUpperCase()
+      : "";
+    const weekLabel = report.start && report.end ? `${report.start} to ${report.end}` : "";
+
+    const rows = [];
+    rows.push(["DEEPER LIFE CAMPUS FELLOWSHIP"]);
+    rows.push(["WEEKLY ATTENDANCE REPORT"]);
+    rows.push(["GROUP NAME", report.state || "DLCF"]);
+    rows.push(["GROUP COORDINATOR", ""]);
+    rows.push(["MONTH", monthLabel]);
+    rows.push(["WEEK", weekLabel]);
+    rows.push([]);
+
+    const headerRow1 = ["S/N", "DISTRICT"];
+    const headerRow2 = ["", ""];
+    const headerRow3 = ["", ""];
+
     serviceDayGroups.forEach((group) => {
-      categories.forEach((category) => {
-        genders.forEach((gender) => {
-          headers.push(
-            `${group.label} ${category.toUpperCase()} ${gender.toUpperCase()}`
-          );
-        });
-      });
-      headers.push(`${group.label} TOTAL`);
+      headerRow1.push(group.label, "", "", "", "", "", "");
+      headerRow2.push("Adult", "", "Student", "", "Children", "", "TOTAL");
+      headerRow3.push("M", "F", "M", "F", "M", "F", "");
     });
 
-    const rows = reportMatrix.map((row, index) => {
+    rows.push(headerRow1, headerRow2, headerRow3);
+
+    const dataRows = reportMatrix.map((row, index) => {
       const cells = [index + 1, row.centre];
       serviceDayGroups.forEach((group) => {
         let serviceTotal = 0;
@@ -132,7 +146,8 @@ export default function AttendanceReportPage({
       totalsRow.push(serviceTotal);
     });
 
-    return [headers, ...rows, totalsRow];
+    rows.push(...dataRows, totalsRow);
+    return rows;
   };
 
   const handleDownload = () => {
@@ -141,6 +156,28 @@ export default function AttendanceReportPage({
     }
     const data = buildWorksheetData();
     const worksheet = XLSX.utils.aoa_to_sheet(data);
+    worksheet["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 29 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 29 } },
+    ];
+    let startCol = 2;
+    serviceDayGroups.forEach(() => {
+      worksheet["!merges"].push(
+        { s: { r: 7, c: startCol }, e: { r: 7, c: startCol + 6 } },
+        { s: { r: 8, c: startCol }, e: { r: 8, c: startCol + 1 } },
+        { s: { r: 8, c: startCol + 2 }, e: { r: 8, c: startCol + 3 } },
+        { s: { r: 8, c: startCol + 4 }, e: { r: 8, c: startCol + 5 } },
+        { s: { r: 8, c: startCol + 6 }, e: { r: 9, c: startCol + 6 } },
+        { s: { r: 7, c: 0 }, e: { r: 9, c: 0 } },
+        { s: { r: 7, c: 1 }, e: { r: 9, c: 1 } }
+      );
+      startCol += 7;
+    });
+    worksheet["!cols"] = [
+      { wch: 6 },
+      { wch: 28 },
+      ...Array(28).fill({ wch: 8 }),
+    ];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Weekly Report");
     XLSX.writeFile(workbook, "weekly-attendance-report.xlsx", {
