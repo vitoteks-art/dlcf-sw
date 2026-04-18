@@ -238,8 +238,10 @@ function App() {
     report_month: "",
     state: "",
     region: "",
+    fellowship_centre: "",
   });
   const [gckSummaryRegions, setGckSummaryRegions] = useState([]);
+  const [gckSummaryCentres, setGckSummaryCentres] = useState([]);
 
   const [retreat, setRetreat] = useState({
     retreat_type: "easter",
@@ -954,12 +956,27 @@ function App() {
   useEffect(() => {
     if (!gckSummaryFilters.state) {
       setGckSummaryRegions([]);
+      setGckSummaryCentres([]);
       return;
     }
     apiFetch(`/meta/regions?state=${encodeURIComponent(gckSummaryFilters.state)}`)
       .then((data) => setGckSummaryRegions(data.items || []))
       .catch(() => setGckSummaryRegions([]));
   }, [gckSummaryFilters.state]);
+
+  useEffect(() => {
+    if (!gckSummaryFilters.state || !gckSummaryFilters.region) {
+      setGckSummaryCentres([]);
+      return;
+    }
+    apiFetch(
+      `/meta/fellowships?state=${encodeURIComponent(
+        gckSummaryFilters.state
+      )}&region=${encodeURIComponent(gckSummaryFilters.region)}`
+    )
+      .then((data) => setGckSummaryCentres(data.items || []))
+      .catch(() => setGckSummaryCentres([]));
+  }, [gckSummaryFilters.state, gckSummaryFilters.region]);
 
   useEffect(() => {
     if (!retreat.state) {
@@ -3232,6 +3249,7 @@ function App() {
                   gckSummaryFilters={gckSummaryFilters}
                   setGckSummaryFilters={setGckSummaryFilters}
                   gckSummaryRegions={gckSummaryRegions}
+                  gckSummaryCentres={gckSummaryCentres}
                   loadGckSummary={loadGckSummary}
                   gckSummary={gckSummary}
                   states={states}

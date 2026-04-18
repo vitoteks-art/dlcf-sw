@@ -4177,6 +4177,7 @@ if ($path === '/gck/summary') {
     $reportMonth = $_GET['report_month'] ?? null;
     $state = $_GET['state'] ?? null;
     $region = $_GET['region'] ?? null;
+    $fellowshipCentre = $_GET['fellowship_centre'] ?? null;
     $centreScopeId = null;
     apply_state_region_centre_scope($user, $state, $region, $centreScopeId);
 
@@ -4204,6 +4205,11 @@ if ($path === '/gck/summary') {
         $sql .= ' AND fc.region = ?';
         $types .= 's';
         $params[] = $region;
+    }
+    if ($fellowshipCentre) {
+        $sql .= ' AND fc.name = ?';
+        $types .= 's';
+        $params[] = $fellowshipCentre;
     }
     if ($centreScopeId) {
         $sql .= ' AND fc.id = ?';

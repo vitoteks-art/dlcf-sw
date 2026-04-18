@@ -8,6 +8,7 @@ export default function GckReportPage({
   gckSummaryFilters,
   setGckSummaryFilters,
   gckSummaryRegions,
+  gckSummaryCentres,
   loadGckSummary,
   gckSummary,
   states,
@@ -236,6 +237,7 @@ export default function GckReportPage({
                     ...gckSummaryFilters,
                     state: e.target.value,
                     region: "",
+                    fellowship_centre: "",
                   })
                 }
               >
@@ -255,6 +257,7 @@ export default function GckReportPage({
                   setGckSummaryFilters({
                     ...gckSummaryFilters,
                     region: e.target.value,
+                    fellowship_centre: "",
                   })
                 }
                 disabled={!gckSummaryFilters.state}
@@ -263,6 +266,26 @@ export default function GckReportPage({
                 {gckSummaryRegions.map((region) => (
                   <option key={region} value={region}>
                     {region}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Fellowship Centre
+              <select
+                value={gckSummaryFilters.fellowship_centre}
+                onChange={(e) =>
+                  setGckSummaryFilters({
+                    ...gckSummaryFilters,
+                    fellowship_centre: e.target.value,
+                  })
+                }
+                disabled={!gckSummaryFilters.region}
+              >
+                <option value="">All</option>
+                {gckSummaryCentres.map((centre) => (
+                  <option key={centre} value={centre}>
+                    {centre}
                   </option>
                 ))}
               </select>
