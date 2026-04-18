@@ -25,6 +25,7 @@ export default function PortalHome({
   clearAttendanceAccess,
   canAccessAttendanceDirectly,
 }) {
+  const isCodeAuthorized = !canAccessAttendanceDirectly && attendanceAccess?.authorized;
   return (
     <>
       <section className="portal-shell" id="portal">
@@ -139,16 +140,17 @@ export default function PortalHome({
                     State
                     <select
                       value={attendance.state}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        if (isCodeAuthorized) return;
                         setAttendance({
                           ...attendance,
                           state: e.target.value,
                           region: "",
                           fellowship_centre: "",
-                        })
-                      }
+                        });
+                      }}
                       required
-                      disabled={!canAccessAttendanceDirectly && attendanceAccess?.authorized}
+                      disabled={isCodeAuthorized}
                     >
                       <option value="">Select state</option>
                       {states.map((state) => (
@@ -162,16 +164,16 @@ export default function PortalHome({
                     Region
                     <select
                       value={attendance.region}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        if (isCodeAuthorized) return;
                         setAttendance({
                           ...attendance,
                           region: e.target.value,
                           fellowship_centre: "",
-                        })
-                      }
+                        });
+                      }}
                       required
-                      disabled={!attendance.state}
-                      
+                      disabled={isCodeAuthorized || !attendance.state}
                     >
                       <option value="">Select region</option>
                       {attendanceRegions.map((region) => (
@@ -185,14 +187,15 @@ export default function PortalHome({
                     Fellowship Centre
                     <select
                       value={attendance.fellowship_centre}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        if (isCodeAuthorized) return;
                         setAttendance({
                           ...attendance,
                           fellowship_centre: e.target.value,
-                        })
-                      }
+                        });
+                      }}
                       required
-                      disabled={!attendance.region}
+                      disabled={isCodeAuthorized || !attendance.region}
                     >
                       <option value="">Select centre</option>
                       {attendanceCentres.map((centre) => (
@@ -213,7 +216,7 @@ export default function PortalHome({
                         <input
                           type="number"
                           min="0"
-                          value={attendance.counts[group].male}
+                          value={attendance.counts[group].male ?? ""}
                           onChange={(e) => updateCount(group, "male", e.target.value)}
                         />
                       </label>
@@ -222,7 +225,7 @@ export default function PortalHome({
                         <input
                           type="number"
                           min="0"
-                          value={attendance.counts[group].female}
+                          value={attendance.counts[group].female ?? ""}
                           onChange={(e) =>
                             updateCount(group, "female", e.target.value)
                           }

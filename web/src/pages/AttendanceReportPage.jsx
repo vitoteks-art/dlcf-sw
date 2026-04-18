@@ -8,6 +8,7 @@ export default function AttendanceReportPage({
   report,
   setReport,
   reportRegions,
+  reportCentres,
   loadReport,
   reportData,
   states,
@@ -189,7 +190,7 @@ export default function AttendanceReportPage({
               <select
                 value={report.state}
                 onChange={(e) =>
-                  setReport({ ...report, state: e.target.value, region: "" })
+                  setReport({ ...report, state: e.target.value, region: "", fellowship_centre: "" })
                 }
               >
                 <option value="">All</option>
@@ -205,7 +206,7 @@ export default function AttendanceReportPage({
               <select
                 value={report.region}
                 onChange={(e) =>
-                  setReport({ ...report, region: e.target.value })
+                  setReport({ ...report, region: e.target.value, fellowship_centre: "" })
                 }
                 disabled={!report.state}
               >
@@ -213,6 +214,23 @@ export default function AttendanceReportPage({
                 {reportRegions.map((region) => (
                   <option key={region} value={region}>
                     {region}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Fellowship Centre
+              <select
+                value={report.fellowship_centre}
+                onChange={(e) =>
+                  setReport({ ...report, fellowship_centre: e.target.value })
+                }
+                disabled={!report.region}
+              >
+                <option value="">All</option>
+                {reportCentres.map((centre) => (
+                  <option key={centre} value={centre}>
+                    {centre}
                   </option>
                 ))}
               </select>

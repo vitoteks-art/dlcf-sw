@@ -4246,10 +4246,11 @@ if ($path === '/reports/summary') {
     require_method('GET');
     require_auth();
     $user = current_user();
-    $start = $_GET['start'] ?? null;
-    $end = $_GET['end'] ?? null;
-    $state = $_GET['state'] ?? null;
-    $region = $_GET['region'] ?? null;
+    $start = trim((string) ($_GET['start'] ?? ''));
+    $end = trim((string) ($_GET['end'] ?? ''));
+    $state = trim((string) ($_GET['state'] ?? ''));
+    $region = trim((string) ($_GET['region'] ?? ''));
+    $fellowshipCentre = trim((string) ($_GET['fellowship_centre'] ?? ''));
 
     if ($user['role'] === 'region_cord' && $user['region']) {
         $region = $user['region'];
@@ -4266,25 +4267,30 @@ if ($path === '/reports/summary') {
             WHERE 1=1';
     $types = '';
     $params = [];
-    if ($start) {
+    if ($start !== '') {
         $sql .= ' AND ae.entry_date >= ?';
         $types .= 's';
         $params[] = $start;
     }
-    if ($end) {
+    if ($end !== '') {
         $sql .= ' AND ae.entry_date <= ?';
         $types .= 's';
         $params[] = $end;
     }
-    if ($state) {
+    if ($state !== '') {
         $sql .= ' AND fc.state = ?';
         $types .= 's';
         $params[] = $state;
     }
-    if ($region) {
+    if ($region !== '') {
         $sql .= ' AND fc.region = ?';
         $types .= 's';
         $params[] = $region;
+    }
+    if ($fellowshipCentre !== '') {
+        $sql .= ' AND fc.name = ?';
+        $types .= 's';
+        $params[] = $fellowshipCentre;
     }
     if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
         $sql .= ' AND fc.id = ?';

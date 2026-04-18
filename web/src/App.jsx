@@ -47,9 +47,9 @@ import "./state-home-v2.css";
 import { apiFetch, ensureCsrf, API_BASE } from "./api";
 
 const emptyCounts = {
-  adult: { male: 0, female: 0 },
-  youth: { male: 0, female: 0 },
-  children: { male: 0, female: 0 },
+  adult: { male: "", female: "" },
+  youth: { male: "", female: "" },
+  children: { male: "", female: "" },
 };
 
 const clusters = [
@@ -195,8 +195,10 @@ function App() {
     end: "",
     state: "",
     region: "",
+    fellowship_centre: "",
   });
   const [reportRegions, setReportRegions] = useState([]);
+  const [reportCentres, setReportCentres] = useState([]);
   const [reportData, setReportData] = useState([]);
 
   const [stmc, setStmc] = useState({
@@ -902,12 +904,27 @@ function App() {
   useEffect(() => {
     if (!report.state) {
       setReportRegions([]);
+      setReportCentres([]);
       return;
     }
     apiFetch(`/meta/regions?state=${encodeURIComponent(report.state)}`)
       .then((data) => setReportRegions(data.items || []))
       .catch(() => setReportRegions([]));
   }, [report.state]);
+
+  useEffect(() => {
+    if (!report.state || !report.region) {
+      setReportCentres([]);
+      return;
+    }
+    apiFetch(
+      `/meta/fellowships?state=${encodeURIComponent(report.state)}&region=${encodeURIComponent(
+        report.region
+      )}`
+    )
+      .then((data) => setReportCentres(data.items || []))
+      .catch(() => setReportCentres([]));
+  }, [report.state, report.region]);
 
   useEffect(() => {
     if (!stmc.state) {
@@ -1390,7 +1407,7 @@ function App() {
         ...prev.counts,
         [group]: {
           ...prev.counts[group],
-          [gender]: Number(value) || 0,
+          [gender]: value,
         },
       },
     }));
@@ -3233,6 +3250,7 @@ function App() {
                   report={report}
                   setReport={setReport}
                   reportRegions={reportRegions}
+                  reportCentres={reportCentres}
                   loadReport={loadReport}
                   reportData={reportData}
                   states={states}
