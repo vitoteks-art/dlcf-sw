@@ -3,9 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
 
 const createEmptyCounts = () => ({
-  adult: { male: 0, female: 0 },
-  youth: { male: 0, female: 0 },
-  children: { male: 0, female: 0 },
+  adult: { male: "", female: "" },
+  youth: { male: "", female: "" },
+  children: { male: "", female: "" },
 });
 
 const programOptions = [
@@ -81,6 +81,7 @@ export default function GckPage({
             [group]: {
               ...counts[group],
               [gender]: Number(value) || 0,
+              [gender]: value,
             },
           },
         };
@@ -91,12 +92,12 @@ export default function GckPage({
   const sessionTotal = (session) => {
     const counts = session.counts || createEmptyCounts();
     return (
-      counts.adult.male +
-      counts.adult.female +
-      counts.youth.male +
-      counts.youth.female +
-      counts.children.male +
-      counts.children.female
+      (Number(counts.adult.male) || 0) +
+      (Number(counts.adult.female) || 0) +
+      (Number(counts.youth.male) || 0) +
+      (Number(counts.youth.female) || 0) +
+      (Number(counts.children.male) || 0) +
+      (Number(counts.children.female) || 0)
     );
   };
 
@@ -327,7 +328,7 @@ export default function GckPage({
                         <input
                           type="number"
                           min="0"
-                          value={session.counts?.[group]?.male ?? 0}
+                          value={session.counts?.[group]?.male ?? ""}
                           onChange={(e) =>
                             updateSessionCount(index, group, "male", e.target.value)
                           }
@@ -338,7 +339,7 @@ export default function GckPage({
                         <input
                           type="number"
                           min="0"
-                          value={session.counts?.[group]?.female ?? 0}
+                          value={session.counts?.[group]?.female ?? ""}
                           onChange={(e) =>
                             updateSessionCount(index, group, "female", e.target.value)
                           }
