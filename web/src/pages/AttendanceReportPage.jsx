@@ -174,10 +174,35 @@ export default function AttendanceReportPage({
       startCol += 7;
     });
     worksheet["!cols"] = [
-      { wch: 6 },
-      { wch: 28 },
-      ...Array(28).fill({ wch: 8 }),
+      { wch: 5 },
+      { wch: 22 },
+      ...Array(28).fill({ wch: 5 }),
     ];
+
+    const setCellStyle = (address, style) => {
+      if (!worksheet[address]) return;
+      worksheet[address].s = {
+        ...(worksheet[address].s || {}),
+        ...style,
+      };
+    };
+
+    const centerBoldStyle = {
+      font: { bold: true },
+      alignment: { horizontal: "center", vertical: "center" },
+    };
+
+    ["A1", "A2"].forEach((cell) => setCellStyle(cell, centerBoldStyle));
+    ["A3", "A4", "A5", "A6", "A8", "B8"].forEach((cell) =>
+      setCellStyle(cell, centerBoldStyle)
+    );
+
+    for (let col = 2; col <= 29; col += 1) {
+      const colName = XLSX.utils.encode_col(col);
+      setCellStyle(`${colName}8`, centerBoldStyle);
+      setCellStyle(`${colName}9`, centerBoldStyle);
+      setCellStyle(`${colName}10`, centerBoldStyle);
+    }
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Weekly Report");
     XLSX.writeFile(workbook, "weekly-attendance-report.xlsx", {
