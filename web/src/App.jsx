@@ -652,7 +652,8 @@ function App() {
   const canManageRetreatRegistration = canManageCongressAndRetreatRegistration;
   const canViewCongressAndRetreatReports =
     user &&
-    ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord", "region_admin"].includes(user.role);
+    (["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord", "region_admin"].includes(user.role) ||
+      userWorkUnits.includes("Registration Officers Committee Head"));
   const canViewStateCongressReports = canViewCongressAndRetreatReports;
   const canPublishMedia =
     user &&

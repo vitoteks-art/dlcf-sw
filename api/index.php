@@ -79,6 +79,11 @@ function can_manage_publications(array $user): bool
     return in_array($user['role'], ['administrator'], true) || user_has_work_unit($user, 'Publication Team');
 }
 
+function is_registration_officer_head(array $user): bool
+{
+    return user_has_work_unit($user, 'Registration Officers Committee Head');
+}
+
 function can_view_retreat_and_zonal_reports(array $user): bool
 {
     return in_array($user['role'], [
@@ -89,7 +94,7 @@ function can_view_retreat_and_zonal_reports(array $user): bool
         'state_admin',
         'region_cord',
         'region_admin',
-    ], true);
+    ], true) || is_registration_officer_head($user);
 }
 
 function can_view_attendance_reports(array $user): bool
@@ -163,7 +168,7 @@ function can_view_state_congress_reports(array $user): bool
         'state_admin',
         'region_cord',
         'region_admin',
-    ], true);
+    ], true) || is_registration_officer_head($user);
 }
 
 function apply_state_region_centre_scope(array $user, ?string &$state, ?string &$region, ?int &$centreId = null): void
