@@ -3,6 +3,7 @@ import { useState } from "react";
 import { apiFetch } from "../api";
 
 export default function RetreatPage({
+  user,
   canManage,
   clusters,
   status,
@@ -99,6 +100,11 @@ export default function RetreatPage({
       setLookupStatus(err.message);
     }
   };
+
+  const lockedState = user?.state || "";
+  const lockedRegion = user?.region || "";
+  const stateOptions = lockedState ? [lockedState] : states;
+  const regionOptions = lockedRegion ? [lockedRegion] : retreatRegions;
 
   if (!canManage) {
     return (
@@ -254,9 +260,10 @@ export default function RetreatPage({
                 })
               }
               required
+              disabled={!!lockedState}
             >
               <option value="">Select state</option>
-              {states.map((state) => (
+              {stateOptions.map((state) => (
                 <option key={state} value={state}>
                   {state}
                 </option>
@@ -276,10 +283,10 @@ export default function RetreatPage({
                 })
               }
               required
-              disabled={!retreat.state}
+              disabled={!!lockedRegion || !retreat.state}
             >
               <option value="">Select region</option>
-              {retreatRegions.map((region) => (
+              {regionOptions.map((region) => (
                 <option key={region} value={region}>
                   {region}
                 </option>

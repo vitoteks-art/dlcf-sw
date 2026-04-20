@@ -3,6 +3,7 @@ import { useState } from "react";
 import { apiFetch } from "../api";
 
 export default function StateCongressPage({
+  user,
   clusters,
   status,
   submitStateCongress,
@@ -61,6 +62,10 @@ export default function StateCongressPage({
   };
 
   const congressDays = buildCongressDays();
+  const lockedState = user?.state || "";
+  const lockedRegion = user?.region || "";
+  const stateOptions = lockedState ? [lockedState] : states;
+  const regionOptions = lockedRegion ? [lockedRegion] : stateCongressRegions;
 
   const handleBiodataLookup = async () => {
     if (!lookupQuery.trim()) {
@@ -287,9 +292,10 @@ export default function StateCongressPage({
                 })
               }
               required
+              disabled={!!lockedState}
             >
               <option value="">Select state</option>
-              {states.map((state) => (
+              {stateOptions.map((state) => (
                 <option key={state} value={state}>
                   {state}
                 </option>
@@ -309,10 +315,10 @@ export default function StateCongressPage({
                 })
               }
               required
-              disabled={!stateCongress.state}
+              disabled={!!lockedRegion || !stateCongress.state}
             >
               <option value="">Select region</option>
-              {stateCongressRegions.map((region) => (
+              {regionOptions.map((region) => (
                 <option key={region} value={region}>
                   {region}
                 </option>

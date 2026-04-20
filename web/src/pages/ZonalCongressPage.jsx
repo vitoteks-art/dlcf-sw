@@ -5,6 +5,7 @@ const categories = ["Student", "Corper", "Staff", "Children", "Youth"];
 const membershipStatuses = ["Member", "Worker", "Associate Coord", "Guest"];
 
 export default function ZonalCongressPage({
+  user,
   canManage,
   status,
   zonalRegistration,
@@ -125,6 +126,11 @@ export default function ZonalCongressPage({
     }
     return list;
   }, [zonalSettings?.start_date, zonalSettings?.end_date]);
+
+  const lockedState = user?.state || "";
+  const lockedRegion = user?.region || "";
+  const stateOptions = lockedState ? [lockedState] : states;
+  const regionOptions = lockedRegion ? [lockedRegion] : zonalRegions;
 
   if (!canManage) {
     return (
@@ -319,9 +325,10 @@ export default function ZonalCongressPage({
                   })
                 }
                 required
+                disabled={!!lockedState}
               >
                 <option value="">Select state</option>
-                {states.map((state) => (
+                {stateOptions.map((state) => (
                   <option key={state} value={state}>
                     {state}
                   </option>
@@ -362,10 +369,10 @@ export default function ZonalCongressPage({
                   })
                 }
                 required
-                disabled={!zonalRegistration.state}
+                disabled={!!lockedRegion || !zonalRegistration.state}
               >
                 <option value="">Select region</option>
-                {zonalRegions.map((region) => (
+                {regionOptions.map((region) => (
                   <option key={region} value={region}>
                     {region}
                   </option>

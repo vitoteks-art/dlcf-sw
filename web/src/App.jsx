@@ -3461,6 +3461,7 @@ function App() {
               path="/zonal-congress"
               element={
                 <ZonalCongressPage
+                  user={user}
                   canManage={canManageZonalCongressRegistration}
                   status={status}
                   zonalRegistration={zonalRegistration}
@@ -3623,6 +3624,7 @@ function App() {
               path="/retreat"
               element={
                 <RetreatPage
+                  user={user}
                   canManage={canManageRetreatRegistration}
                   clusters={retreatClusters}
                   status={status}
