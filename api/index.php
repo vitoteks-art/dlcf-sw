@@ -187,14 +187,43 @@ function apply_state_region_centre_scope(array $user, ?string &$state, ?string &
             $region = $user['region'];
         }
     }
-    if ((is_registration_officer($user) || is_registration_officer_head($user)) && !empty($user['state'])) {
+    if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+        $centreId = (int) $user['fellowship_centre_id'];
+    }
+}
+
+function apply_registration_scope(array $user, string $context, ?string &$state, ?string &$region): void
+{
+    if (in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin'], true)) {
+        return;
+    }
+
+    if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
         $state = $user['state'];
+        return;
+    }
+
+    if (in_array($user['role'], ['region_cord', 'region_admin'], true)) {
+        if (!empty($user['state'])) {
+            $state = $user['state'];
+        }
         if (!empty($user['region'])) {
             $region = $user['region'];
         }
+        return;
     }
-    if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
-        $centreId = (int) $user['fellowship_centre_id'];
+
+    if (is_registration_officer($user) || is_registration_officer_head($user)) {
+        if ($context === 'zonal') {
+            return;
+        }
+        if (!empty($user['state'])) {
+            $state = $user['state'];
+        }
+        if ($context === 'retreat' && !empty($user['region'])) {
+            $region = $user['region'];
+        }
+        return;
     }
 }
 
@@ -4788,7 +4817,7 @@ if ($path === '/retreat-registrations') {
         $state = trim($payload['state'] ?? '');
         $region = trim($payload['region'] ?? '');
 
-        apply_state_region_centre_scope($user, $state, $region);
+        apply_registration_scope($user, 'retreat', $state, $region);
 
         if ($dlcfCenter === '' && $fellowshipCentre !== '') {
             $dlcfCenter = $fellowshipCentre;
@@ -4966,7 +4995,7 @@ if (preg_match('#^/retreat-registrations/(\\d+)$#', $path, $matches)) {
     $region = trim($payload['region'] ?? '');
     $fellowshipCentre = trim($payload['fellowship_centre'] ?? '');
 
-    apply_state_region_centre_scope($user, $state, $region);
+    apply_registration_scope($user, 'retreat', $state, $region);
 
     if ($dlcfCenter === '' && $fellowshipCentre !== '') {
         $dlcfCenter = $fellowshipCentre;
@@ -5028,8 +5057,7 @@ if ($path === '/state-congress-registrations') {
         $region = trim($payload['region'] ?? '');
         $fellowshipCentre = trim($payload['fellowship_centre'] ?? '');
 
-        $centreScopeId = null;
-        apply_state_region_centre_scope($user, $state, $region, $centreScopeId);
+        apply_registration_scope($user, 'state_congress', $state, $region);
 
         if (
             $title === '' || $fullName === '' || $gender === '' || $email === '' || $phone === '' ||
@@ -5585,7 +5613,7 @@ if ($path === '/zonal-registrations') {
         $region = trim($payload['region'] ?? '');
         $cluster = trim($payload['cluster'] ?? '');
 
-        apply_state_region_centre_scope($user, $state, $region);
+        apply_registration_scope($user, 'zonal', $state, $region);
         $institution = trim($payload['institution'] ?? '');
         $centreName = trim($payload['fellowship_centre'] ?? '');
         $category = trim($payload['category'] ?? '');
@@ -5682,7 +5710,7 @@ if (preg_match('#^/zonal-registrations/(\\d+)$#', $path, $matches)) {
     $region = trim($payload['region'] ?? '');
     $institution = trim($payload['institution'] ?? '');
 
-    apply_state_region_centre_scope($user, $state, $region);
+    apply_registration_scope($user, 'zonal', $state, $region);
     $centreName = trim($payload['fellowship_centre'] ?? '');
 
     if (

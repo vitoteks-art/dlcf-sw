@@ -63,9 +63,7 @@ export default function StateCongressPage({
 
   const congressDays = buildCongressDays();
   const lockedState = user?.state || "";
-  const lockedRegion = user?.region || "";
   const stateOptions = lockedState ? [lockedState] : states;
-  const regionOptions = lockedRegion ? [lockedRegion] : stateCongressRegions;
 
   const handleBiodataLookup = async () => {
     if (!lookupQuery.trim()) {
@@ -315,10 +313,10 @@ export default function StateCongressPage({
                 })
               }
               required
-              disabled={!!lockedRegion || !stateCongress.state}
+              disabled={!stateCongress.state}
             >
               <option value="">Select region</option>
-              {regionOptions.map((region) => (
+              {stateCongressRegions.map((region) => (
                 <option key={region} value={region}>
                   {region}
                 </option>
