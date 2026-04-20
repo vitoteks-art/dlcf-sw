@@ -108,7 +108,7 @@ export default function RetreatPage({
             <p className="eyebrow">Retreat Registration</p>
             <h2>Access restricted</h2>
             <p className="lede">
-              Only administrators, zonal coordinators, zonal admins, state coordinators, state admins, and registration officers can access this page.
+              Only administrators, zonal coordinators, zonal admins, state coordinators, state admins, region coordinators, and registration officers can access this page.
             </p>
           </div>
           <Link className="ghost" to="/">

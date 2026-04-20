@@ -134,7 +134,7 @@ export default function ZonalCongressPage({
             <p className="eyebrow">Zonal Congress</p>
             <h2>Access restricted</h2>
             <p className="lede">
-              Only administrators, zonal coordinators, zonal admins, state coordinators, state admins, and registration officers can access this page.
+              Only administrators, zonal coordinators, zonal admins, state coordinators, state admins, region coordinators, and registration officers can access this page.
             </p>
           </div>
         </div>

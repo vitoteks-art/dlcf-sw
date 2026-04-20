@@ -135,19 +135,19 @@ function is_registration_officer(array $user): bool
 
 function can_manage_retreat_registration(array $user): bool
 {
-    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin'], true)
+    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord'], true)
         || is_registration_officer($user);
 }
 
 function can_manage_zonal_congress_registration(array $user): bool
 {
-    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin'], true)
+    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord'], true)
         || is_registration_officer($user);
 }
 
 function can_manage_state_congress_registration(array $user): bool
 {
-    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin'], true)
+    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord'], true)
         || is_registration_officer($user);
 }
 

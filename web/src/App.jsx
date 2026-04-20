@@ -645,7 +645,7 @@ function App() {
   const canViewGckReports = canAccessAttendanceDirectly;
   const canManageCongressAndRetreatRegistration =
     user &&
-    (["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin"].includes(user.role) ||
+    (["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord"].includes(user.role) ||
       userWorkUnits.includes("Registration Officers Committee"));
   const canManageStateCongressRegistration = canManageCongressAndRetreatRegistration;
   const canManageZonalCongressRegistration = canManageCongressAndRetreatRegistration;
