@@ -1024,6 +1024,25 @@ function App() {
   }, [retreat.state]);
 
   useEffect(() => {
+    if (!user?.state) {
+      return;
+    }
+    if (canManageRetreatRegistration) {
+      setRetreat((prev) => ({
+        ...prev,
+        state: prev.state || user.state,
+        region: user.region || prev.region,
+      }));
+    }
+    if (canManageStateCongressRegistration) {
+      setStateCongress((prev) => ({
+        ...prev,
+        state: prev.state || user.state,
+      }));
+    }
+  }, [user?.state, user?.region, canManageRetreatRegistration, canManageStateCongressRegistration]);
+
+  useEffect(() => {
     if (!stateCongress.state) {
       setStateCongressRegions([]);
       return;
