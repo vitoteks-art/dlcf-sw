@@ -2609,6 +2609,60 @@ function App() {
     }
   };
 
+  const handleAddWorkUnit = async (event) => {
+    event.preventDefault();
+    setStatus("");
+    try {
+      await apiFetch("/admin/work-units", {
+        method: "POST",
+        body: JSON.stringify({ name: adminWorkUnitName }),
+      });
+      setStatus("Work unit added.");
+      setAdminWorkUnitName("");
+      loadAdminWorkUnits();
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const handleEditWorkUnit = async (event) => {
+    event.preventDefault();
+    if (!adminWorkUnitEditId) return;
+    setStatus("");
+    try {
+      await apiFetch(`/admin/work-units/${adminWorkUnitEditId}`, {
+        method: "PUT",
+        body: JSON.stringify({ name: adminWorkUnitEditName }),
+      });
+      setStatus("Work unit updated.");
+      setAdminWorkUnitEditId("");
+      setAdminWorkUnitEditName("");
+      loadAdminWorkUnits();
+      loadAdminUsers();
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const handleDeleteWorkUnit = async (id) => {
+    if (!window.confirm("Delete this work unit?")) {
+      return;
+    }
+    setStatus("");
+    try {
+      await apiFetch(`/admin/work-units/${id}`, { method: "DELETE" });
+      setStatus("Work unit deleted.");
+      if (String(adminWorkUnitEditId) === String(id)) {
+        setAdminWorkUnitEditId("");
+        setAdminWorkUnitEditName("");
+      }
+      loadAdminWorkUnits();
+      loadAdminUsers();
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
   const handleAddRole = async (event) => {
     event.preventDefault();
     setStatus("");
@@ -3056,6 +3110,9 @@ function App() {
     handleBulkInstitutionUpload,
     handleEditInstitution,
     handleDeleteInstitution,
+    handleAddWorkUnit,
+    handleEditWorkUnit,
+    handleDeleteWorkUnit,
     handleAddRole,
     handleEditRole,
     handleDeleteRole,
