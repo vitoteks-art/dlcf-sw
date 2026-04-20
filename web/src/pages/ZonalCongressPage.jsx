@@ -5,6 +5,7 @@ const categories = ["Student", "Corper", "Staff", "Children", "Youth"];
 const membershipStatuses = ["Member", "Worker", "Associate Coord", "Guest"];
 
 export default function ZonalCongressPage({
+  canManage,
   status,
   zonalRegistration,
   setZonalRegistration,
@@ -124,6 +125,22 @@ export default function ZonalCongressPage({
     }
     return list;
   }, [zonalSettings?.start_date, zonalSettings?.end_date]);
+
+  if (!canManage) {
+    return (
+      <section className="card retreat-page">
+        <div className="retreat-head">
+          <div>
+            <p className="eyebrow">Zonal Congress</p>
+            <h2>Access restricted</h2>
+            <p className="lede">
+              Only administrators, zonal coordinators, zonal admins, state coordinators, state admins, and registration officers can access this page.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="card retreat-page">

@@ -1,5 +1,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+
+const normalizeDateInputValue = (value) => {
+  if (!value || value === "0000-00-00") return "";
+  return value;
+};
 import { Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import PortalHome from "./pages/PortalHome";
 import PublicHome from "./pages/PublicHome";
@@ -396,8 +401,11 @@ function App() {
     nysc_start_date: "",
     nysc_end_date: "",
     new_birth_status: false,
+    new_birth_date: "",
     sanctification_status: false,
+    sanctification_date: "",
     holy_ghost_baptism_status: false,
+    holy_ghost_baptism_date: "",
     spiritual_notes: "",
     category: "",
     worker_status: "Member",
@@ -635,10 +643,13 @@ function App() {
   const canViewAttendanceReports = canAccessAttendanceDirectly;
   const canSubmitGckDirectly = canAccessAttendanceDirectly;
   const canViewGckReports = canAccessAttendanceDirectly;
-  const canManageStateCongressRegistration =
+  const canManageCongressAndRetreatRegistration =
     user &&
-    (["administrator", "state_cord", "state_admin"].includes(user.role) ||
+    (["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin"].includes(user.role) ||
       userWorkUnits.includes("Registration Officers Committee"));
+  const canManageStateCongressRegistration = canManageCongressAndRetreatRegistration;
+  const canManageZonalCongressRegistration = canManageCongressAndRetreatRegistration;
+  const canManageRetreatRegistration = canManageCongressAndRetreatRegistration;
   const canViewStateCongressReports = canManageStateCongressRegistration;
   const canPublishMedia =
     user &&
@@ -2154,7 +2165,7 @@ function App() {
         email: data.item.email || "",
         profile_photo: data.item.profile_photo || "",
         school: data.item.school || "",
-        date_of_birth: data.item.date_of_birth || "",
+        date_of_birth: normalizeDateInputValue(data.item.date_of_birth),
         marital_status: data.item.marital_status || "",
         program_type: data.item.program_type || "",
         academic_level: data.item.academic_level || "",
@@ -2164,11 +2175,14 @@ function App() {
         nysc_status: data.item.nysc_status || "none",
         nysc_batch: data.item.nysc_batch || "",
         nysc_state: data.item.nysc_state || "",
-        nysc_start_date: data.item.nysc_start_date || "",
-        nysc_end_date: data.item.nysc_end_date || "",
+        nysc_start_date: normalizeDateInputValue(data.item.nysc_start_date),
+        nysc_end_date: normalizeDateInputValue(data.item.nysc_end_date),
         new_birth_status: !!data.item.new_birth_status,
+        new_birth_date: normalizeDateInputValue(data.item.new_birth_date),
         sanctification_status: !!data.item.sanctification_status,
+        sanctification_date: normalizeDateInputValue(data.item.sanctification_date),
         holy_ghost_baptism_status: !!data.item.holy_ghost_baptism_status,
+        holy_ghost_baptism_date: normalizeDateInputValue(data.item.holy_ghost_baptism_date),
         spiritual_notes: data.item.spiritual_notes || "",
         category: data.item.category || "",
         worker_status: data.item.worker_status || "Member",
@@ -2206,7 +2220,7 @@ function App() {
         email: data.item.email || "",
         profile_photo: data.item.profile_photo || "",
         school: data.item.school || "",
-        date_of_birth: data.item.date_of_birth || "",
+        date_of_birth: normalizeDateInputValue(data.item.date_of_birth),
         marital_status: data.item.marital_status || "",
         program_type: data.item.program_type || "",
         academic_level: data.item.academic_level || "",
@@ -2216,11 +2230,14 @@ function App() {
         nysc_status: data.item.nysc_status || "none",
         nysc_batch: data.item.nysc_batch || "",
         nysc_state: data.item.nysc_state || "",
-        nysc_start_date: data.item.nysc_start_date || "",
-        nysc_end_date: data.item.nysc_end_date || "",
+        nysc_start_date: normalizeDateInputValue(data.item.nysc_start_date),
+        nysc_end_date: normalizeDateInputValue(data.item.nysc_end_date),
         new_birth_status: !!data.item.new_birth_status,
+        new_birth_date: normalizeDateInputValue(data.item.new_birth_date),
         sanctification_status: !!data.item.sanctification_status,
+        sanctification_date: normalizeDateInputValue(data.item.sanctification_date),
         holy_ghost_baptism_status: !!data.item.holy_ghost_baptism_status,
+        holy_ghost_baptism_date: normalizeDateInputValue(data.item.holy_ghost_baptism_date),
         spiritual_notes: data.item.spiritual_notes || "",
         category: data.item.category || "",
         worker_status: data.item.worker_status || "Member",
@@ -3182,9 +3199,9 @@ function App() {
           <Link to="/gck">GCK Attendance</Link>
           {canViewGckReports ? <Link to="/gck-report">GCK Reports</Link> : null}
           <Link to="/stmc">STMC</Link>
-          <Link to="/zonal-congress">Zonal Congress</Link>
+          {canManageZonalCongressRegistration ? <Link to="/zonal-congress">Zonal Congress</Link> : null}
           {canManageStateCongressRegistration ? <Link to="/state-congress">State Congress</Link> : null}
-          <Link to="/retreat">Retreat</Link>
+          {canManageRetreatRegistration ? <Link to="/retreat">Retreat</Link> : null}
           {canViewAdmin ? (
             <Link to="/retreat-report">Retreat Reports</Link>
           ) : null}
@@ -3383,6 +3400,7 @@ function App() {
               path="/zonal-congress"
               element={
                 <ZonalCongressPage
+                  canManage={canManageZonalCongressRegistration}
                   status={status}
                   zonalRegistration={zonalRegistration}
                   setZonalRegistration={setZonalRegistration}
@@ -3544,6 +3562,7 @@ function App() {
               path="/retreat"
               element={
                 <RetreatPage
+                  canManage={canManageRetreatRegistration}
                   clusters={retreatClusters}
                   status={status}
                   submitRetreat={submitRetreat}

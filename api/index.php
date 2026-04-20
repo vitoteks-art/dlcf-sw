@@ -128,16 +128,32 @@ function can_view_gck_reports(array $user): bool
     return can_submit_gck_directly($user);
 }
 
+function is_registration_officer(array $user): bool
+{
+    return user_has_work_unit($user, 'Registration Officers Committee');
+}
+
+function can_manage_retreat_registration(array $user): bool
+{
+    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin'], true)
+        || is_registration_officer($user);
+}
+
+function can_manage_zonal_congress_registration(array $user): bool
+{
+    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin'], true)
+        || is_registration_officer($user);
+}
+
 function can_manage_state_congress_registration(array $user): bool
 {
-    return in_array($user['role'], ['administrator', 'state_cord', 'state_admin'], true)
-        || user_has_work_unit($user, 'Registration Officers Committee');
+    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin'], true)
+        || is_registration_officer($user);
 }
 
 function can_view_state_congress_reports(array $user): bool
 {
-    return in_array($user['role'], ['administrator', 'state_cord', 'state_admin'], true)
-        || user_has_work_unit($user, 'Registration Officers Committee');
+    return can_manage_state_congress_registration($user);
 }
 
 function apply_state_region_centre_scope(array $user, ?string &$state, ?string &$region, ?int &$centreId = null): void
@@ -4728,7 +4744,12 @@ if ($path === '/biodata/me') {
 
 if ($path === '/retreat-registrations') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        require_auth();
         require_csrf();
+        $user = current_user();
+        if (!can_manage_retreat_registration($user)) {
+            json_error('Forbidden', 403);
+        }
         $payload = read_json();
 
         $retreatType = $payload['retreat_type'] ?? '';
@@ -4793,6 +4814,10 @@ if ($path === '/retreat-registrations') {
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         require_auth();
+        $user = current_user();
+        if (!can_manage_retreat_registration($user)) {
+            json_error('Forbidden', 403);
+        }
         $start = $_GET['start'] ?? null;
         $end = $_GET['end'] ?? null;
         $retreatType = $_GET['retreat_type'] ?? null;
@@ -4856,7 +4881,7 @@ if ($path === '/retreat-registrations/lookup') {
     require_method('GET');
     require_auth();
     $user = current_user();
-    if (!user_has_work_unit($user, 'Registration Officers Committee') && !in_array($user['role'], ['administrator'], true)) {
+    if (!can_manage_retreat_registration($user)) {
         json_error('Forbidden', 403);
     }
     $retreatType = $_GET['retreat_type'] ?? '';
@@ -4897,7 +4922,7 @@ if (preg_match('#^/retreat-registrations/(\\d+)$#', $path, $matches)) {
     require_auth();
     require_csrf();
     $user = current_user();
-    if (!user_has_work_unit($user, 'Registration Officers Committee') && !in_array($user['role'], ['administrator'], true)) {
+    if (!can_manage_retreat_registration($user)) {
         json_error('Forbidden', 403);
     }
     $id = (int) $matches[1];
@@ -5520,6 +5545,9 @@ if ($path === '/zonal-registrations') {
         require_csrf();
         $payload = read_json();
         $user = current_user();
+        if (!can_manage_zonal_congress_registration($user)) {
+            json_error('Forbidden', 403);
+        }
 
         $title = $payload['title'] ?? '';
         $fullName = trim($payload['full_name'] ?? '');
@@ -5569,7 +5597,7 @@ if ($path === '/zonal-registrations/lookup') {
     require_method('GET');
     require_auth();
     $user = current_user();
-    if (!user_has_work_unit($user, 'Registration Officers Committee') && !in_array($user['role'], ['administrator'], true)) {
+    if (!can_manage_zonal_congress_registration($user)) {
         json_error('Forbidden', 403);
     }
     $email = trim($_GET['email'] ?? '');
@@ -5607,7 +5635,7 @@ if (preg_match('#^/zonal-registrations/(\\d+)$#', $path, $matches)) {
     require_auth();
     require_csrf();
     $user = current_user();
-    if (!user_has_work_unit($user, 'Registration Officers Committee') && !in_array($user['role'], ['administrator'], true)) {
+    if (!can_manage_zonal_congress_registration($user)) {
         json_error('Forbidden', 403);
     }
     $id = (int) $matches[1];
