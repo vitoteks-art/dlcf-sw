@@ -209,6 +209,9 @@ function normalize_biodata_tracking_payload(array $payload): array
     $nyscState = trim($payload['nysc_state'] ?? '');
     $nyscStartDate = trim($payload['nysc_start_date'] ?? '');
     $nyscEndDate = trim($payload['nysc_end_date'] ?? '');
+    $newBirthDate = trim($payload['new_birth_date'] ?? '');
+    $sanctificationDate = trim($payload['sanctification_date'] ?? '');
+    $holyGhostBaptismDate = trim($payload['holy_ghost_baptism_date'] ?? '');
     $spiritualNotes = trim($payload['spiritual_notes'] ?? '');
 
     $entryYear = $entryYearRaw !== '' ? (int) $entryYearRaw : null;
@@ -235,6 +238,20 @@ function normalize_biodata_tracking_payload(array $payload): array
         $parsedDob = DateTime::createFromFormat('Y-m-d', $dateOfBirth);
         if (!$parsedDob || $parsedDob->format('Y-m-d') !== $dateOfBirth) {
             json_error('Date of birth is invalid', 422);
+        }
+    }
+
+    foreach ([
+        'New birth date' => $newBirthDate,
+        'Sanctification date' => $sanctificationDate,
+        'Holy Ghost baptism date' => $holyGhostBaptismDate,
+    ] as $label => $value) {
+        if ($value === '') {
+            continue;
+        }
+        $parsed = DateTime::createFromFormat('Y-m-d', $value);
+        if (!$parsed || $parsed->format('Y-m-d') !== $value) {
+            json_error($label . ' is invalid', 422);
         }
     }
 
@@ -277,6 +294,16 @@ function normalize_biodata_tracking_payload(array $payload): array
         $nyscEndDate = '';
     }
 
+    if ($newBirthStatus === 0) {
+        $newBirthDate = '';
+    }
+    if ($sanctificationStatus === 0) {
+        $sanctificationDate = '';
+    }
+    if ($holyGhostBaptismStatus === 0) {
+        $holyGhostBaptismDate = '';
+    }
+
     return [
         'date_of_birth' => $dateOfBirth !== '' ? $dateOfBirth : null,
         'marital_status' => $maritalStatus !== '' ? $maritalStatus : null,
@@ -291,8 +318,11 @@ function normalize_biodata_tracking_payload(array $payload): array
         'nysc_start_date' => $nyscStartDate !== '' ? $nyscStartDate : null,
         'nysc_end_date' => $nyscEndDate !== '' ? $nyscEndDate : null,
         'new_birth_status' => $newBirthStatus,
+        'new_birth_date' => $newBirthDate !== '' ? $newBirthDate : null,
         'sanctification_status' => $sanctificationStatus,
+        'sanctification_date' => $sanctificationDate !== '' ? $sanctificationDate : null,
         'holy_ghost_baptism_status' => $holyGhostBaptismStatus,
+        'holy_ghost_baptism_date' => $holyGhostBaptismDate !== '' ? $holyGhostBaptismDate : null,
         'spiritual_notes' => $spiritualNotes !== '' ? $spiritualNotes : null,
     ];
 }
@@ -310,6 +340,18 @@ function current_attendance_access_session(): ?array
 function clear_attendance_access_session(): void
 {
     unset($_SESSION[attendance_access_session_key()]);
+}
+
+function normalize_nullable_date_output($value): ?string
+{
+    if ($value === null) {
+        return null;
+    }
+    $value = trim((string) $value);
+    if ($value === '' || $value === '0000-00-00') {
+        return null;
+    }
+    return $value;
 }
 
 function write_attendance_audit_log(mysqli $db, ?int $codeId, ?int $sessionId, ?int $actorUserId, string $action, array $metadata = []): void
@@ -505,8 +547,10 @@ function ensure_unique_coordinator_role(mysqli $db, string $role, ?string $state
         return;
     }
 
+    $maxAllowed = 2;
+
     if ($role === 'zonal_cord') {
-        $sql = 'SELECT id FROM users WHERE role = ?';
+        $sql = 'SELECT COUNT(*) AS total FROM users WHERE role = ?';
         $types = 's';
         $params = [$role];
         if ($excludeUserId !== null) {
@@ -514,11 +558,12 @@ function ensure_unique_coordinator_role(mysqli $db, string $role, ?string $state
             $types .= 'i';
             $params[] = $excludeUserId;
         }
-        $sql .= ' LIMIT 1';
         $stmt = db_prepare($db, $sql, $types, $params);
         $stmt->execute();
-        if (db_fetch_all($stmt)) {
-            json_error('A zonal coordinator already exists', 422);
+        $rows = db_fetch_all($stmt);
+        $total = (int) ($rows[0]['total'] ?? 0);
+        if ($total >= $maxAllowed) {
+            json_error('Only 2 zonal coordinators are allowed on the platform', 422);
         }
         return;
     }
@@ -528,7 +573,7 @@ function ensure_unique_coordinator_role(mysqli $db, string $role, ?string $state
     }
 
     if ($role === 'state_cord') {
-        $sql = 'SELECT u.id
+        $sql = 'SELECT COUNT(*) AS total
                 FROM users u
                 LEFT JOIN biodata b ON b.user_id = u.id
                 WHERE u.role = ? AND b.state = ?';
@@ -539,11 +584,12 @@ function ensure_unique_coordinator_role(mysqli $db, string $role, ?string $state
             $types .= 'i';
             $params[] = $excludeUserId;
         }
-        $sql .= ' LIMIT 1';
         $stmt = db_prepare($db, $sql, $types, $params);
         $stmt->execute();
-        if (db_fetch_all($stmt)) {
-            json_error('A state coordinator already exists for this state', 422);
+        $rows = db_fetch_all($stmt);
+        $total = (int) ($rows[0]['total'] ?? 0);
+        if ($total >= $maxAllowed) {
+            json_error('Only 2 state coordinators are allowed per state', 422);
         }
         return;
     }
@@ -552,7 +598,7 @@ function ensure_unique_coordinator_role(mysqli $db, string $role, ?string $state
         json_error('Region is required for this coordinator role', 422);
     }
 
-    $sql = 'SELECT u.id
+    $sql = 'SELECT COUNT(*) AS total
             FROM users u
             LEFT JOIN biodata b ON b.user_id = u.id
             WHERE u.role = ? AND b.state = ? AND b.region = ?';
@@ -563,11 +609,12 @@ function ensure_unique_coordinator_role(mysqli $db, string $role, ?string $state
         $types .= 'i';
         $params[] = $excludeUserId;
     }
-    $sql .= ' LIMIT 1';
     $stmt = db_prepare($db, $sql, $types, $params);
     $stmt->execute();
-    if (db_fetch_all($stmt)) {
-        json_error('A region coordinator already exists for this state and region', 422);
+    $rows = db_fetch_all($stmt);
+    $total = (int) ($rows[0]['total'] ?? 0);
+    if ($total >= $maxAllowed) {
+        json_error('Only 2 region coordinators are allowed per region', 422);
     }
 }
 
@@ -4449,7 +4496,8 @@ if ($path === '/biodata/me') {
         $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.date_of_birth, b.marital_status, b.program_type,
                        b.academic_level, b.entry_year, b.expected_graduation_year, b.student_status, b.nysc_status,
                        b.nysc_batch, b.nysc_state, b.nysc_start_date, b.nysc_end_date, b.new_birth_status,
-                       b.sanctification_status, b.holy_ghost_baptism_status, b.spiritual_notes, b.category,
+                       b.new_birth_date, b.sanctification_status, b.sanctification_date, b.holy_ghost_baptism_status,
+                       b.holy_ghost_baptism_date, b.spiritual_notes, b.category,
                        b.worker_status, b.membership_status, b.work_units, b.address, b.next_of_kin_name, b.next_of_kin_phone,
                        b.next_of_kin_relationship, b.state, b.region, b.cluster, fc.name AS fellowship_centre, b.created_at
                 FROM biodata b
@@ -4475,6 +4523,9 @@ if ($path === '/biodata/me') {
             json_error('Not found', 404);
         }
         $rows[0]['work_units'] = json_decode($rows[0]['work_units'], true) ?: [];
+        foreach (['date_of_birth', 'nysc_start_date', 'nysc_end_date', 'new_birth_date', 'sanctification_date', 'holy_ghost_baptism_date'] as $dateField) {
+            $rows[0][$dateField] = normalize_nullable_date_output($rows[0][$dateField] ?? null);
+        }
         json_ok(['item' => $rows[0]]);
     }
 
@@ -4554,11 +4605,11 @@ if ($path === '/biodata/me') {
                 $beforeHistory = db_fetch_all($stmt)[0] ?? [];
                 $sql = 'UPDATE biodata SET fellowship_centre_id = ?, full_name = ?, gender = ?, age = ?, phone = ?, email = ?, state = ?, region = ?, cluster = ?, profile_photo = ?,
                                school = ?, date_of_birth = ?, marital_status = ?, program_type = ?, academic_level = ?, entry_year = ?, expected_graduation_year = ?, student_status = ?,
-                               nysc_status = ?, nysc_batch = ?, nysc_state = ?, nysc_start_date = ?, nysc_end_date = ?, new_birth_status = ?,
-                               sanctification_status = ?, holy_ghost_baptism_status = ?, spiritual_notes = ?, category = ?, worker_status = ?, membership_status = ?, work_units = ?, address = ?,
+                               nysc_status = ?, nysc_batch = ?, nysc_state = ?, nysc_start_date = ?, nysc_end_date = ?, new_birth_status = ?, new_birth_date = ?,
+                               sanctification_status = ?, sanctification_date = ?, holy_ghost_baptism_status = ?, holy_ghost_baptism_date = ?, spiritual_notes = ?, category = ?, worker_status = ?, membership_status = ?, work_units = ?, address = ?,
                                next_of_kin_name = ?, next_of_kin_phone = ?, next_of_kin_relationship = ?, updated_at = NOW()
                         WHERE id = ?';
-                $stmt = db_prepare($db, $sql, 'ississsssssssssiissssssiiisssssssssi', [
+                $stmt = db_prepare($db, $sql, 'ississsssssssssiissssssississsssssssssi', [
                     $centreId,
                     $fullName,
                     $gender,
@@ -4583,8 +4634,11 @@ if ($path === '/biodata/me') {
                     $tracking['nysc_start_date'],
                     $tracking['nysc_end_date'],
                     $tracking['new_birth_status'],
+                    $tracking['new_birth_date'],
                     $tracking['sanctification_status'],
+                    $tracking['sanctification_date'],
                     $tracking['holy_ghost_baptism_status'],
+                    $tracking['holy_ghost_baptism_date'],
                     $tracking['spiritual_notes'],
                     $category,
                     $workerStatus,
@@ -4611,10 +4665,10 @@ if ($path === '/biodata/me') {
 
             $sql = 'INSERT INTO biodata
                 (user_id, fellowship_centre_id, full_name, gender, age, phone, email, state, region, cluster, profile_photo, school, date_of_birth, marital_status, program_type, academic_level, entry_year, expected_graduation_year, student_status,
-                 nysc_status, nysc_batch, nysc_state, nysc_start_date, nysc_end_date, new_birth_status, sanctification_status, holy_ghost_baptism_status, spiritual_notes,
+                 nysc_status, nysc_batch, nysc_state, nysc_start_date, nysc_end_date, new_birth_status, new_birth_date, sanctification_status, sanctification_date, holy_ghost_baptism_status, holy_ghost_baptism_date, spiritual_notes,
                  category, worker_status, membership_status, work_units, address, next_of_kin_name, next_of_kin_phone, next_of_kin_relationship, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())';
-            $stmt = db_prepare($db, $sql, 'iississsssssssssiissssssiiisssssssss', [
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())';
+            $stmt = db_prepare($db, $sql, 'iississsssssssssiissssssississsssssssss', [
                 $user['id'],
                 $centreId,
                 $fullName,
@@ -4640,8 +4694,11 @@ if ($path === '/biodata/me') {
                 $tracking['nysc_start_date'],
                 $tracking['nysc_end_date'],
                 $tracking['new_birth_status'],
+                $tracking['new_birth_date'],
                 $tracking['sanctification_status'],
+                $tracking['sanctification_date'],
                 $tracking['holy_ghost_baptism_status'],
+                $tracking['holy_ghost_baptism_date'],
                 $tracking['spiritual_notes'],
                 $category,
                 $workerStatus,
@@ -5761,7 +5818,7 @@ if ($path === '/biodata') {
                 (user_id, fellowship_centre_id, full_name, gender, age, phone, email, state, region, cluster, profile_photo, school, category, worker_status, membership_status, work_units, address,
                  next_of_kin_name, next_of_kin_phone, next_of_kin_relationship, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())';
-            $stmt = db_prepare($db, $sql, 'iississssssssssssss', [
+            $stmt = db_prepare($db, $sql, 'iississsssssssssssss', [
                 $user['id'],
                 $centreId,
                 $fullName,
@@ -5817,7 +5874,8 @@ if ($path === '/biodata') {
         $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.date_of_birth, b.marital_status, b.program_type,
                        b.academic_level, b.entry_year, b.expected_graduation_year, b.student_status, b.nysc_status,
                        b.nysc_batch, b.nysc_state, b.nysc_start_date, b.nysc_end_date, b.new_birth_status,
-                       b.sanctification_status, b.holy_ghost_baptism_status, b.spiritual_notes, b.category,
+                       b.new_birth_date, b.sanctification_status, b.sanctification_date, b.holy_ghost_baptism_status,
+                       b.holy_ghost_baptism_date, b.spiritual_notes, b.category,
                        b.worker_status, b.membership_status, b.work_units, b.address, b.next_of_kin_name, b.next_of_kin_phone,
                        b.next_of_kin_relationship, b.state, b.region, b.cluster, fc.name AS fellowship_centre, b.created_at
                 FROM biodata b
@@ -5870,6 +5928,9 @@ if ($path === '/biodata') {
         $rows = db_fetch_all($stmt);
         foreach ($rows as &$row) {
             $row['work_units'] = json_decode($row['work_units'], true) ?: [];
+            foreach (['date_of_birth', 'nysc_start_date', 'nysc_end_date', 'new_birth_date', 'sanctification_date', 'holy_ghost_baptism_date'] as $dateField) {
+                $row[$dateField] = normalize_nullable_date_output($row[$dateField] ?? null);
+            }
         }
         json_ok(['items' => $rows]);
     }
@@ -5885,8 +5946,11 @@ if ($path === '/biodata-reports/spiritual') {
 
     $sql = 'SELECT COUNT(*) AS total,
                    SUM(CASE WHEN new_birth_status = 1 THEN 1 ELSE 0 END) AS new_birth_yes,
+                   SUM(CASE WHEN new_birth_date IS NOT NULL THEN 1 ELSE 0 END) AS new_birth_date_count,
                    SUM(CASE WHEN sanctification_status = 1 THEN 1 ELSE 0 END) AS sanctification_yes,
-                   SUM(CASE WHEN holy_ghost_baptism_status = 1 THEN 1 ELSE 0 END) AS holy_ghost_baptism_yes
+                   SUM(CASE WHEN sanctification_date IS NOT NULL THEN 1 ELSE 0 END) AS sanctification_date_count,
+                   SUM(CASE WHEN holy_ghost_baptism_status = 1 THEN 1 ELSE 0 END) AS holy_ghost_baptism_yes,
+                   SUM(CASE WHEN holy_ghost_baptism_date IS NOT NULL THEN 1 ELSE 0 END) AS holy_ghost_baptism_date_count
             FROM biodata b
             JOIN fellowship_centres fc ON fc.id = b.fellowship_centre_id
             WHERE 1=1';
@@ -5909,15 +5973,23 @@ if ($path === '/biodata-reports/spiritual') {
     }
     $stmt = db_prepare($db, $sql, $types, $params);
     $stmt->execute();
-    $row = db_fetch_all($stmt)[0] ?? ['total' => 0, 'new_birth_yes' => 0, 'sanctification_yes' => 0, 'holy_ghost_baptism_yes' => 0];
+    $row = db_fetch_all($stmt)[0] ?? [
+        'total' => 0,
+        'new_birth_yes' => 0,
+        'new_birth_date_count' => 0,
+        'sanctification_yes' => 0,
+        'sanctification_date_count' => 0,
+        'holy_ghost_baptism_yes' => 0,
+        'holy_ghost_baptism_date_count' => 0,
+    ];
     $total = (int) ($row['total'] ?? 0);
     $pct = fn($value) => $total > 0 ? round((((int) $value) / $total) * 100, 1) : 0;
     json_ok([
         'total' => $total,
         'items' => [
-            ['label' => 'New Birth', 'yes' => (int) $row['new_birth_yes'], 'no' => $total - (int) $row['new_birth_yes'], 'percentage_yes' => $pct($row['new_birth_yes'])],
-            ['label' => 'Sanctification', 'yes' => (int) $row['sanctification_yes'], 'no' => $total - (int) $row['sanctification_yes'], 'percentage_yes' => $pct($row['sanctification_yes'])],
-            ['label' => 'Holy Ghost Baptism', 'yes' => (int) $row['holy_ghost_baptism_yes'], 'no' => $total - (int) $row['holy_ghost_baptism_yes'], 'percentage_yes' => $pct($row['holy_ghost_baptism_yes'])],
+            ['label' => 'New Birth', 'yes' => (int) $row['new_birth_yes'], 'no' => $total - (int) $row['new_birth_yes'], 'percentage_yes' => $pct($row['new_birth_yes']), 'with_date' => (int) $row['new_birth_date_count']],
+            ['label' => 'Sanctification', 'yes' => (int) $row['sanctification_yes'], 'no' => $total - (int) $row['sanctification_yes'], 'percentage_yes' => $pct($row['sanctification_yes']), 'with_date' => (int) $row['sanctification_date_count']],
+            ['label' => 'Holy Ghost Baptism', 'yes' => (int) $row['holy_ghost_baptism_yes'], 'no' => $total - (int) $row['holy_ghost_baptism_yes'], 'percentage_yes' => $pct($row['holy_ghost_baptism_yes']), 'with_date' => (int) $row['holy_ghost_baptism_date_count']],
         ],
     ]);
 }
@@ -5970,7 +6042,8 @@ if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
         $sql = 'SELECT b.id, b.full_name, b.gender, b.age, b.phone, b.email, b.profile_photo, b.school, b.program_type,
                        b.academic_level, b.entry_year, b.expected_graduation_year, b.student_status, b.nysc_status,
                        b.nysc_batch, b.nysc_state, b.nysc_start_date, b.nysc_end_date, b.new_birth_status,
-                       b.sanctification_status, b.holy_ghost_baptism_status, b.spiritual_notes, b.category,
+                       b.new_birth_date, b.sanctification_status, b.sanctification_date, b.holy_ghost_baptism_status,
+                       b.holy_ghost_baptism_date, b.spiritual_notes, b.category,
                        b.worker_status, b.membership_status, b.work_units, b.address, b.next_of_kin_name, b.next_of_kin_phone,
                        b.next_of_kin_relationship, b.state, b.region, b.cluster, fc.name AS fellowship_centre, b.created_at
                 FROM biodata b
@@ -6000,6 +6073,9 @@ if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
             json_error('Not found', 404);
         }
         $rows[0]['work_units'] = json_decode($rows[0]['work_units'], true) ?: [];
+        foreach (['date_of_birth', 'nysc_start_date', 'nysc_end_date', 'new_birth_date', 'sanctification_date', 'holy_ghost_baptism_date'] as $dateField) {
+            $rows[0][$dateField] = normalize_nullable_date_output($rows[0][$dateField] ?? null);
+        }
         json_ok(['item' => $rows[0]]);
     }
 
