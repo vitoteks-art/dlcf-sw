@@ -79,19 +79,16 @@ function can_manage_publications(array $user): bool
     return in_array($user['role'], ['administrator'], true) || user_has_work_unit($user, 'Publication Team');
 }
 
-function can_view_reports(array $user): bool
+function can_view_retreat_and_zonal_reports(array $user): bool
 {
     return in_array($user['role'], [
         'administrator',
         'zonal_cord',
         'zonal_admin',
-        'zonal_rep',
         'state_cord',
         'state_admin',
-        'state_rep',
         'region_cord',
-        'region_rep',
-        'associate_cord',
+        'region_admin',
     ], true);
 }
 
@@ -158,7 +155,15 @@ function can_manage_state_congress_registration(array $user): bool
 
 function can_view_state_congress_reports(array $user): bool
 {
-    return can_manage_state_congress_registration($user);
+    return in_array($user['role'], [
+        'administrator',
+        'zonal_cord',
+        'zonal_admin',
+        'state_cord',
+        'state_admin',
+        'region_cord',
+        'region_admin',
+    ], true);
 }
 
 function apply_state_region_centre_scope(array $user, ?string &$state, ?string &$region, ?int &$centreId = null): void
@@ -514,11 +519,11 @@ function hydrate_attendance_access_session(mysqli $db): ?array
     ];
 }
 
-function require_report_access(): array
+function require_retreat_and_zonal_report_access(mysqli $db): array
 {
     require_auth();
-    $user = current_user();
-    if (!can_view_reports($user)) {
+    $user = refresh_user_access_context($db, current_user());
+    if (!can_view_retreat_and_zonal_reports($user)) {
         json_error('Forbidden', 403);
     }
     return $user;
@@ -5151,7 +5156,7 @@ if (preg_match('#^/state-congress-registrations/(\\d+)$#', $path, $matches)) {
 if ($path === '/state-congress-reports/regions-by-day') {
     require_method('GET');
     require_auth();
-    $user = current_user();
+    $user = refresh_user_access_context($db, current_user());
     if (!can_view_state_congress_reports($user)) {
         json_error('Forbidden', 403);
     }
@@ -5206,7 +5211,7 @@ if ($path === '/state-congress-reports/regions-by-day') {
 if ($path === '/state-congress-reports/categories-by-region') {
     require_method('GET');
     require_auth();
-    $user = current_user();
+    $user = refresh_user_access_context($db, current_user());
     if (!can_view_state_congress_reports($user)) {
         json_error('Forbidden', 403);
     }
@@ -5259,7 +5264,7 @@ if ($path === '/state-congress-reports/categories-by-region') {
 if ($path === '/state-congress-reports/membership-by-region') {
     require_method('GET');
     require_auth();
-    $user = current_user();
+    $user = refresh_user_access_context($db, current_user());
     if (!can_view_state_congress_reports($user)) {
         json_error('Forbidden', 403);
     }
@@ -5312,7 +5317,7 @@ if ($path === '/state-congress-reports/membership-by-region') {
 if ($path === '/state-congress-reports/membership-by-institution') {
     require_method('GET');
     require_auth();
-    $user = current_user();
+    $user = refresh_user_access_context($db, current_user());
     if (!can_view_state_congress_reports($user)) {
         json_error('Forbidden', 403);
     }
@@ -5378,7 +5383,7 @@ if ($path === '/state-congress-reports/membership-by-institution') {
 if ($path === '/state-congress-reports/membership-by-cluster') {
     require_method('GET');
     require_auth();
-    $user = current_user();
+    $user = refresh_user_access_context($db, current_user());
     if (!can_view_state_congress_reports($user)) {
         json_error('Forbidden', 403);
     }
@@ -5430,7 +5435,7 @@ if ($path === '/state-congress-reports/membership-by-cluster') {
 
 if ($path === '/retreat-reports/cluster-days') {
     require_method('GET');
-    $user = require_report_access();
+    $user = require_retreat_and_zonal_report_access($db);
     $retreatType = $_GET['retreat_type'] ?? '';
     $filters = [
         'state' => $_GET['state'] ?? '',
@@ -5494,7 +5499,7 @@ if ($path === '/retreat-reports/cluster-days') {
 
 if ($path === '/retreat-reports/centres') {
     require_method('GET');
-    $user = require_report_access();
+    $user = require_retreat_and_zonal_report_access($db);
     $retreatType = $_GET['retreat_type'] ?? '';
     $start = $_GET['start'] ?? '';
     $end = $_GET['end'] ?? '';
@@ -5694,7 +5699,7 @@ if (preg_match('#^/zonal-registrations/(\\d+)$#', $path, $matches)) {
 
 if ($path === '/zonal-congress-reports/states-by-day') {
     require_method('GET');
-    $user = require_report_access();
+    $user = require_retreat_and_zonal_report_access($db);
     $filters = [
         'state' => trim($_GET['state'] ?? ''),
     ];
@@ -5738,7 +5743,7 @@ if ($path === '/zonal-congress-reports/states-by-day') {
 
 if ($path === '/zonal-congress-reports/membership-by-state') {
     require_method('GET');
-    $user = require_report_access();
+    $user = require_retreat_and_zonal_report_access($db);
     $filters = [
         'state' => trim($_GET['state'] ?? ''),
     ];

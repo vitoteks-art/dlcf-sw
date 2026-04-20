@@ -650,7 +650,10 @@ function App() {
   const canManageStateCongressRegistration = canManageCongressAndRetreatRegistration;
   const canManageZonalCongressRegistration = canManageCongressAndRetreatRegistration;
   const canManageRetreatRegistration = canManageCongressAndRetreatRegistration;
-  const canViewStateCongressReports = canManageStateCongressRegistration;
+  const canViewCongressAndRetreatReports =
+    user &&
+    ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord", "region_admin"].includes(user.role);
+  const canViewStateCongressReports = canViewCongressAndRetreatReports;
   const canPublishMedia =
     user &&
     [
@@ -3259,15 +3262,15 @@ function App() {
           {canManageZonalCongressRegistration ? <Link to="/zonal-congress">Zonal Congress</Link> : null}
           {canManageStateCongressRegistration ? <Link to="/state-congress">State Congress</Link> : null}
           {canManageRetreatRegistration ? <Link to="/retreat">Retreat</Link> : null}
-          {canViewAdmin ? (
+          {canViewCongressAndRetreatReports ? (
             <Link to="/retreat-report">Retreat Reports</Link>
           ) : null}
-          {canViewAdmin ? (
+          {canViewCongressAndRetreatReports ? (
             <Link to="/retreat-report/cluster-days">
               Retreat Report by Day
             </Link>
           ) : null}
-          {canViewAdmin ? (
+          {canViewCongressAndRetreatReports ? (
             <Link to="/retreat-report/centres">
               Retreat Report by Centre
             </Link>
@@ -3297,12 +3300,12 @@ function App() {
               State Congress Report by Cluster
             </Link>
           ) : null}
-          {canViewAdmin ? (
+          {canViewCongressAndRetreatReports ? (
             <Link to="/zonal-congress-report/daily">
               Zonal Congress Report by Day
             </Link>
           ) : null}
-          {canViewAdmin ? (
+          {canViewCongressAndRetreatReports ? (
             <Link to="/zonal-congress-report/membership">
               Zonal Congress Report by Membership
             </Link>
@@ -3585,7 +3588,7 @@ function App() {
               element={
                 <ZonalDailyReportPage
                   user={user}
-                  canViewAdmin={canViewAdmin}
+                  canViewAdmin={canViewCongressAndRetreatReports}
                   status={status}
                   zonalDailyFilters={zonalDailyFilters}
                   setZonalDailyFilters={setZonalDailyFilters}
@@ -3601,7 +3604,7 @@ function App() {
               element={
                 <ZonalMembershipReportPage
                   user={user}
-                  canViewAdmin={canViewAdmin}
+                  canViewAdmin={canViewCongressAndRetreatReports}
                   status={status}
                   zonalMembershipFilters={zonalMembershipFilters}
                   setZonalMembershipFilters={setZonalMembershipFilters}
@@ -3640,7 +3643,7 @@ function App() {
               element={
                 <RetreatReportPage
                   user={user}
-                  canViewAdmin={canViewAdmin}
+                  canViewAdmin={canViewCongressAndRetreatReports}
                   status={status}
                   retreatReport={retreatReport}
                   setRetreatReport={setRetreatReport}
@@ -3657,7 +3660,7 @@ function App() {
               element={
                 <RetreatClusterReportPage
                   user={user}
-                  canViewAdmin={canViewAdmin}
+                  canViewAdmin={canViewCongressAndRetreatReports}
                   status={status}
                   retreatClusterFilters={retreatClusterFilters}
                   setRetreatClusterFilters={setRetreatClusterFilters}
@@ -3674,7 +3677,7 @@ function App() {
               element={
                 <RetreatCentreReportPage
                   user={user}
-                  canViewAdmin={canViewAdmin}
+                  canViewAdmin={canViewCongressAndRetreatReports}
                   status={status}
                   retreatCentreFilters={retreatCentreFilters}
                   setRetreatCentreFilters={setRetreatCentreFilters}
