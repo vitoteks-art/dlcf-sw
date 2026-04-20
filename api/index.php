@@ -187,6 +187,12 @@ function apply_state_region_centre_scope(array $user, ?string &$state, ?string &
             $region = $user['region'];
         }
     }
+    if ((is_registration_officer($user) || is_registration_officer_head($user)) && !empty($user['state'])) {
+        $state = $user['state'];
+        if (!empty($user['region'])) {
+            $region = $user['region'];
+        }
+    }
     if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
         $centreId = (int) $user['fellowship_centre_id'];
     }
@@ -4782,6 +4788,8 @@ if ($path === '/retreat-registrations') {
         $state = trim($payload['state'] ?? '');
         $region = trim($payload['region'] ?? '');
 
+        apply_state_region_centre_scope($user, $state, $region);
+
         if ($dlcfCenter === '' && $fellowshipCentre !== '') {
             $dlcfCenter = $fellowshipCentre;
         }
@@ -4957,6 +4965,9 @@ if (preg_match('#^/retreat-registrations/(\\d+)$#', $path, $matches)) {
     $state = trim($payload['state'] ?? '');
     $region = trim($payload['region'] ?? '');
     $fellowshipCentre = trim($payload['fellowship_centre'] ?? '');
+
+    apply_state_region_centre_scope($user, $state, $region);
+
     if ($dlcfCenter === '' && $fellowshipCentre !== '') {
         $dlcfCenter = $fellowshipCentre;
     }
@@ -5573,6 +5584,8 @@ if ($path === '/zonal-registrations') {
         $state = trim($payload['state'] ?? '');
         $region = trim($payload['region'] ?? '');
         $cluster = trim($payload['cluster'] ?? '');
+
+        apply_state_region_centre_scope($user, $state, $region);
         $institution = trim($payload['institution'] ?? '');
         $centreName = trim($payload['fellowship_centre'] ?? '');
         $category = trim($payload['category'] ?? '');
@@ -5668,6 +5681,8 @@ if (preg_match('#^/zonal-registrations/(\\d+)$#', $path, $matches)) {
     $state = trim($payload['state'] ?? '');
     $region = trim($payload['region'] ?? '');
     $institution = trim($payload['institution'] ?? '');
+
+    apply_state_region_centre_scope($user, $state, $region);
     $centreName = trim($payload['fellowship_centre'] ?? '');
 
     if (
