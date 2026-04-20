@@ -4609,7 +4609,7 @@ if ($path === '/biodata/me') {
                                sanctification_status = ?, sanctification_date = ?, holy_ghost_baptism_status = ?, holy_ghost_baptism_date = ?, spiritual_notes = ?, category = ?, worker_status = ?, membership_status = ?, work_units = ?, address = ?,
                                next_of_kin_name = ?, next_of_kin_phone = ?, next_of_kin_relationship = ?, updated_at = NOW()
                         WHERE id = ?';
-                $stmt = db_prepare($db, $sql, 'ississsssssssssiissssssississsssssssssi', [
+                $stmt = db_prepare($db, $sql, 'ississsssssssssiissssssissssssssssssssi', [
                     $centreId,
                     $fullName,
                     $gender,
@@ -4668,7 +4668,7 @@ if ($path === '/biodata/me') {
                  nysc_status, nysc_batch, nysc_state, nysc_start_date, nysc_end_date, new_birth_status, new_birth_date, sanctification_status, sanctification_date, holy_ghost_baptism_status, holy_ghost_baptism_date, spiritual_notes,
                  category, worker_status, membership_status, work_units, address, next_of_kin_name, next_of_kin_phone, next_of_kin_relationship, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())';
-            $stmt = db_prepare($db, $sql, 'iississsssssssssiissssssississsssssssss', [
+            $stmt = db_prepare($db, $sql, 'iississsssssssssiissssssissssssssssssss', [
                 $user['id'],
                 $centreId,
                 $fullName,
