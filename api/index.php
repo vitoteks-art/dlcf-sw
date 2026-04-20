@@ -133,6 +133,11 @@ function is_registration_officer(array $user): bool
     return user_has_work_unit($user, 'Registration Officers Committee');
 }
 
+function refresh_user_access_context(mysqli $db, array $user): array
+{
+    return attach_biodata_to_user($db, $user);
+}
+
 function can_manage_retreat_registration(array $user): bool
 {
     return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'region_admin'], true)
@@ -4746,7 +4751,7 @@ if ($path === '/retreat-registrations') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         require_auth();
         require_csrf();
-        $user = current_user();
+        $user = refresh_user_access_context($db, current_user());
         if (!can_manage_retreat_registration($user)) {
             json_error('Forbidden', 403);
         }
@@ -4814,7 +4819,7 @@ if ($path === '/retreat-registrations') {
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         require_auth();
-        $user = current_user();
+        $user = refresh_user_access_context($db, current_user());
         if (!can_manage_retreat_registration($user)) {
             json_error('Forbidden', 403);
         }
@@ -4880,7 +4885,7 @@ if ($path === '/retreat-registrations') {
 if ($path === '/retreat-registrations/lookup') {
     require_method('GET');
     require_auth();
-    $user = current_user();
+    $user = refresh_user_access_context($db, current_user());
     if (!can_manage_retreat_registration($user)) {
         json_error('Forbidden', 403);
     }
@@ -4921,7 +4926,7 @@ if (preg_match('#^/retreat-registrations/(\\d+)$#', $path, $matches)) {
     require_method('PUT');
     require_auth();
     require_csrf();
-    $user = current_user();
+    $user = refresh_user_access_context($db, current_user());
     if (!can_manage_retreat_registration($user)) {
         json_error('Forbidden', 403);
     }
@@ -4983,7 +4988,7 @@ if ($path === '/state-congress-registrations') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         require_auth();
         require_csrf();
-        $user = current_user();
+        $user = refresh_user_access_context($db, current_user());
         if (!can_manage_state_congress_registration($user)) {
             json_error('Forbidden', 403);
         }
@@ -5048,7 +5053,7 @@ if ($path === '/state-congress-registrations') {
 if ($path === '/state-congress-registrations/lookup') {
     require_method('GET');
     require_auth();
-    $user = current_user();
+    $user = refresh_user_access_context($db, current_user());
     if (!can_manage_state_congress_registration($user)) {
         json_error('Forbidden', 403);
     }
@@ -5088,7 +5093,7 @@ if (preg_match('#^/state-congress-registrations/(\\d+)$#', $path, $matches)) {
     require_method('PUT');
     require_auth();
     require_csrf();
-    $user = current_user();
+    $user = refresh_user_access_context($db, current_user());
     if (!can_manage_state_congress_registration($user)) {
         json_error('Forbidden', 403);
     }
@@ -5544,7 +5549,7 @@ if ($path === '/zonal-registrations') {
         require_auth();
         require_csrf();
         $payload = read_json();
-        $user = current_user();
+        $user = refresh_user_access_context($db, current_user());
         if (!can_manage_zonal_congress_registration($user)) {
             json_error('Forbidden', 403);
         }
@@ -5596,7 +5601,7 @@ if ($path === '/zonal-registrations') {
 if ($path === '/zonal-registrations/lookup') {
     require_method('GET');
     require_auth();
-    $user = current_user();
+    $user = refresh_user_access_context($db, current_user());
     if (!can_manage_zonal_congress_registration($user)) {
         json_error('Forbidden', 403);
     }
@@ -5634,7 +5639,7 @@ if (preg_match('#^/zonal-registrations/(\\d+)$#', $path, $matches)) {
     require_method('PUT');
     require_auth();
     require_csrf();
-    $user = current_user();
+    $user = refresh_user_access_context($db, current_user());
     if (!can_manage_zonal_congress_registration($user)) {
         json_error('Forbidden', 403);
     }
