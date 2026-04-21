@@ -66,6 +66,8 @@ CREATE TABLE fellowship_centres (
   name VARCHAR(190) NOT NULL,
   state VARCHAR(120) NOT NULL,
   region VARCHAR(120) NOT NULL,
+  address VARCHAR(255) NULL,
+  description TEXT NULL,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   UNIQUE KEY unique_centre (name, state, region)

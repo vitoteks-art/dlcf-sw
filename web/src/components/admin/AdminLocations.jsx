@@ -223,10 +223,18 @@ function FellowshipsPanel({
     setAdminFellowshipRegion,
     adminFellowshipName,
     setAdminFellowshipName,
+    adminFellowshipAddress,
+    setAdminFellowshipAddress,
+    adminFellowshipDescription,
+    setAdminFellowshipDescription,
     adminFellowshipEditId,
     setAdminFellowshipEditId,
     adminFellowshipEditName,
     setAdminFellowshipEditName,
+    adminFellowshipEditAddress,
+    setAdminFellowshipEditAddress,
+    adminFellowshipEditDescription,
+    setAdminFellowshipEditDescription,
     adminFellowshipEditState,
     setAdminFellowshipEditState,
     adminFellowshipEditRegion,
@@ -273,6 +281,8 @@ function FellowshipsPanel({
                     name: extractField(row, "name"),
                     state: extractField(row, "state"),
                     region: extractField(row, "region"),
+                    address: extractField(row, "address"),
+                    description: extractField(row, "description"),
                 }))
                 .filter((row) => row.name || row.state || row.region);
 
@@ -317,7 +327,7 @@ function FellowshipsPanel({
                         </label>
                         <label>
                             Required Columns
-                            <input type="text" value="name, state, region" disabled />
+                            <input type="text" value="name, state, region (optional: address, description)" disabled />
                         </label>
                     </div>
                     <div className="form-actions">
@@ -387,6 +397,26 @@ function FellowshipsPanel({
                             />
                         </label>
                     </div>
+                    <div className="grid-2">
+                        <label>
+                            Address
+                            <input
+                                type="text"
+                                value={isEditing ? adminFellowshipEditAddress : adminFellowshipAddress}
+                                onChange={(e) => isEditing ? setAdminFellowshipEditAddress(e.target.value) : setAdminFellowshipAddress(e.target.value)}
+                                placeholder="No. 12 Secretariat Road, Ogbomoso"
+                            />
+                        </label>
+                        <label>
+                            Short Description / About
+                            <textarea
+                                value={isEditing ? adminFellowshipEditDescription : adminFellowshipDescription}
+                                onChange={(e) => isEditing ? setAdminFellowshipEditDescription(e.target.value) : setAdminFellowshipDescription(e.target.value)}
+                                placeholder="A vibrant fellowship serving students and young professionals in the area."
+                                rows={4}
+                            />
+                        </label>
+                    </div>
                     <div className="form-actions">
                         <button type="submit">{isEditing ? "Update" : "Add"}</button>
                         {isEditing && <button type="button" onClick={() => setAdminFellowshipEditId("")}>Cancel</button>}
@@ -401,6 +431,8 @@ function FellowshipsPanel({
                             <th>Fellowship Name</th>
                             <th>State</th>
                             <th>Region</th>
+                            <th>Address</th>
+                            <th>Description</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -410,12 +442,16 @@ function FellowshipsPanel({
                                 <td>{centre.name}</td>
                                 <td>{centre.state}</td>
                                 <td>{centre.region}</td>
+                                <td>{centre.address || "Not set"}</td>
+                                <td>{centre.description || "Not set"}</td>
                                 <td className="actions-cell">
                                     <button
                                         className="btn-sm btn-outline"
                                         onClick={() => {
                                             setAdminFellowshipEditId(String(centre.id));
                                             setAdminFellowshipEditName(centre.name);
+                                            setAdminFellowshipEditAddress(centre.address || "");
+                                            setAdminFellowshipEditDescription(centre.description || "");
                                             setAdminFellowshipEditState(centre.state);
                                             setAdminFellowshipEditRegion(centre.region);
                                         }}

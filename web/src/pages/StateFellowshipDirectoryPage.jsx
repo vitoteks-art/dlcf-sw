@@ -35,6 +35,8 @@ const iconForType = (type) => {
 };
 
 const buildDescription = (item, displayName) => {
+  const saved = String(item.description || "").trim();
+  if (saved) return saved;
   const type = inferType(item.name);
   if (type === "Campus Centre") {
     return `A vibrant campus fellowship in ${item.region || displayName}, helping students grow in the Word, prayer, and practical discipleship.`;
@@ -43,6 +45,8 @@ const buildDescription = (item, displayName) => {
 };
 
 const buildLocation = (item, displayName) => {
+  const savedAddress = String(item.address || "").trim();
+  if (savedAddress) return savedAddress;
   const region = String(item.region || "").trim();
   const state = String(item.state || displayName || "").trim();
   if (region && state) return `${region}, ${state}`;

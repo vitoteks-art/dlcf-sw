@@ -487,9 +487,13 @@ function App() {
   const [adminFellowshipState, setAdminFellowshipState] = useState("");
   const [adminFellowshipRegion, setAdminFellowshipRegion] = useState("");
   const [adminFellowshipName, setAdminFellowshipName] = useState("");
+  const [adminFellowshipAddress, setAdminFellowshipAddress] = useState("");
+  const [adminFellowshipDescription, setAdminFellowshipDescription] = useState("");
   const [adminFellowshipRegions, setAdminFellowshipRegions] = useState([]);
   const [adminFellowshipEditId, setAdminFellowshipEditId] = useState("");
   const [adminFellowshipEditName, setAdminFellowshipEditName] = useState("");
+  const [adminFellowshipEditAddress, setAdminFellowshipEditAddress] = useState("");
+  const [adminFellowshipEditDescription, setAdminFellowshipEditDescription] = useState("");
   const [adminFellowshipEditState, setAdminFellowshipEditState] = useState("");
   const [adminFellowshipEditRegion, setAdminFellowshipEditRegion] = useState("");
   const [adminFellowshipEditRegions, setAdminFellowshipEditRegions] =
@@ -2480,6 +2484,80 @@ function App() {
     }
   };
 
+  const handleAddFellowship = async (event) => {
+    event.preventDefault();
+    setStatus("");
+    try {
+      await apiFetch("/admin/fellowships", {
+        method: "POST",
+        body: JSON.stringify({
+          state: adminFellowshipState,
+          region: adminFellowshipRegion,
+          name: adminFellowshipName,
+          address: adminFellowshipAddress,
+          description: adminFellowshipDescription,
+        }),
+      });
+      setStatus("Fellowship added.");
+      setAdminFellowshipName("");
+      setAdminFellowshipAddress("");
+      setAdminFellowshipDescription("");
+      loadAdminFellowships(adminFellowshipState, adminFellowshipRegion);
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const handleEditFellowship = async (event) => {
+    event.preventDefault();
+    if (!adminFellowshipEditId) return;
+    setStatus("");
+    try {
+      await apiFetch(`/admin/fellowships/${adminFellowshipEditId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          state: adminFellowshipEditState,
+          region: adminFellowshipEditRegion,
+          name: adminFellowshipEditName,
+          address: adminFellowshipEditAddress,
+          description: adminFellowshipEditDescription,
+        }),
+      });
+      setStatus("Fellowship updated.");
+      setAdminFellowshipEditId("");
+      setAdminFellowshipEditName("");
+      setAdminFellowshipEditAddress("");
+      setAdminFellowshipEditDescription("");
+      setAdminFellowshipEditState("");
+      setAdminFellowshipEditRegion("");
+      loadAdminFellowships(adminFellowshipState, adminFellowshipRegion);
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const handleDeleteFellowship = async (id) => {
+    if (!window.confirm("Delete this fellowship?")) {
+      return;
+    }
+    setStatus("");
+    try {
+      await apiFetch(`/admin/fellowships/${id}`, { method: "DELETE" });
+      setStatus("Fellowship deleted.");
+      if (String(adminFellowshipEditId) === String(id)) {
+        setAdminFellowshipEditId("");
+        setAdminFellowshipEditName("");
+        setAdminFellowshipEditAddress("");
+        setAdminFellowshipEditDescription("");
+        setAdminFellowshipEditState("");
+        setAdminFellowshipEditRegion("");
+      }
+      loadAdminFellowships(adminFellowshipState, adminFellowshipRegion);
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
   const loadAdminAttendanceCodeRegions = async (state) => {
     if (!state) {
       setAdminAttendanceCodeRegions([]);
@@ -3027,9 +3105,13 @@ function App() {
     adminFellowshipState,
     adminFellowshipRegion,
     adminFellowshipName,
+    adminFellowshipAddress,
+    adminFellowshipDescription,
     adminFellowshipRegions,
     adminFellowshipEditId,
     adminFellowshipEditName,
+    adminFellowshipEditAddress,
+    adminFellowshipEditDescription,
     adminFellowshipEditState,
     adminFellowshipEditRegion,
     adminFellowshipEditRegions,
@@ -3083,8 +3165,12 @@ function App() {
     setAdminFellowshipState,
     setAdminFellowshipRegion,
     setAdminFellowshipName,
+    setAdminFellowshipAddress,
+    setAdminFellowshipDescription,
     setAdminFellowshipEditId,
     setAdminFellowshipEditName,
+    setAdminFellowshipEditAddress,
+    setAdminFellowshipEditDescription,
     setAdminFellowshipEditState,
     setAdminFellowshipEditRegion,
     setAdminInstitutionState,
@@ -3126,6 +3212,9 @@ function App() {
     loadAdminRegions,
     loadAdminInstitutions,
     loadAdminFellowships,
+    handleAddFellowship,
+    handleEditFellowship,
+    handleDeleteFellowship,
     loadAdminStatePosts,
     loadAdminCategories,
     loadAdminStateHome,

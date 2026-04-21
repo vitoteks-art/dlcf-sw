@@ -817,7 +817,7 @@ if ($path === '/meta/fellowships') {
     $state = trim($_GET['state'] ?? '');
     $region = trim($_GET['region'] ?? '');
     $rich = trim($_GET['rich'] ?? '');
-    $sql = 'SELECT id, name, state, region FROM fellowship_centres WHERE 1=1';
+    $sql = 'SELECT id, name, state, region, address, description FROM fellowship_centres WHERE 1=1';
     $types = '';
     $params = [];
     if ($state !== '') {
@@ -842,6 +842,8 @@ if ($path === '/meta/fellowships') {
                 'name' => $row['name'] ?? '',
                 'state' => $row['state'] ?? '',
                 'region' => $row['region'] ?? '',
+                'address' => $row['address'] ?? '',
+                'description' => $row['description'] ?? '',
             ];
         }, $rows);
         json_ok(['items' => $items]);
@@ -2823,6 +2825,8 @@ if ($path === '/admin/fellowships/bulk') {
             $name = trim($item['name'] ?? '');
             $state = trim($item['state'] ?? '');
             $region = trim($item['region'] ?? '');
+            $address = trim($item['address'] ?? '');
+            $description = trim($item['description'] ?? '');
 
             if ($user['role'] === 'region_cord' && $user['region']) {
                 $region = $user['region'];
@@ -2852,9 +2856,9 @@ if ($path === '/admin/fellowships/bulk') {
 
             $stmt = db_prepare(
                 $db,
-                'INSERT INTO fellowship_centres (name, state, region, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
-                'sss',
-                [$name, $state, $region]
+                'INSERT INTO fellowship_centres (name, state, region, address, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
+                'sssss',
+                [$name, $state, $region, $address !== '' ? $address : null, $description !== '' ? $description : null]
             );
             $stmt->execute();
             $inserted++;
@@ -2883,7 +2887,7 @@ if ($path === '/admin/fellowships') {
             $state = $user['state'] ?? $state;
         }
         if ($user['role'] === 'associate_cord' && $user['fellowship_centre_id']) {
-            $sql = 'SELECT id, name, state, region FROM fellowship_centres WHERE id = ? LIMIT 1';
+            $sql = 'SELECT id, name, state, region, address, description FROM fellowship_centres WHERE id = ? LIMIT 1';
             $stmt = db_prepare($db, $sql, 'i', [(int) $user['fellowship_centre_id']]);
             $stmt->execute();
             $rows = db_fetch_all($stmt);
@@ -2892,7 +2896,7 @@ if ($path === '/admin/fellowships') {
         if ($user['role'] === 'state_cord' && $user['state']) {
             $state = $user['state'];
         }
-        $sql = 'SELECT id, name, state, region FROM fellowship_centres WHERE 1=1';
+        $sql = 'SELECT id, name, state, region, address, description FROM fellowship_centres WHERE 1=1';
         $types = '';
         $params = [];
         if ($state !== '') {
@@ -2918,6 +2922,8 @@ if ($path === '/admin/fellowships') {
         $state = trim($payload['state'] ?? '');
         $region = trim($payload['region'] ?? '');
         $name = trim($payload['name'] ?? '');
+        $address = trim($payload['address'] ?? '');
+        $description = trim($payload['description'] ?? '');
         if ($user['role'] === 'associate_cord' && $user['fellowship_centre_id']) {
             json_error('Not allowed', 403);
         }
@@ -2931,7 +2937,7 @@ if ($path === '/admin/fellowships') {
         if ($state === '' || $region === '' || $name === '') {
             json_error('State, region, and name are required', 422);
         }
-        $stmt = db_prepare($db, 'INSERT INTO fellowship_centres (name, state, region, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', 'sss', [$name, $state, $region]);
+        $stmt = db_prepare($db, 'INSERT INTO fellowship_centres (name, state, region, address, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())', 'sssss', [$name, $state, $region, $address !== '' ? $address : null, $description !== '' ? $description : null]);
         $stmt->execute();
         json_ok(['message' => 'Fellowship added'], 201);
     }
@@ -2946,13 +2952,15 @@ if (preg_match('#^/admin/fellowships/(\\d+)$#', $path, $matches)) {
         $name = trim($payload['name'] ?? '');
         $state = trim($payload['state'] ?? '');
         $region = trim($payload['region'] ?? '');
+        $address = trim($payload['address'] ?? '');
+        $description = trim($payload['description'] ?? '');
         if ($name === '') {
             json_error('Name is required', 422);
         }
         if ($user['role'] === 'associate_cord' && $user['fellowship_centre_id']) {
             json_error('Not allowed', 403);
         }
-        $stmt = db_prepare($db, 'SELECT state, region FROM fellowship_centres WHERE id = ? LIMIT 1', 'i', [$id]);
+        $stmt = db_prepare($db, 'SELECT state, region, address, description FROM fellowship_centres WHERE id = ? LIMIT 1', 'i', [$id]);
         $stmt->execute();
         $rows = db_fetch_all($stmt);
         if (!$rows) {
@@ -2973,7 +2981,7 @@ if (preg_match('#^/admin/fellowships/(\\d+)$#', $path, $matches)) {
         if ($region === '') {
             $region = $oldRegion;
         }
-        $stmt = db_prepare($db, 'UPDATE fellowship_centres SET name = ?, state = ?, region = ?, updated_at = NOW() WHERE id = ?', 'sssi', [$name, $state, $region, $id]);
+        $stmt = db_prepare($db, 'UPDATE fellowship_centres SET name = ?, state = ?, region = ?, address = ?, description = ?, updated_at = NOW() WHERE id = ?', 'sssssi', [$name, $state, $region, $address !== '' ? $address : null, $description !== '' ? $description : null, $id]);
         $stmt->execute();
         json_ok(['message' => 'Fellowship updated']);
     }
