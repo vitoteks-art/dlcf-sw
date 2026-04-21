@@ -1,29 +1,28 @@
 # RELEASE NOTES
 
-## FELLOWSHIP-DIRECTORY-DATA-ENRICHMENT
+## STATE-GALLERY-PAGE
 
 ### Summary
-Enriched fellowship records so the admin can maintain real address and about text, and the public fellowship directory can display richer, more useful fellowship information.
+Redesigned the public state media page into a premium editorial gallery experience that closely follows the approved gallery reference, while preserving the existing state media detail flow and current backend data source.
 
 ### Included
-- Added fellowship `address` field
-- Added fellowship `description` field
-- Updated admin fellowship create/edit flows
-- Updated admin fellowship table to show address and description
-- Updated `/meta/fellowships?rich=1` to return address and description
-- Updated public fellowship directory to prefer saved address/description over generated fallback copy
-- Added schema and migration support for the new fields
+- Rebuilt the public state media listing into a premium gallery page
+- Added editorial hero section with state-specific copy
+- Added search input for gallery filtering
+- Added category pill filters derived from current media data
+- Added masonry-style gallery layout
+- Added quote / promo support blocks for richer visual rhythm
+- Added polished no-thumbnail fallback cards
+- Added bottom CTA section
+- Preserved routing into existing media detail pages
 
 ### Files Added / Updated
-- `scripts/schema.sql`
-- `scripts/migrations/20260421_fellowship_directory_enrichment.sql`
-- `api/index.php`
+- `web/src/pages/StateMediaListPage.jsx`
+- `web/src/state-gallery.css`
 - `web/src/App.jsx`
-- `web/src/components/admin/AdminLocations.jsx`
-- `web/src/pages/StateFellowshipDirectoryPage.jsx`
-- `docs/PLAN-FELLOWSHIP-DIRECTORY-DATA-ENRICHMENT.md`
-- `docs/UI-FELLOWSHIP-DIRECTORY-DATA-ENRICHMENT.md`
-- `docs/SMOKE-TEST-FELLOWSHIP-DIRECTORY-DATA-ENRICHMENT.md`
+- `docs/PLAN-STATE-GALLERY-PAGE.md`
+- `docs/UI-STATE-GALLERY-PAGE.md`
+- `docs/SMOKE-TEST.md`
 
 ### Validation
 - `npm run build` passed
@@ -31,8 +30,9 @@ Enriched fellowship records so the admin can maintain real address and about tex
 - `php -l api/index.php` passed
 
 ### Known Limits
-- Existing fellowship records may still show fallback content until admins fill in address and description.
-- Meeting schedule fields are still not part of this phase.
+- Gallery category filters are derived from current media fields, not a dedicated taxonomy yet.
+- Existing large frontend chunk warning remains non-blocking.
+- Media items without thumbnails use a designed placeholder card in this phase.
 
 ### Commits
-- `8b4954b` - `Enrich fellowship directory data fields`
+- `099d624` - `Build premium state gallery page`

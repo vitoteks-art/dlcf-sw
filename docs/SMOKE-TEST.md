@@ -1,7 +1,7 @@
-# SMOKE TEST - STATE-FELLOWSHIP-DIRECTORY
+# SMOKE TEST - STATE-GALLERY-PAGE
 
 ## Scope
-Verify the new public State Fellowship Directory flow for DLCF-SW.
+Verify the redesigned public State Gallery Page flow for DLCF-SW.
 
 ## Build / Checks
 - Frontend build: `npm run build` ✅
@@ -10,55 +10,46 @@ Verify the new public State Fellowship Directory flow for DLCF-SW.
 
 ## Manual Smoke Checklist
 
-### 1. State fellowship route loads
-- Open `/:stateId/fellowships`
+### 1. State gallery route loads
+- Open `/:stateId/media`
 - Confirm page renders without crash
 - Confirm state header is visible
-- Confirm page title and hero copy are state-specific
+- Confirm editorial hero is visible and state-specific
 
 ### 2. Search UI works
-- Type a known school/town/centre keyword
-- Confirm visible results filter immediately
+- Type a known title / speaker / series / keyword
+- Confirm visible gallery items filter immediately
 - Clear the query
-- Confirm full directory list returns
+- Confirm full gallery list returns
 
-### 3. State-only data scope
-- Open one state directory
-- Confirm fellowships shown belong to that state only
-- Open another state directory
-- Confirm list changes to that state
+### 3. Filter pills work
+- Click `All Moments`
+- Click available category pills like `Conferences`, `Outreach`, `Worship`, `Fellowship`, `Audio`, or `Video`
+- Confirm the visible gallery updates in-place without reload
 
-### 4. Directory cards render correctly
-- Confirm each card shows:
-  - icon
-  - type badge
-  - fellowship name
-  - description
-  - location row
-  - meeting row
-  - CTA button
+### 4. Masonry gallery renders correctly
+- Confirm cards render in a masonry-style multi-column layout on desktop
+- Confirm cards stack cleanly on mobile
+- Confirm visual hierarchy matches the approved gallery style closely
 
-### 5. Empty state works
+### 5. Media cards behave correctly
+- Confirm items with thumbnails show image-led cards
+- Confirm cards display title and meta text
+- Click a card
+- Confirm it routes to `/:stateId/media/:id`
+
+### 6. No-thumbnail fallback works
+- Confirm items without thumbnails render a polished placeholder card
+- Confirm the layout does not break
+
+### 7. Empty state works
 - Search for a nonsense term with no match
 - Confirm polished empty state appears
 
-### 6. State homepage linkage works
-- Open a state homepage
-- Click hero CTA / Find a Center action
-- Confirm it routes to `/:stateId/fellowships`
-
-### 7. State header navigation works
-- From a state page, click `Fellowships`
-- Confirm it opens the state fellowship directory
-
-### 8. Backend rich fellowship response works
-- Request `/api/meta/fellowships?state=<STATE>&rich=1`
-- Confirm response returns objects with:
-  - `id`
-  - `name`
-  - `state`
-  - `region`
+### 8. CTA section renders
+- Scroll to the bottom CTA section
+- Confirm heading, supporting copy, and CTA button are visible
 
 ## Notes
 - Current lint output contains pre-existing warnings in the project and does not block this MVP.
-- Current fellowship records are still lightweight, so descriptions and schedules use graceful fallback text where richer public data is not yet stored.
+- Category filters are derived from current media fields (`tags`, `series`, `title`, `description`, `speaker`, `media_type`) for this phase.
