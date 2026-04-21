@@ -8,6 +8,7 @@ export default function StatePublicHeader({ stateName = "Osun State", stateSlug 
     { label: "Events", to: `/${baseSlug}/events` },
     { label: "Publications", to: `/${baseSlug}/publications` },
     { label: "Media", to: `/${baseSlug}/media` },
+    { label: "Gallery", to: `/${baseSlug}/gallery` },
   ];
   return (
     <header className="state-public-header">

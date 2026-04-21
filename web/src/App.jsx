@@ -25,6 +25,7 @@ import PublicationsDetailPage from "./pages/PublicationsDetailPage";
 import GospelLibraryPage from "./pages/GospelLibraryPage";
 import StateMediaListPage from "./pages/StateMediaListPage";
 import StateMediaDetailPage from "./pages/StateMediaDetailPage";
+import StateGalleryPage from "./pages/StateGalleryPage";
 import StatePublicationsListPage from "./pages/StatePublicationsListPage";
 import StatePublicationsDetailPage from "./pages/StatePublicationsDetailPage";
 import RetreatPage from "./pages/RetreatPage";
@@ -3279,6 +3280,7 @@ function App() {
     const isStateEventsList = isStatePath && segments[1] === "events" && !segments[2];
     const isStateEventDetail = isStatePath && segments[1] === "events" && segments[2];
     const isStateFellowshipDirectory = isStatePath && segments[1] === "fellowships" && !segments[2];
+    const isStateGalleryPage = isStatePath && segments[1] === "gallery" && !segments[2];
     return (
       <div className="public-shell">
         {location.pathname === "/" ? (
@@ -3309,6 +3311,8 @@ function App() {
           <StateEventDetailPage stateSlug={stateSlug} eventSlug={segments[2]} states={states} />
         ) : isStateFellowshipDirectory ? (
           <StateFellowshipDirectoryPage stateSlug={stateSlug} states={states} />
+        ) : isStateGalleryPage ? (
+          <StateGalleryPage stateSlug={stateSlug} states={states} />
         ) : isLegacyStatePostPath || isStatePostPath ? (
           <StatePostPage
             stateSlug={stateSlug}
