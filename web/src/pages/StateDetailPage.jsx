@@ -174,6 +174,31 @@ export default function StateDetailPage({ stateSlug, states }) {
         body: `DLCF ${displayName} exists to help people encounter Christ, grow in discipleship, and stay rooted in sound doctrine through worship, fellowship, and outreach.`,
         imageUrl: "",
       },
+      leadership: {
+        label: "Our Leadership",
+        title: "Godly Guidance",
+        body: `Meet the visionary leaders committed to the spiritual and academic excellence of students across ${displayName}.`,
+        members: [
+          {
+            name: "Pastor W.F. Kumuyi",
+            role: "General Superintendent",
+            quote: "Raise a generation of students who excel in learning and shine in character, reflecting the glory of God in all they do.",
+            imageUrl: "",
+          },
+          {
+            name: "Zonal Coordinator",
+            role: "Zonal Coordinator",
+            quote: `Providing direction, spiritual oversight, and coordinated support for campus fellowship growth across ${displayName}.`,
+            imageUrl: "",
+          },
+          {
+            name: "State Coordinator",
+            role: "State Coordinator",
+            quote: `Committed to the total transformation of every youth in ${displayName} through the power of the Word and persistent prayer.`,
+            imageUrl: "",
+          },
+        ],
+      },
       worship: {
         label: "Find Your Community",
         title: "Find a Fellowship Centre",
@@ -226,6 +251,17 @@ export default function StateDetailPage({ stateSlug, states }) {
       ...(homeContent || {}),
       hero: mergeWithNonEmpty(defaults.hero, (homeContent || {}).hero),
       about: mergeWithNonEmpty(defaults.about, (homeContent || {}).about),
+      leadership: {
+        ...defaults.leadership,
+        ...((homeContent || {}).leadership || {}),
+        members:
+          Array.isArray((homeContent || {}).leadership?.members) && (homeContent || {}).leadership.members.length > 0
+            ? (homeContent || {}).leadership.members.map((member, idx) => ({
+                ...defaults.leadership.members[Math.min(idx, defaults.leadership.members.length - 1)],
+                ...(member || {}),
+              }))
+            : defaults.leadership.members,
+      },
       worship: mergeWithNonEmpty(defaults.worship, (homeContent || {}).worship),
       updates: mergeWithNonEmpty(defaults.updates, (homeContent || {}).updates),
       eventsSection: mergeWithNonEmpty(defaults.eventsSection, (homeContent || {}).eventsSection),
@@ -298,6 +334,12 @@ export default function StateDetailPage({ stateSlug, states }) {
   const aboutTitle = String(homeContent?.about?.title || content.about.title || "").trim() || `Rooted in Grace, Driven by Purpose in ${displayName}`;
   const aboutBody = String(homeContent?.about?.body || content.about.body || "").trim() || `Deeper Life Campus Fellowship ${displayName} is part of a vibrant ministry committed to building godly students and youths through the Word of God, prayer, holy living, and practical discipleship.`;
   const aboutImage = normalizeImageUrl(homeContent?.about?.imageUrl || content.about.imageUrl, heroImageUrl || "https://placehold.co/900x700?text=About+State");
+  const leadershipLabel = String(content.leadership?.label || "").trim() || "Our Leadership";
+  const leadershipTitle = String(content.leadership?.title || "").trim() || "Godly Guidance";
+  const leadershipBody = stripHtml(content.leadership?.body || "") || `Meet the visionary leaders committed to the spiritual and academic excellence of students across ${displayName}.`;
+  const leadershipMembers = (Array.isArray(content.leadership?.members) ? content.leadership.members : [])
+    .filter((member) => member?.name || member?.role || member?.quote || member?.imageUrl)
+    .slice(0, 3);
   const contactImageUrl = normalizeImageUrl(content.contact.imageUrl, aboutImageUrl || "https://placehold.co/900x700?text=Contact+State+Team");
   const firstGalleryImageUrl = normalizeImageUrl(validGallery[0]?.url || "", aboutImageUrl || heroImageUrl);
   const communityMapQuery = encodeURIComponent(`${displayName}, Nigeria`);
@@ -354,6 +396,35 @@ export default function StateDetailPage({ stateSlug, states }) {
                   alt={`${displayName} about section`}
                 />
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="state-ref-section state-ref-section--white">
+          <div className="container">
+            <div className="state-ref-sectionHead state-ref-sectionHead--center">
+              <div>
+                <span className="section-label">{leadershipLabel}</span>
+                <h2>{leadershipTitle}</h2>
+                <p>{leadershipBody}</p>
+              </div>
+            </div>
+            <div className="state-ref-leadershipGrid">
+              {(leadershipMembers.length ? leadershipMembers : content.leadership.members).slice(0, 3).map((member, idx) => (
+                <article key={`leader-${idx}`} className="state-ref-leadershipCard">
+                  <div className="state-ref-leadershipCard__imageWrap">
+                    <img
+                      src={normalizeImageUrl(member.imageUrl || "", `https://placehold.co/700x820?text=${encodeURIComponent(member.name || member.role || `Leader ${idx + 1}`)}`)}
+                      alt={member.name || member.role || `Leader ${idx + 1}`}
+                    />
+                  </div>
+                  <div className="state-ref-leadershipCard__body">
+                    <h3>{member.name || `Leader ${idx + 1}`}</h3>
+                    <p className="state-ref-leadershipCard__role">{member.role || "Leadership"}</p>
+                    <blockquote>{stripHtml(member.quote || "")}</blockquote>
+                  </div>
+                </article>
+              ))}
             </div>
           </div>
         </section>

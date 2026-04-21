@@ -16,6 +16,16 @@ const emptyHome = {
     body: "",
     imageUrl: "",
   },
+  leadership: {
+    label: "",
+    title: "",
+    body: "",
+    members: [
+      { name: "", role: "", quote: "", imageUrl: "" },
+      { name: "", role: "", quote: "", imageUrl: "" },
+      { name: "", role: "", quote: "", imageUrl: "" },
+    ],
+  },
   worship: {
     label: "",
     title: "",
@@ -68,6 +78,19 @@ const normalizeHome = (input) => ({
   ...(input || {}),
   hero: { ...emptyHome.hero, ...((input || {}).hero || {}) },
   about: { ...emptyHome.about, ...((input || {}).about || {}) },
+  leadership: {
+    ...emptyHome.leadership,
+    ...((input || {}).leadership || {}),
+    members:
+      Array.isArray((input || {}).leadership?.members) && (input || {}).leadership.members.length > 0
+        ? (input || {}).leadership.members.map((member) => ({
+            name: member?.name || "",
+            role: member?.role || "",
+            quote: member?.quote || "",
+            imageUrl: member?.imageUrl || "",
+          }))
+        : JSON.parse(JSON.stringify(emptyHome.leadership.members)),
+  },
   worship: { ...emptyHome.worship, ...((input || {}).worship || {}) },
   updates: { ...emptyHome.updates, ...((input || {}).updates || {}) },
   eventsSection: { ...emptyHome.eventsSection, ...((input || {}).eventsSection || {}) },
@@ -267,6 +290,49 @@ export default function AdminStateHome({
               <span>About Body (Rich Text)</span>
               <RichTextEditor value={content.about.body} onChange={(val) => update(["about", "body"], val)} onUploadImage={uploadImage} />
             </div>
+
+            <h5>Leadership Section</h5>
+            <div className="grid-2">
+              <label>Section Label<input type="text" value={content.leadership.label} onChange={(e) => update(["leadership", "label"], e.target.value)} /></label>
+              <label>Section Title<input type="text" value={content.leadership.title} onChange={(e) => update(["leadership", "title"], e.target.value)} /></label>
+            </div>
+            <div className="rich-field">
+              <span>Section Intro (Rich Text)</span>
+              <RichTextEditor value={content.leadership.body} onChange={(val) => update(["leadership", "body"], val)} onUploadImage={uploadImage} />
+            </div>
+            {content.leadership.members.map((member, idx) => (
+              <div key={`leader-${idx}`} className="section-block">
+                <div className="grid-2">
+                  <label>Name<input type="text" value={member.name} onChange={(e) => update(["leadership", "members", idx, "name"], e.target.value)} /></label>
+                  <label>Role<input type="text" value={member.role} onChange={(e) => update(["leadership", "members", idx, "role"], e.target.value)} /></label>
+                </div>
+                <div className="grid-2">
+                  <label>Image URL<input type="text" value={member.imageUrl} onChange={(e) => update(["leadership", "members", idx, "imageUrl"], e.target.value)} /></label>
+                  <label>
+                    Upload Leader Image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        try {
+                          const url = await uploadImage(file);
+                          if (url) update(["leadership", "members", idx, "imageUrl"], url);
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+                <div className="rich-field">
+                  <span>Quote / Short Bio (Rich Text)</span>
+                  <RichTextEditor value={member.quote} onChange={(val) => update(["leadership", "members", idx, "quote"], val)} onUploadImage={uploadImage} />
+                </div>
+              </div>
+            ))}
 
             <h5>Updates Section</h5>
             <div className="grid-2">
