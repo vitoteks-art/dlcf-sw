@@ -43,12 +43,14 @@ import AdminPage from "./pages/AdminPage";
 import AboutPage from "./pages/AboutPage";
 import BeliefsPage from "./pages/BeliefsPage";
 import StateDetailPage from "./pages/StateDetailPage";
+import StateFellowshipDirectoryPage from "./pages/StateFellowshipDirectoryPage";
 import StatePostPage from "./pages/StatePostPage";
 import StateEventsListPage from "./pages/StateEventsListPage";
 import StateEventDetailPage from "./pages/StateEventDetailPage";
 import LoginPage from "./pages/LoginPage";
 import "./App.css";
 import "./state-home-v2.css";
+import "./state-fellowship-directory.css";
 import { apiFetch, ensureCsrf, API_BASE } from "./api";
 
 const emptyCounts = {
@@ -86,6 +88,16 @@ const defaultStateHomeContent = {
     title: "",
     body: "",
     imageUrl: "",
+  },
+  leadership: {
+    label: "",
+    title: "",
+    body: "",
+    members: [
+      { name: "", role: "", quote: "", imageUrl: "" },
+      { name: "", role: "", quote: "", imageUrl: "" },
+      { name: "", role: "", quote: "", imageUrl: "" },
+    ],
   },
   worship: {
     label: "",
@@ -3176,6 +3188,7 @@ function App() {
       isStatePath && segments[1] === "publications" && segments[2];
     const isStateEventsList = isStatePath && segments[1] === "events" && !segments[2];
     const isStateEventDetail = isStatePath && segments[1] === "events" && segments[2];
+    const isStateFellowshipDirectory = isStatePath && segments[1] === "fellowships" && !segments[2];
     return (
       <div className="public-shell">
         {location.pathname === "/" ? (
@@ -3204,6 +3217,8 @@ function App() {
           <StateEventsListPage stateSlug={stateSlug} states={states} />
         ) : isStateEventDetail ? (
           <StateEventDetailPage stateSlug={stateSlug} eventSlug={segments[2]} states={states} />
+        ) : isStateFellowshipDirectory ? (
+          <StateFellowshipDirectoryPage stateSlug={stateSlug} states={states} />
         ) : isLegacyStatePostPath || isStatePostPath ? (
           <StatePostPage
             stateSlug={stateSlug}
@@ -3458,6 +3473,7 @@ function App() {
             <Route path="/states/:stateId" element={<StateDetailPage />} />
             <Route path="/:stateId/events" element={<StateEventsListPage />} />
             <Route path="/:stateId/events/:eventSlug" element={<StateEventDetailPage />} />
+            <Route path="/:stateId/fellowships" element={<StateFellowshipDirectoryPage />} />
             <Route
               path="/stmc"
               element={

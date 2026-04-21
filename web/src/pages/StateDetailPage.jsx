@@ -362,7 +362,7 @@ export default function StateDetailPage({ stateSlug, states }) {
               </h1>
               <p>{stripHtml(content.hero.intro)}</p>
               <div className="state-ref-actions">
-                <Link to={content.worship.primaryUrl || "/states"} className="state-ref-btn state-ref-btn--primary">
+                <Link to={`/${stateId}/fellowships`} className="state-ref-btn state-ref-btn--primary">
                   {content.hero.ctaPrimary || "Join a Fellowship"}
                 </Link>
                 <Link to={`/${stateId}/media`} className="state-ref-btn state-ref-btn--secondary">
@@ -432,7 +432,7 @@ export default function StateDetailPage({ stateSlug, states }) {
         <section className="state-ref-section">
           <div className="container">
             <div className="state-ref-actionsGrid">
-              <Link to={content.worship.primaryUrl || "/states"} className="state-ref-actionCard">
+              <Link to={`/${stateId}/fellowships`} className="state-ref-actionCard">
                 <span className="material-symbols-outlined">location_on</span>
                 <h4>Find a Center</h4>
                 <p>Locate the nearest DLCF center near your campus.</p>

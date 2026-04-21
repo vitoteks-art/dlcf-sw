@@ -814,9 +814,10 @@ if ($path === '/meta/regions') {
 
 if ($path === '/meta/fellowships') {
     require_method('GET');
-    $state = $_GET['state'] ?? '';
-    $region = $_GET['region'] ?? '';
-    $sql = 'SELECT name FROM fellowship_centres WHERE 1=1';
+    $state = trim($_GET['state'] ?? '');
+    $region = trim($_GET['region'] ?? '');
+    $rich = trim($_GET['rich'] ?? '');
+    $sql = 'SELECT id, name, state, region FROM fellowship_centres WHERE 1=1';
     $types = '';
     $params = [];
     if ($state !== '') {
@@ -833,6 +834,19 @@ if ($path === '/meta/fellowships') {
     $stmt = db_prepare($db, $sql, $types, $params);
     $stmt->execute();
     $rows = db_fetch_all($stmt);
+
+    if ($rich === '1' || $rich === 'true') {
+        $items = array_map(function ($row) {
+            return [
+                'id' => (int) ($row['id'] ?? 0),
+                'name' => $row['name'] ?? '',
+                'state' => $row['state'] ?? '',
+                'region' => $row['region'] ?? '',
+            ];
+        }, $rows);
+        json_ok(['items' => $items]);
+    }
+
     $items = array_map(fn($row) => $row['name'], $rows);
     json_ok(['items' => $items]);
 }

@@ -4,12 +4,10 @@ export default function StatePublicHeader({ stateName = "Osun State", stateSlug 
   const baseSlug = stateSlug || stateName.toLowerCase().replace(/\s+/g, "-");
   const navLinks = [
     { label: "Overview", to: `/${baseSlug}` },
+    { label: "Fellowships", to: `/${baseSlug}/fellowships` },
     { label: "Events", to: `/${baseSlug}/events` },
     { label: "Publications", to: `/${baseSlug}/publications` },
     { label: "Media", to: `/${baseSlug}/media` },
-    { label: "Leadership", to: `/${baseSlug}/leadership` },
-    { label: "Locations", to: `/${baseSlug}/locations` },
-    { label: "Contact", to: `/${baseSlug}/contact` },
   ];
   return (
     <header className="state-public-header">

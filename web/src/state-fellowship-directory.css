@@ -1,0 +1,403 @@
+.state-directory-page {
+  background: #f7f9fc;
+  color: #191c1e;
+  min-height: 100vh;
+}
+
+.state-directory-main {
+  padding-bottom: 120px;
+}
+
+.state-directory-page .container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.state-directory-hero {
+  padding: 64px 32px 24px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 48px;
+}
+
+.state-directory-kicker {
+  display: block;
+  color: #362500;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.state-directory-hero__copy {
+  max-width: 720px;
+}
+
+.state-directory-hero__copy h1 {
+  margin: 0 0 22px;
+  font-family: "Montserrat", "Manrope", sans-serif;
+  font-size: clamp(3.1rem, 6vw, 5.6rem);
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+  color: #002659;
+  font-weight: 900;
+}
+
+.state-directory-hero__copy h1 span {
+  color: #485e8c;
+}
+
+.state-directory-hero__copy p {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.85;
+  color: #434750;
+  max-width: 620px;
+}
+
+.state-directory-searchWrap {
+  width: min(100%, 420px);
+}
+
+.state-directory-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 0 22px;
+  border-radius: 24px;
+  background: #f2f4f7;
+  box-shadow: 0 12px 24px rgba(0, 38, 89, 0.05);
+}
+
+.state-directory-search span {
+  color: #747781;
+}
+
+.state-directory-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #191c1e;
+  font-size: 1rem;
+}
+
+.state-directory-search input::placeholder {
+  color: #747781;
+}
+
+.state-directory-spotlight {
+  margin-top: 18px;
+  margin-bottom: 56px;
+}
+
+.state-directory-spotlight__visual {
+  position: relative;
+  height: 300px;
+  border-radius: 32px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top right, rgba(242, 191, 80, 0.22), transparent 28%),
+    linear-gradient(135deg, rgba(0, 38, 89, 0.08), rgba(0, 38, 89, 0.02)),
+    linear-gradient(180deg, #e9eef8 0%, #f6f8fc 100%);
+  box-shadow: 0 24px 48px rgba(0, 38, 89, 0.08);
+}
+
+.state-directory-spotlight__visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 38, 89, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 38, 89, 0.07) 1px, transparent 1px);
+  background-size: 44px 44px;
+  opacity: 0.28;
+}
+
+.state-directory-spotlight__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 15%, rgba(247, 249, 252, 0.9) 100%);
+}
+
+.state-directory-spotlight__pill {
+  position: absolute;
+  left: 32px;
+  bottom: 28px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(196, 198, 210, 0.45);
+  box-shadow: 0 14px 28px rgba(0, 38, 89, 0.08);
+}
+
+.state-directory-spotlight__pill p {
+  margin: 0;
+  color: #002659;
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.state-directory-spotlight__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #f2bf50;
+  box-shadow: 0 0 0 8px rgba(242, 191, 80, 0.16);
+}
+
+.state-directory-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+}
+
+.state-directory-card {
+  background: #ffffff;
+  border-radius: 32px;
+  padding: 32px;
+  box-shadow: 0 18px 36px rgba(0, 38, 89, 0.07);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.state-directory-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 28px 48px rgba(0, 38, 89, 0.12);
+}
+
+.state-directory-card--highlight {
+  border-top: 4px solid #d1a235;
+}
+
+.state-directory-card__top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.state-directory-card__icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 60, 122, 0.08);
+  color: #002659;
+}
+
+.state-directory-card__icon .material-symbols-outlined {
+  font-size: 2rem;
+}
+
+.state-directory-card__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.state-directory-card__badge.campus {
+  background: #ffdea1;
+  color: #513a00;
+}
+
+.state-directory-card__badge.town {
+  background: rgba(179, 201, 253, 0.35);
+  color: #304672;
+}
+
+.state-directory-card h3 {
+  margin: 0 0 10px;
+  font-family: "Montserrat", "Manrope", sans-serif;
+  font-size: 1.9rem;
+  line-height: 1.15;
+  color: #002659;
+}
+
+.state-directory-card__desc {
+  margin: 0 0 22px;
+  color: #434750;
+  line-height: 1.75;
+  font-size: 0.97rem;
+}
+
+.state-directory-card__meta {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.state-directory-card__meta div {
+  display: flex;
+  gap: 12px;
+  align-items: start;
+  color: #485e8c;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.state-directory-card__meta .material-symbols-outlined {
+  font-size: 1.1rem;
+  margin-top: 2px;
+}
+
+.state-directory-card__footer {
+  margin-top: auto;
+}
+
+.state-directory-card__button {
+  width: 100%;
+  min-height: 56px;
+  border-radius: 18px;
+  background: #e6e8eb;
+  color: #002659;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-decoration: none;
+  font-weight: 800;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.state-directory-card__button:hover {
+  background: #002659;
+  color: #ffffff;
+}
+
+.state-directory-status {
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 48px 36px;
+  text-align: center;
+  box-shadow: 0 18px 36px rgba(0, 38, 89, 0.07);
+}
+
+.state-directory-status h3 {
+  margin: 0 0 12px;
+  color: #002659;
+  font-family: "Montserrat", "Manrope", sans-serif;
+  font-size: 2rem;
+}
+
+.state-directory-status p {
+  margin: 0;
+  color: #485e8c;
+  line-height: 1.75;
+}
+
+.state-directory-status--error {
+  border: 1px solid rgba(186, 26, 26, 0.16);
+}
+
+.state-directory-card--skeleton {
+  pointer-events: none;
+}
+
+.state-directory-skeleton {
+  background: linear-gradient(90deg, #eef2f7 0%, #f7f9fc 50%, #eef2f7 100%);
+  background-size: 200% 100%;
+  animation: stateDirectoryPulse 1.5s ease infinite;
+  border-radius: 16px;
+}
+
+.state-directory-skeleton--icon {
+  width: 58px;
+  height: 58px;
+  margin-bottom: 24px;
+}
+
+.state-directory-skeleton--title {
+  height: 28px;
+  margin-bottom: 16px;
+}
+
+.state-directory-skeleton--line {
+  height: 14px;
+  margin-bottom: 12px;
+}
+
+.state-directory-skeleton--line.short {
+  width: 72%;
+  margin-bottom: 28px;
+}
+
+.state-directory-skeleton--button {
+  height: 56px;
+  margin-top: auto;
+}
+
+@keyframes stateDirectoryPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (max-width: 1100px) {
+  .state-directory-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .state-directory-searchWrap {
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .state-directory-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .state-directory-page .container {
+    padding: 0 20px;
+  }
+
+  .state-directory-hero {
+    padding: 48px 20px 12px;
+  }
+
+  .state-directory-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .state-directory-hero__copy h1 {
+    font-size: 3.4rem;
+  }
+
+  .state-directory-spotlight__visual {
+    height: 240px;
+  }
+
+  .state-directory-spotlight__pill {
+    left: 18px;
+    right: 18px;
+    bottom: 18px;
+    border-radius: 24px;
+  }
+
+  .state-directory-card {
+    padding: 26px;
+  }
+}
