@@ -79,6 +79,11 @@ function can_manage_publications(array $user): bool
     return in_array($user['role'], ['administrator'], true) || user_has_work_unit($user, 'Publication Team');
 }
 
+function can_manage_state_gallery(array $user): bool
+{
+    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin'], true);
+}
+
 function is_registration_officer_head(array $user): bool
 {
     return user_has_work_unit($user, 'Registration Officers Committee Head');
@@ -2205,6 +2210,25 @@ if (preg_match('#^/publication-items/(\\d+)$#', $path, $matches)) {
     json_ok(['item' => $rows[0]]);
 }
 
+if ($path === '/state-gallery-items') {
+    require_method('GET');
+    $state = trim($_GET['state'] ?? '');
+    $sql = 'SELECT id, title, caption, image_url, category, event_date, state, status, published_at
+            FROM state_gallery_items WHERE status = "published"';
+    $types = '';
+    $params = [];
+    if ($state !== '') {
+        $sql .= ' AND state = ?';
+        $types .= 's';
+        $params[] = $state;
+    }
+    $sql .= ' ORDER BY sort_order ASC, event_date DESC, id DESC';
+    $stmt = db_prepare($db, $sql, $types, $params);
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    json_ok(['items' => $rows]);
+}
+
 if ($path === '/admin/media-items') {
     $user = require_auth();
     $user = current_user();
@@ -2384,6 +2408,153 @@ if (preg_match('#^/admin/media-items/(\\d+)$#', $path, $matches)) {
         $stmt = db_prepare($db, 'DELETE FROM media_items WHERE id = ?', 'i', [$id]);
         $stmt->execute();
         json_ok(['message' => 'Media item deleted']);
+    }
+}
+
+if ($path === '/admin/state-gallery-items') {
+    $user = require_auth();
+    $user = current_user();
+    if (!can_manage_state_gallery($user)) {
+        json_error('Forbidden', 403);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        $state = trim($_GET['state'] ?? '');
+        $status = trim($_GET['status'] ?? '');
+        $category = trim($_GET['category'] ?? '');
+        $sql = 'SELECT id, title, caption, image_url, category, event_date, state, status, sort_order, published_at, created_at, updated_at
+                FROM state_gallery_items WHERE 1=1';
+        $types = '';
+        $params = [];
+        if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+            $sql .= ' AND state = ?';
+            $types .= 's';
+            $params[] = $user['state'];
+        } elseif ($state !== '') {
+            $sql .= ' AND state = ?';
+            $types .= 's';
+            $params[] = $state;
+        }
+        if ($status !== '') {
+            $sql .= ' AND status = ?';
+            $types .= 's';
+            $params[] = $status;
+        }
+        if ($category !== '') {
+            $sql .= ' AND category = ?';
+            $types .= 's';
+            $params[] = $category;
+        }
+        $sql .= ' ORDER BY sort_order ASC, event_date DESC, id DESC';
+        $stmt = db_prepare($db, $sql, $types, $params);
+        $stmt->execute();
+        $rows = db_fetch_all($stmt);
+        json_ok(['items' => $rows]);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        require_csrf();
+        $payload = read_json();
+        $title = trim($payload['title'] ?? '');
+        $caption = trim($payload['caption'] ?? '');
+        $imageUrl = trim($payload['image_url'] ?? '');
+        $category = trim($payload['category'] ?? '');
+        $eventDate = $payload['event_date'] ?? null;
+        $state = trim($payload['state'] ?? '');
+        $status = trim($payload['status'] ?? 'draft');
+        $sortOrder = (int) ($payload['sort_order'] ?? 0);
+
+        if ($title === '' || $imageUrl === '' || $category === '' || $state === '') {
+            json_error('title, image_url, category, and state are required', 422);
+        }
+        if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state']) && $state !== $user['state']) {
+            json_error('Forbidden', 403);
+        }
+        if (!in_array($status, ['draft', 'published'], true)) {
+            json_error('Invalid status', 422);
+        }
+        $publishedAt = $status === 'published' ? date('Y-m-d H:i:s') : null;
+
+        $stmt = db_prepare(
+            $db,
+            'INSERT INTO state_gallery_items
+             (title, caption, image_url, category, event_date, state, status, sort_order, published_at, created_by, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            'sssssssisi',
+            [
+                $title,
+                $caption !== '' ? $caption : null,
+                $imageUrl,
+                $category,
+                $eventDate !== '' ? $eventDate : null,
+                $state,
+                $status,
+                $sortOrder,
+                $publishedAt,
+                $user['id'],
+            ]
+        );
+        $stmt->execute();
+        json_ok(['id' => $db->insert_id], 201);
+    }
+}
+
+if (preg_match('#^/admin/state-gallery-items/(\\d+)$#', $path, $matches)) {
+    $user = require_auth();
+    $user = current_user();
+    if (!can_manage_state_gallery($user)) {
+        json_error('Forbidden', 403);
+    }
+    $id = (int) $matches[1];
+    if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+        require_csrf();
+        $payload = read_json();
+        $title = trim($payload['title'] ?? '');
+        $caption = trim($payload['caption'] ?? '');
+        $imageUrl = trim($payload['image_url'] ?? '');
+        $category = trim($payload['category'] ?? '');
+        $eventDate = $payload['event_date'] ?? null;
+        $state = trim($payload['state'] ?? '');
+        $status = trim($payload['status'] ?? 'draft');
+        $sortOrder = (int) ($payload['sort_order'] ?? 0);
+
+        if ($title === '' || $imageUrl === '' || $category === '' || $state === '') {
+            json_error('title, image_url, category, and state are required', 422);
+        }
+        if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state']) && $state !== $user['state']) {
+            json_error('Forbidden', 403);
+        }
+        if (!in_array($status, ['draft', 'published'], true)) {
+            json_error('Invalid status', 422);
+        }
+        $publishedAt = $status === 'published' ? date('Y-m-d H:i:s') : null;
+
+        $stmt = db_prepare(
+            $db,
+            'UPDATE state_gallery_items
+             SET title = ?, caption = ?, image_url = ?, category = ?, event_date = ?, state = ?, status = ?, sort_order = ?, published_at = ?, updated_by = ?, updated_at = NOW()
+             WHERE id = ?',
+            'sssssssisii',
+            [
+                $title,
+                $caption !== '' ? $caption : null,
+                $imageUrl,
+                $category,
+                $eventDate !== '' ? $eventDate : null,
+                $state,
+                $status,
+                $sortOrder,
+                $publishedAt,
+                $user['id'],
+                $id,
+            ]
+        );
+        $stmt->execute();
+        json_ok(['message' => 'State gallery item updated']);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+        require_csrf();
+        $stmt = db_prepare($db, 'DELETE FROM state_gallery_items WHERE id = ?', 'i', [$id]);
+        $stmt->execute();
+        json_ok(['message' => 'State gallery item deleted']);
     }
 }
 

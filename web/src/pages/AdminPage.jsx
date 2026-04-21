@@ -12,6 +12,7 @@ import AdminStateCongress from "../components/admin/AdminStateCongress";
 import AdminZonalCongress from "../components/admin/AdminZonalCongress";
 import AdminMedia from "../components/admin/AdminMedia";
 import AdminPublications from "../components/admin/AdminPublications";
+import AdminStateGallery from "../components/admin/AdminStateGallery";
 import AdminAttendanceCodes from "../components/admin/AdminAttendanceCodes";
 
 export default function AdminPage(props) {
@@ -33,6 +34,7 @@ export default function AdminPage(props) {
     canPublishMedia,
     canManageMedia,
     canManagePublications,
+    canManageStateGallery,
     loadZonalCongressSettings,
     loadAdminStates,
     loadAdminWorkUnits,
@@ -116,6 +118,7 @@ export default function AdminPage(props) {
     { id: "state-congress", label: "State Congress", show: canManageStateCongress },
     { id: "zonal-congress", label: "Zonal Congress", show: canManageZonalCongress },
     { id: "media", label: "Media", show: canManageMedia || canPublishMedia },
+    { id: "state-gallery", label: "State Gallery", show: canManageStateGallery },
     { id: "publications", label: "Publications", show: canManagePublications },
     { id: "attendance-codes", label: "Attendance Codes", show: props.canManageAttendanceCodes },
     { id: "categories", label: "Categories", show: canManageCategories },
@@ -167,6 +170,7 @@ export default function AdminPage(props) {
         {activeTab === "state-congress" && <AdminStateCongress {...props} />}
         {activeTab === "zonal-congress" && <AdminZonalCongress {...props} />}
         {activeTab === "media" && <AdminMedia {...props} />}
+        {activeTab === "state-gallery" && <AdminStateGallery {...props} />}
         {activeTab === "publications" && <AdminPublications {...props} />}
         {activeTab === "attendance-codes" && <AdminAttendanceCodes {...props} />}
         {activeTab === "categories" && <AdminCategories {...props} />}

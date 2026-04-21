@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import StatePublicHeader from "../components/StatePublicHeader";
 import PublicFooter from "../components/PublicFooter";
 import { apiFetch } from "../api";
@@ -109,7 +108,7 @@ export default function StateGalleryPage({ stateSlug, states }) {
       scope: "state",
     });
     setStatus("");
-    apiFetch(`/media-items?${params.toString()}`)
+    apiFetch(`/state-gallery-items?${params.toString()}`)
       .then((data) => setItems(data.items || []))
       .catch((err) => setStatus(err.message));
   }, [resolvedStateName]);
@@ -129,7 +128,7 @@ export default function StateGalleryPage({ stateSlug, states }) {
       const matchesFilter = activeFilter === "All Moments" || category === activeFilter;
       if (!matchesFilter) return false;
       if (!q) return true;
-      const hay = [item.title, item.description, item.series, item.speaker, item.tags]
+      const hay = [item.title, item.caption, item.category, item.state]
         .map(normalizeText)
         .join(" ");
       return hay.includes(q);
@@ -215,11 +214,11 @@ export default function StateGalleryPage({ stateSlug, states }) {
                   }
 
                   const item = entry.item;
-                  const meta = [item.series, item.speaker, fmtDate(item.event_date)]
+                  const meta = [item.category, fmtDate(item.event_date)]
                     .filter(Boolean)
                     .join(" • ");
                   const category = entry.category;
-                  const noThumb = !item.thumbnail_url;
+                  const noThumb = !item.image_url;
                   const tallCard = index % 5 === 2;
 
                   return (
@@ -229,26 +228,26 @@ export default function StateGalleryPage({ stateSlug, states }) {
                         tallCard ? "is-tall" : ""
                       } ${noThumb ? "is-placeholder" : ""}`}
                     >
-                      <Link to={`/${stateSlug}/media/${item.id}`} className="state-gallery-card__link">
-                        {item.thumbnail_url ? (
-                          <img src={item.thumbnail_url} alt={item.title} className="state-gallery-card__image" />
+                      <div className="state-gallery-card__link">
+                        {item.image_url ? (
+                          <img src={item.image_url} alt={item.title} className="state-gallery-card__image" />
                         ) : (
                           <div className="state-gallery-card__placeholder">
                             <span className="material-symbols-outlined">photo_camera</span>
-                            <strong>{item.media_type === "audio" ? "Audio Moment" : "Gallery Moment"}</strong>
+                            <strong>Gallery Moment</strong>
                             <span>{displayName}</span>
                           </div>
                         )}
                         <div className="state-gallery-card__body">
                           <div className="state-gallery-card__badges">
                             <span>{category}</span>
-                            <span className="is-subtle">{item.media_type || "Media"}</span>
+                            <span className="is-subtle">{item.state || displayName}</span>
                           </div>
                           <h3>{item.title}</h3>
                           {meta ? <p className="state-gallery-card__meta">{meta}</p> : null}
-                          {item.description ? <p className="state-gallery-card__desc">{item.description}</p> : null}
+                          {item.caption ? <p className="state-gallery-card__desc">{item.caption}</p> : null}
                         </div>
-                      </Link>
+                      </div>
                     </article>
                   );
                 })}

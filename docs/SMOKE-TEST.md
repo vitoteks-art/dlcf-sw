@@ -1,7 +1,7 @@
-# SMOKE TEST - STATE-GALLERY-PAGE
+# SMOKE TEST - STATE-GALLERY-ADMIN
 
 ## Scope
-Verify the redesigned public State Gallery Page flow for DLCF-SW.
+Verify the dedicated admin-managed state gallery system and the public state gallery page using real gallery records.
 
 ## Build / Checks
 - Frontend build: `npm run build` ✅
@@ -10,46 +10,52 @@ Verify the redesigned public State Gallery Page flow for DLCF-SW.
 
 ## Manual Smoke Checklist
 
-### 1. State gallery route loads
-- Open `/:stateId/media`
-- Confirm page renders without crash
-- Confirm state header is visible
-- Confirm editorial hero is visible and state-specific
+### 1. Migration is applied
+- Apply `scripts/migrations/20260421_state_gallery_items.sql`
+- Confirm `state_gallery_items` table exists
 
-### 2. Search UI works
-- Type a known title / speaker / series / keyword
-- Confirm visible gallery items filter immediately
-- Clear the query
-- Confirm full gallery list returns
+### 2. Admin State Gallery tab appears
+- Open Admin Dashboard
+- Confirm `State Gallery` tab is visible for authorized users
 
-### 3. Filter pills work
-- Click `All Moments`
-- Click available category pills like `Conferences`, `Outreach`, `Worship`, `Fellowship`, `Audio`, or `Video`
-- Confirm the visible gallery updates in-place without reload
+### 3. Admin can create gallery item
+- Open `State Gallery`
+- Fill state, title, category, image, status
+- Save item
+- Confirm item appears in the admin list
 
-### 4. Masonry gallery renders correctly
-- Confirm cards render in a masonry-style multi-column layout on desktop
-- Confirm cards stack cleanly on mobile
-- Confirm visual hierarchy matches the approved gallery style closely
+### 4. Image upload works
+- Use image upload field
+- Confirm uploaded image URL populates the form
+- Save successfully
 
-### 5. Media cards behave correctly
-- Confirm items with thumbnails show image-led cards
-- Confirm cards display title and meta text
-- Click a card
-- Confirm it routes to `/:stateId/media/:id`
+### 5. Admin list filters work
+- Filter by state
+- Filter by status
+- Filter by category
+- Confirm results update correctly
 
-### 6. No-thumbnail fallback works
-- Confirm items without thumbnails render a polished placeholder card
-- Confirm the layout does not break
+### 6. Edit and delete work
+- Edit an existing gallery item
+- Confirm changes persist
+- Delete an item
+- Confirm it is removed from list
 
-### 7. Empty state works
-- Search for a nonsense term with no match
-- Confirm polished empty state appears
+### 7. Public gallery route uses dedicated data
+- Open `/:stateId/gallery`
+- Confirm published gallery items for that state render
+- Confirm page no longer depends on sermon/media records
 
-### 8. CTA section renders
-- Scroll to the bottom CTA section
-- Confirm heading, supporting copy, and CTA button are visible
+### 8. Public category filters work
+- Click category pills
+- Confirm visible gallery cards filter in-place
+
+### 9. Draft visibility works
+- Save a gallery item as `draft`
+- Confirm it does not appear on the public gallery page
+- Change to `published`
+- Confirm it appears publicly
 
 ## Notes
 - Current lint output contains pre-existing warnings in the project and does not block this MVP.
-- Category filters are derived from current media fields (`tags`, `series`, `title`, `description`, `speaker`, `media_type`) for this phase.
+- Gallery categories now come from dedicated gallery records instead of derived sermon/media metadata.

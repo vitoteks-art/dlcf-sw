@@ -691,6 +691,9 @@ function App() {
     user &&
     (user.role === "administrator" ||
       userWorkUnits.includes("Publication Team"));
+  const canManageStateGallery =
+    user &&
+    ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin"].includes(user.role);
   const canManageStatePosts =
     user &&
     [
@@ -721,6 +724,7 @@ function App() {
     canManageUsers ||
     canManageMedia ||
     canManagePublications ||
+    canManageStateGallery ||
     canPublishMedia ||
     canViewReportsOnly;
 
@@ -3080,6 +3084,7 @@ function App() {
     canPublishMedia,
     canManageMedia,
     canManagePublications,
+    canManageStateGallery,
     canManageStatePosts,
     canManageCategories,
     canManageStateHome,

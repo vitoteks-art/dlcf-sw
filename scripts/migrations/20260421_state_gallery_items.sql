@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS state_gallery_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  caption TEXT DEFAULT NULL,
+  image_url VARCHAR(500) NOT NULL,
+  category VARCHAR(60) NOT NULL,
+  event_date DATE DEFAULT NULL,
+  state VARCHAR(120) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'draft',
+  sort_order INT NOT NULL DEFAULT 0,
+  created_by INT NOT NULL,
+  updated_by INT DEFAULT NULL,
+  published_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  INDEX state_gallery_state_idx (state),
+  INDEX state_gallery_status_idx (status),
+  INDEX state_gallery_category_idx (category),
+  INDEX state_gallery_event_date_idx (event_date),
+  FOREIGN KEY (created_by) REFERENCES users(id),
+  FOREIGN KEY (updated_by) REFERENCES users(id)
+);

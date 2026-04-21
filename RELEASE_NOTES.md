@@ -1,27 +1,31 @@
 # RELEASE NOTES
 
-## STATE-GALLERY-PAGE
+## STATE-GALLERY-ADMIN
 
 ### Summary
-Redesigned the public state media page into a premium editorial gallery experience that closely follows the approved gallery reference, while preserving the existing state media detail flow and current backend data source.
+Built a dedicated admin-managed State Gallery system so gallery content is now properly separate from sermons/media. Admins can manage real gallery items per state, and the public `/:stateId/gallery` page now reads dedicated gallery records.
 
 ### Included
-- Rebuilt the public state media listing into a premium gallery page
-- Added editorial hero section with state-specific copy
-- Added search input for gallery filtering
-- Added category pill filters derived from current media data
-- Added masonry-style gallery layout
-- Added quote / promo support blocks for richer visual rhythm
-- Added polished no-thumbnail fallback cards
-- Added bottom CTA section
-- Preserved routing into existing media detail pages
+- Added dedicated `state_gallery_items` database table
+- Added migration for state gallery items
+- Added public gallery endpoint
+- Added admin CRUD endpoints for state gallery items
+- Added new `State Gallery` tab in Admin Dashboard
+- Added admin form for gallery title, caption, category, image, date, state, status, and sort order
+- Added image upload support for gallery items
+- Updated public `/:stateId/gallery` page to use dedicated gallery records
+- Kept Media and Gallery fully separate
 
 ### Files Added / Updated
-- `web/src/pages/StateMediaListPage.jsx`
-- `web/src/state-gallery.css`
+- `scripts/schema.sql`
+- `scripts/migrations/20260421_state_gallery_items.sql`
+- `api/index.php`
+- `web/src/components/admin/AdminStateGallery.jsx`
+- `web/src/pages/AdminPage.jsx`
+- `web/src/pages/StateGalleryPage.jsx`
 - `web/src/App.jsx`
-- `docs/PLAN-STATE-GALLERY-PAGE.md`
-- `docs/UI-STATE-GALLERY-PAGE.md`
+- `docs/PLAN-STATE-GALLERY-ADMIN.md`
+- `docs/UI-STATE-GALLERY-ADMIN.md`
 - `docs/SMOKE-TEST.md`
 
 ### Validation
@@ -30,9 +34,9 @@ Redesigned the public state media page into a premium editorial gallery experien
 - `php -l api/index.php` passed
 
 ### Known Limits
-- Gallery category filters are derived from current media fields, not a dedicated taxonomy yet.
 - Existing large frontend chunk warning remains non-blocking.
-- Media items without thumbnails use a designed placeholder card in this phase.
+- No bulk gallery upload in this phase.
+- No drag-and-drop ordering in this phase.
 
 ### Commits
-- `099d624` - `Build premium state gallery page`
+- `ce5cef2` - `Split state gallery from media route`
