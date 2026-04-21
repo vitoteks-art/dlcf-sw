@@ -1,28 +1,29 @@
 # RELEASE NOTES
 
-## STATE-FELLOWSHIP-DIRECTORY
+## FELLOWSHIP-DIRECTORY-DATA-ENRICHMENT
 
 ### Summary
-Added a new public State Fellowship Directory experience for DLCF-SW, designed to match the approved premium state UI reference.
+Enriched fellowship records so the admin can maintain real address and about text, and the public fellowship directory can display richer, more useful fellowship information.
 
 ### Included
-- New public route: `/:stateId/fellowships`
-- Search-first fellowship directory page
-- Responsive premium card grid for state fellowships
-- State homepage CTA now links to the fellowship directory
-- State public header now includes a `Fellowships` navigation link
-- Backend fellowship metadata endpoint now supports `rich=1` for directory-friendly responses
+- Added fellowship `address` field
+- Added fellowship `description` field
+- Updated admin fellowship create/edit flows
+- Updated admin fellowship table to show address and description
+- Updated `/meta/fellowships?rich=1` to return address and description
+- Updated public fellowship directory to prefer saved address/description over generated fallback copy
+- Added schema and migration support for the new fields
 
 ### Files Added / Updated
+- `scripts/schema.sql`
+- `scripts/migrations/20260421_fellowship_directory_enrichment.sql`
 - `api/index.php`
 - `web/src/App.jsx`
-- `web/src/components/StatePublicHeader.jsx`
-- `web/src/pages/StateDetailPage.jsx`
+- `web/src/components/admin/AdminLocations.jsx`
 - `web/src/pages/StateFellowshipDirectoryPage.jsx`
-- `web/src/state-fellowship-directory.css`
-- `docs/PLAN-STATE-FELLOWSHIP-DIRECTORY.md`
-- `docs/UI-STATE-FELLOWSHIP-DIRECTORY.md`
-- `docs/SMOKE-TEST.md`
+- `docs/PLAN-FELLOWSHIP-DIRECTORY-DATA-ENRICHMENT.md`
+- `docs/UI-FELLOWSHIP-DIRECTORY-DATA-ENRICHMENT.md`
+- `docs/SMOKE-TEST-FELLOWSHIP-DIRECTORY-DATA-ENRICHMENT.md`
 
 ### Validation
 - `npm run build` passed
@@ -30,8 +31,8 @@ Added a new public State Fellowship Directory experience for DLCF-SW, designed t
 - `php -l api/index.php` passed
 
 ### Known Limits
-- Fellowship records currently expose limited public metadata, so some directory copy is generated from existing name/state/region values.
-- Meeting schedules and deeper profile details can be enriched in a later phase if you want fuller fellowship cards.
+- Existing fellowship records may still show fallback content until admins fill in address and description.
+- Meeting schedule fields are still not part of this phase.
 
-### Commit
-- `b76f37c` - `Build state fellowship directory page`
+### Commits
+- `8b4954b` - `Enrich fellowship directory data fields`
