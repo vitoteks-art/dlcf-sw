@@ -1,0 +1,453 @@
+.state-gallery-page {
+  background: #f7f9fc;
+  color: #191c1e;
+  min-height: 100vh;
+}
+
+.state-gallery-main {
+  padding-bottom: 120px;
+}
+
+.state-gallery-page .container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.state-gallery-hero {
+  position: relative;
+  padding: 72px 0 32px;
+  overflow: hidden;
+}
+
+.state-gallery-hero::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(34vw, 420px);
+  height: 100%;
+  opacity: 0.12;
+  background: radial-gradient(circle at center, #ffdea1 0%, rgba(255, 222, 161, 0) 72%);
+  pointer-events: none;
+}
+
+.state-gallery-hero__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.65fr);
+  gap: 40px;
+  align-items: end;
+}
+
+.state-gallery-kicker {
+  display: block;
+  color: #485e8c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.state-gallery-hero__copy h1 {
+  margin: 0 0 24px;
+  font-family: "Montserrat", "Manrope", sans-serif;
+  font-size: clamp(3.2rem, 7vw, 6.4rem);
+  line-height: 0.98;
+  letter-spacing: -0.06em;
+  color: #002659;
+  font-weight: 900;
+}
+
+.state-gallery-hero__copy h1 span {
+  color: #362500;
+}
+
+.state-gallery-hero__copy p {
+  max-width: 640px;
+  margin: 0;
+  color: #434750;
+  font-size: 1.08rem;
+  line-height: 1.9;
+}
+
+.state-gallery-hero__search {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.state-gallery-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 360px);
+  min-height: 66px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: #f2f4f7;
+  box-shadow: 0 14px 28px rgba(0, 38, 89, 0.05);
+}
+
+.state-gallery-search span {
+  color: #747781;
+}
+
+.state-gallery-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #191c1e;
+  font-size: 0.98rem;
+  outline: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.state-gallery-search input::placeholder {
+  color: #747781;
+}
+
+.state-gallery-section {
+  padding: 12px 0 0;
+}
+
+.state-gallery-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.state-gallery-filters button {
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 22px;
+  background: #f2f4f7;
+  color: #485e8c;
+  font-size: 0.92rem;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.state-gallery-filters button.is-active {
+  background: #002659;
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(0, 38, 89, 0.18);
+}
+
+.state-gallery-masonry {
+  column-count: 1;
+  column-gap: 24px;
+}
+
+.state-gallery-card {
+  break-inside: avoid;
+  margin-bottom: 24px;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(0, 38, 89, 0.08);
+}
+
+.state-gallery-card--media {
+  transition: transform 0.28s ease, box-shadow 0.28s ease;
+}
+
+.state-gallery-card--media:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 38, 89, 0.14);
+}
+
+.state-gallery-card__link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.state-gallery-card__image {
+  display: block;
+  width: 100%;
+  min-height: 260px;
+  max-height: 520px;
+  object-fit: cover;
+}
+
+.state-gallery-card--media.is-tall .state-gallery-card__image {
+  min-height: 420px;
+}
+
+.state-gallery-card__body {
+  padding: 24px;
+}
+
+.state-gallery-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.state-gallery-card__badges span {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 38, 89, 0.08);
+  color: #002659;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.state-gallery-card__badges .is-subtle {
+  background: rgba(72, 94, 140, 0.12);
+  color: #485e8c;
+}
+
+.state-gallery-card h3 {
+  margin: 0 0 10px;
+  font-family: "Montserrat", "Manrope", sans-serif;
+  font-size: 1.42rem;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: #002659;
+}
+
+.state-gallery-card__meta {
+  margin: 0;
+  color: #485e8c;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.state-gallery-card__desc {
+  margin: 14px 0 0;
+  color: #434750;
+  line-height: 1.7;
+}
+
+.state-gallery-card__placeholder {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 30px;
+  background: linear-gradient(180deg, #eceef1 0%, #f7f9fc 100%);
+  text-align: center;
+}
+
+.state-gallery-card__placeholder .material-symbols-outlined {
+  font-size: 3rem;
+  color: #362500;
+}
+
+.state-gallery-card__placeholder strong {
+  font-family: "Montserrat", "Manrope", sans-serif;
+  font-size: 1.1rem;
+  color: #002659;
+}
+
+.state-gallery-card__placeholder span:last-child {
+  color: #485e8c;
+}
+
+.state-gallery-card--quote {
+  background: #513a00;
+  color: #ffffff;
+  padding: 34px;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.state-gallery-card--quote .material-symbols-outlined {
+  font-size: 2.6rem;
+  margin-bottom: 12px;
+  color: #f2bf50;
+}
+
+.state-gallery-card--quote p {
+  margin: 0;
+  font-family: "Montserrat", "Manrope", sans-serif;
+  font-size: 1.72rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.state-gallery-card--cta {
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 34px;
+  background: #f2f4f7;
+  border: 2px solid rgba(0, 38, 89, 0.08);
+  text-align: center;
+}
+
+.state-gallery-card--cta .material-symbols-outlined {
+  font-size: 3.2rem;
+  color: #362500;
+  margin-bottom: 14px;
+}
+
+.state-gallery-card--cta h3 {
+  margin-bottom: 8px;
+}
+
+.state-gallery-card--cta p {
+  margin: 0;
+  color: #485e8c;
+  font-weight: 600;
+}
+
+.state-gallery-empty {
+  border-radius: 28px;
+  background: #ffffff;
+  padding: 48px 32px;
+  text-align: center;
+  box-shadow: 0 14px 30px rgba(0, 38, 89, 0.08);
+}
+
+.state-gallery-empty h3 {
+  margin: 0 0 12px;
+  font-family: "Montserrat", "Manrope", sans-serif;
+  color: #002659;
+  font-size: 1.8rem;
+}
+
+.state-gallery-empty p {
+  margin: 0 auto;
+  max-width: 680px;
+  color: #434750;
+  line-height: 1.8;
+}
+
+.state-gallery-cta {
+  padding: 84px 0 0;
+}
+
+.state-gallery-cta__inner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 36px;
+  background: #f2f4f7;
+  text-align: center;
+  padding: 72px 32px;
+}
+
+.state-gallery-cta__inner::before {
+  content: "";
+  position: absolute;
+  top: 26px;
+  left: 26px;
+  width: 80px;
+  height: 80px;
+  border-top: 4px solid #ffdea1;
+  border-left: 4px solid #ffdea1;
+  border-top-left-radius: 18px;
+}
+
+.state-gallery-cta__inner h2 {
+  position: relative;
+  margin: 0 0 16px;
+  font-family: "Montserrat", "Manrope", sans-serif;
+  font-size: clamp(2.2rem, 4vw, 3.6rem);
+  color: #002659;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.state-gallery-cta__inner p {
+  position: relative;
+  max-width: 760px;
+  margin: 0 auto 28px;
+  color: #434750;
+  font-size: 1.05rem;
+  line-height: 1.85;
+}
+
+.state-gallery-cta__button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 180px;
+  padding: 16px 28px;
+  border-radius: 999px;
+  background: #002659;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 800;
+  box-shadow: 0 16px 32px rgba(0, 38, 89, 0.18);
+}
+
+@media (min-width: 768px) {
+  .state-gallery-masonry {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 1100px) {
+  .state-gallery-masonry {
+    column-count: 3;
+  }
+}
+
+@media (max-width: 960px) {
+  .state-gallery-hero__inner {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+
+  .state-gallery-hero__search {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .state-gallery-page .container {
+    padding: 0 20px;
+  }
+
+  .state-gallery-hero {
+    padding: 52px 0 22px;
+  }
+
+  .state-gallery-hero__copy p {
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+
+  .state-gallery-search {
+    min-height: 58px;
+    padding: 0 18px;
+  }
+
+  .state-gallery-card,
+  .state-gallery-empty,
+  .state-gallery-cta__inner {
+    border-radius: 22px;
+  }
+
+  .state-gallery-card__body,
+  .state-gallery-card--quote,
+  .state-gallery-card--cta {
+    padding: 20px;
+  }
+
+  .state-gallery-card--quote p {
+    font-size: 1.4rem;
+  }
+
+  .state-gallery-cta {
+    padding-top: 56px;
+  }
+
+  .state-gallery-cta__inner {
+    padding: 56px 20px;
+  }
+}

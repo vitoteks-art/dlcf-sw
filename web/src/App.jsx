@@ -51,6 +51,7 @@ import LoginPage from "./pages/LoginPage";
 import "./App.css";
 import "./state-home-v2.css";
 import "./state-fellowship-directory.css";
+import "./state-gallery.css";
 import { apiFetch, ensureCsrf, API_BASE } from "./api";
 
 const emptyCounts = {
