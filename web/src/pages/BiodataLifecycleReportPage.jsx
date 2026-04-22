@@ -3,6 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 
 function prettyLabel(field, value) {
   const labels = {
+    category: {
+      staff: "Staff",
+      student: "Student",
+      corper: "Corper",
+      youth: "Youth",
+      children: "Children",
+      unspecified: "Unspecified",
+      Unspecified: "Unspecified",
+    },
     student_status: {
       active_student: "Active Student",
       graduated: "Graduated",
@@ -94,6 +103,7 @@ export default function BiodataLifecycleReportPage({
         </div>
       </div>
       {status ? <div className="status">{status}</div> : null}
+      {renderTable("Category Summary", dashboard?.category_summary, "category")}
       {renderTable("Student Status Summary", report, "student_status")}
       {renderTable("NYSC Status Summary", dashboard?.nysc_summary, "nysc_status")}
       {renderTable("Program Type Summary", dashboard?.program_summary, "program_type")}

@@ -463,6 +463,7 @@ function write_biodata_history_changes(mysqli $db, int $biodataId, ?int $changed
 
 function biodata_transition_state(array $row): array
 {
+    $category = strtolower(trim((string) ($row['category'] ?? '')));
     $studentStatus = trim((string) ($row['student_status'] ?? ''));
     $nyscStatus = trim((string) ($row['nysc_status'] ?? ''));
     $expectedGraduationYear = isset($row['expected_graduation_year']) && $row['expected_graduation_year'] !== ''
@@ -479,7 +480,10 @@ function biodata_transition_state(array $row): array
     $recommendedStatus = $studentStatus;
     $reason = '';
 
-    if ($studentStatus === 'deferred' || $studentStatus === 'withdrawn') {
+    if (!in_array($category, ['student', 'corper'], true)) {
+        $recommendedStatus = '';
+        $reason = 'Category is outside the student/alumni lifecycle';
+    } elseif ($studentStatus === 'deferred' || $studentStatus === 'withdrawn') {
         $recommendedStatus = $studentStatus;
         $reason = 'Lifecycle is intentionally paused';
     } elseif ($studentStatus === 'alumni') {
@@ -497,13 +501,14 @@ function biodata_transition_state(array $row): array
     }
 
     $transitionMode = 'stable';
-    if ($studentStatus !== $recommendedStatus) {
+    if ($recommendedStatus !== '' && $studentStatus !== $recommendedStatus) {
         $transitionMode = $recommendedStatus === 'alumni' ? 'auto_promote' : 'review';
     }
 
     $isCandidate = in_array($recommendedStatus, ['alumni_ready', 'alumni'], true) && $studentStatus !== $recommendedStatus;
 
     return [
+        'category' => $category !== '' ? $category : 'unspecified',
         'current_status' => $studentStatus !== '' ? $studentStatus : 'active_student',
         'recommended_status' => $recommendedStatus,
         'reason' => $reason,
@@ -6326,6 +6331,7 @@ if ($path === '/biodata') {
             $row['lifecycle_reason'] = $lifecycleState['reason'];
             $row['lifecycle_bucket'] = $lifecycleState['recommended_status'];
             $row['lifecycle_candidate'] = $lifecycleState['is_candidate'];
+            $row['lifecycle_category'] = $lifecycleState['category'];
         }
         unset($row);
 
@@ -6406,7 +6412,7 @@ if ($path === '/biodata-reports/lifecycle') {
 
     [$scopeSql, $scopeTypes, $scopeParams] = build_biodata_scope_sql($user, 'fc');
 
-    $sql = 'SELECT b.id, b.full_name, b.school, b.program_type, b.academic_level, b.entry_year, b.expected_graduation_year,
+    $sql = 'SELECT b.id, b.full_name, b.school, b.category, b.program_type, b.academic_level, b.entry_year, b.expected_graduation_year,
                    b.student_status, b.nysc_status, b.nysc_batch, b.nysc_state, b.nysc_end_date,
                    fc.name AS fellowship_centre, fc.state, fc.region
             FROM biodata b
@@ -6423,6 +6429,12 @@ if ($path === '/biodata-reports/lifecycle') {
     $academicSummary = [];
     $gradYearSummary = [];
     $dashboardCounts = [
+        'staff' => 0,
+        'student' => 0,
+        'corper' => 0,
+        'youth' => 0,
+        'children' => 0,
+        'unspecified' => 0,
         'active_student' => 0,
         'graduated' => 0,
         'alumni_ready' => 0,
@@ -6432,11 +6444,13 @@ if ($path === '/biodata-reports/lifecycle') {
         'nysc_serving' => 0,
         'nysc_completed' => 0,
     ];
+    $categorySummary = [];
     $candidates = [];
     $recentlyTransitioned = [];
 
     foreach ($rows as $row) {
         $state = biodata_transition_state($row);
+        $category = $state['category'];
         $currentStatus = $state['current_status'];
         $recommendedStatus = $state['recommended_status'];
         $programKey = $row['program_type'] ?: 'Unspecified';
@@ -6444,25 +6458,31 @@ if ($path === '/biodata-reports/lifecycle') {
         $nyscKey = $row['nysc_status'] ?: 'Unspecified';
         $gradYearKey = $row['expected_graduation_year'] ?: 'Unspecified';
 
+        $categorySummary[$category] = ($categorySummary[$category] ?? 0) + 1;
         $statusSummary[$currentStatus] = ($statusSummary[$currentStatus] ?? 0) + 1;
         $nyscSummary[$nyscKey] = ($nyscSummary[$nyscKey] ?? 0) + 1;
         $programSummary[$programKey] = ($programSummary[$programKey] ?? 0) + 1;
         $academicSummary[$academicKey] = ($academicSummary[$academicKey] ?? 0) + 1;
         $gradYearSummary[$gradYearKey] = ($gradYearSummary[$gradYearKey] ?? 0) + 1;
 
-        if (isset($dashboardCounts[$recommendedStatus])) {
+        if (isset($dashboardCounts[$category])) {
+            $dashboardCounts[$category]++;
+        }
+
+        if (in_array($category, ['student', 'corper'], true) && isset($dashboardCounts[$recommendedStatus])) {
             $dashboardCounts[$recommendedStatus]++;
         }
-        if ($state['nysc_serving']) {
+        if ($category === 'corper' && $state['nysc_serving']) {
             $dashboardCounts['nysc_serving']++;
         }
-        if ($state['nysc_completed']) {
+        if ($category === 'corper' && $state['nysc_completed']) {
             $dashboardCounts['nysc_completed']++;
         }
 
         $candidateRow = [
             'id' => (int) $row['id'],
             'full_name' => $row['full_name'],
+            'category' => $row['category'],
             'school' => $row['school'],
             'program_type' => $row['program_type'],
             'academic_level' => $row['academic_level'],
@@ -6477,10 +6497,10 @@ if ($path === '/biodata-reports/lifecycle') {
             'reason' => $state['reason'],
         ];
 
-        if ($state['is_candidate']) {
+        if (in_array($category, ['student', 'corper'], true) && $state['is_candidate']) {
             $candidates[] = $candidateRow;
         }
-        if ($currentStatus !== $recommendedStatus && $recommendedStatus === 'alumni') {
+        if (in_array($category, ['student', 'corper'], true) && $currentStatus !== $recommendedStatus && $recommendedStatus === 'alumni') {
             $recentlyTransitioned[] = $candidateRow;
         }
     }
@@ -6500,6 +6520,7 @@ if ($path === '/biodata-reports/lifecycle') {
             'counts' => $dashboardCounts,
             'candidates' => $candidates,
             'recent_transitions' => $recentlyTransitioned,
+            'category_summary' => $mapSummary($categorySummary),
             'status_summary' => $mapSummary($statusSummary),
             'nysc_summary' => $mapSummary($nyscSummary),
             'program_summary' => $mapSummary($programSummary),

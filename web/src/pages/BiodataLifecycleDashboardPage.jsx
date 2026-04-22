@@ -2,6 +2,12 @@ import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const STATUS_LABELS = {
+  staff: "Staff",
+  student: "Students",
+  corper: "Corpers",
+  youth: "Youth",
+  children: "Children",
+  unspecified: "Unspecified",
   active_student: "Active Students",
   graduated: "Graduated",
   alumni_ready: "Alumni Ready",
@@ -35,6 +41,7 @@ export default function BiodataLifecycleDashboardPage({
   const counts = dashboard?.counts || {};
   const candidates = dashboard?.candidates || [];
   const recentTransitions = dashboard?.recent_transitions || [];
+  const categorySummary = dashboard?.category_summary || [];
 
   return (
     <section className="card retreat-page lifecycle-dashboard-page">
@@ -63,6 +70,28 @@ export default function BiodataLifecycleDashboardPage({
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
+        <h4>Category Summary</h4>
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categorySummary.map((row) => (
+                <tr key={`category-${row.label}`}>
+                  <td>{STATUS_LABELS[row.label] || row.label}</td>
+                  <td>{row.total}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
         <h4>Transition Candidates</h4>
         {candidates.length === 0 ? (
           <p className="lede">No transition candidates right now.</p>
@@ -84,6 +113,7 @@ export default function BiodataLifecycleDashboardPage({
                 {candidates.map((row) => (
                   <tr key={row.id}>
                     <td>{row.full_name}</td>
+                    <td>{STATUS_LABELS[row.category] || row.category || "-"}</td>
                     <td>{row.student_status}</td>
                     <td>{row.recommended_student_status}</td>
                     <td>{row.nysc_status || "-"}</td>
@@ -131,6 +161,7 @@ export default function BiodataLifecycleDashboardPage({
               <thead>
                 <tr>
                   <th>Name</th>
+                  <th>Category</th>
                   <th>Current</th>
                   <th>Recommended</th>
                   <th>NYSC</th>
@@ -141,6 +172,7 @@ export default function BiodataLifecycleDashboardPage({
                 {recentTransitions.map((row) => (
                   <tr key={`recent-${row.id}`}>
                     <td>{row.full_name}</td>
+                    <td>{STATUS_LABELS[row.category] || row.category || "-"}</td>
                     <td>{row.student_status}</td>
                     <td>{row.recommended_student_status}</td>
                     <td>{row.nysc_status || "-"}</td>
