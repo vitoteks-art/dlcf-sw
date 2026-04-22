@@ -412,29 +412,72 @@ export default function BiodataPage({
             <input
               type="checkbox"
               checked={biodata.new_birth_status}
-              onChange={(e) => setBiodata({ ...biodata, new_birth_status: e.target.checked })}
+              onChange={(e) =>
+                setBiodata({
+                  ...biodata,
+                  new_birth_status: e.target.checked,
+                  new_birth_date: e.target.checked ? biodata.new_birth_date : "",
+                })
+              }
             />{" "}
             New Birth
+          </label>
+          <label>
+            New Birth Date (optional)
+            <input
+              type="date"
+              value={biodata.new_birth_date}
+              onChange={(e) => setBiodata({ ...biodata, new_birth_date: e.target.value })}
+              disabled={!biodata.new_birth_status}
+            />
           </label>
           <label>
             <input
               type="checkbox"
               checked={biodata.sanctification_status}
               onChange={(e) =>
-                setBiodata({ ...biodata, sanctification_status: e.target.checked })
+                setBiodata({
+                  ...biodata,
+                  sanctification_status: e.target.checked,
+                  sanctification_date: e.target.checked ? biodata.sanctification_date : "",
+                })
               }
             />{" "}
             Sanctification
+          </label>
+          <label>
+            Sanctification Date (optional)
+            <input
+              type="date"
+              value={biodata.sanctification_date}
+              onChange={(e) => setBiodata({ ...biodata, sanctification_date: e.target.value })}
+              disabled={!biodata.sanctification_status}
+            />
           </label>
           <label>
             <input
               type="checkbox"
               checked={biodata.holy_ghost_baptism_status}
               onChange={(e) =>
-                setBiodata({ ...biodata, holy_ghost_baptism_status: e.target.checked })
+                setBiodata({
+                  ...biodata,
+                  holy_ghost_baptism_status: e.target.checked,
+                  holy_ghost_baptism_date: e.target.checked ? biodata.holy_ghost_baptism_date : "",
+                })
               }
             />{" "}
             Holy Ghost Baptism
+          </label>
+          <label>
+            Holy Ghost Baptism Date (optional)
+            <input
+              type="date"
+              value={biodata.holy_ghost_baptism_date}
+              onChange={(e) =>
+                setBiodata({ ...biodata, holy_ghost_baptism_date: e.target.value })
+              }
+              disabled={!biodata.holy_ghost_baptism_status}
+            />
           </label>
           <label className="full-span">
             Spiritual Notes
@@ -472,6 +515,10 @@ export default function BiodataPage({
               <option value="Member">Member</option>
               <option value="Worker">Worker</option>
               <option value="Associate Coord">Associate Coord</option>
+              <option value="Region Coordinator">Region Coordinator</option>
+              <option value="State Coordinator">State Coordinator</option>
+              <option value="Zonal Coordinator">Zonal Coordinator</option>
+              <option value="Student Exco">Student Exco</option>
               <option value="Guest">Guest</option>
             </select>
           </label>
