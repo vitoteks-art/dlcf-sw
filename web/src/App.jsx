@@ -445,6 +445,7 @@ function App() {
     region: "",
     fellowship_centre: "",
     search: "",
+    category: "",
     student_status: "",
     nysc_status: "",
     expected_graduation_year: "",

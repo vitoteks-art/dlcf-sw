@@ -6248,6 +6248,7 @@ if ($path === '/biodata') {
             'region' => $_GET['region'] ?? null,
             'centre' => $_GET['fellowship_centre'] ?? null,
             'search' => $_GET['search'] ?? null,
+            'category' => $_GET['category'] ?? null,
             'student_status' => $_GET['student_status'] ?? null,
             'nysc_status' => $_GET['nysc_status'] ?? null,
             'expected_graduation_year' => $_GET['expected_graduation_year'] ?? null,
@@ -6300,6 +6301,11 @@ if ($path === '/biodata') {
             $params[] = $term;
             $params[] = $term;
             $params[] = $term;
+        }
+        if (!empty($filters['category'])) {
+            $sql .= ' AND b.category = ?';
+            $types .= 's';
+            $params[] = $filters['category'];
         }
         if (!empty($filters['student_status'])) {
             $sql .= ' AND b.student_status = ?';

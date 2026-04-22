@@ -149,6 +149,25 @@ export default function BiodataListPage({
             />
           </label>
           <label>
+            Category
+            <select
+              value={biodataFilters.category || ""}
+              onChange={(e) =>
+                setBiodataFilters({
+                  ...biodataFilters,
+                  category: e.target.value,
+                })
+              }
+            >
+              <option value="">All</option>
+              <option value="student">Student</option>
+              <option value="staff">Staff</option>
+              <option value="corper">Corper</option>
+              <option value="youth">Youth</option>
+              <option value="children">Children</option>
+            </select>
+          </label>
+          <label>
             Student Status
             <select
               value={biodataFilters.student_status || ""}
