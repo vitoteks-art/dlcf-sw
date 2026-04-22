@@ -43,6 +43,12 @@ const formatEventDate = (startDate, endDate) => {
   return formatOne(start || end);
 };
 
+const recurringDayLabel = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "Weekly";
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+};
+
 const normalizeImageUrl = (value, fallback = "") => {
   const raw = String(value || "").trim();
   if (!raw) return fallback;
@@ -286,13 +292,22 @@ export default function StateDetailPage({ stateSlug, states }) {
   const validEvents = content.events.filter((event) => event.title || event.date || event.time || event.type);
   const homepageEvents = useMemo(() => {
     const items = Array.isArray(statePosts) ? statePosts : [];
-    const eventPosts = items.filter((post) => post.event_start_date || post.event_end_date || /event|conference|revival|programme|program|crusade|retreat/i.test(String(post.type || "")));
+    const eventPosts = items.filter(
+      (post) =>
+        post.recurrence_mode === "weekly" ||
+        post.event_start_date ||
+        post.event_end_date ||
+        /event|conference|revival|programme|program|crusade|retreat|bible\s*study|worship|koinonia/i.test(String(post.type || ""))
+    );
     if (eventPosts.length > 0) {
       return eventPosts.map((post) => ({
         id: post.id,
         slug: post.slug,
         title: post.title || "Upcoming event",
-        date: formatEventDate(post.event_start_date, post.event_end_date),
+        date:
+          post.recurrence_mode === "weekly"
+            ? `${recurringDayLabel(post.recurrence_day_of_week)} (Weekly)`
+            : formatEventDate(post.event_start_date, post.event_end_date),
         time: post.event_time_label || "Time TBA",
         type: post.type || "Programme",
         image: post.feature_image_url || "",

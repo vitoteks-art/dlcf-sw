@@ -61,6 +61,13 @@ const getDayMonth = (startDate, endDate) => {
   };
 };
 
+const getEventBadgeDate = (event) => {
+  if (event?.recurrence_mode === "weekly") {
+    return { day: recurringDayLabel(event?.recurrence_day_of_week).slice(0, 3), month: "WKLY" };
+  }
+  return getDayMonth(event?.event_start_date, event?.event_end_date);
+};
+
 const eventTypeLabel = (value) => String(value || "Programme").trim() || "Programme";
 
 export default function StateEventsListPage({ stateSlug, states }) {
@@ -174,7 +181,7 @@ export default function StateEventsListPage({ stateSlug, states }) {
             <>
               <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
                 {featuredEvent ? (() => {
-                  const dm = getDayMonth(featuredEvent.event_start_date, featuredEvent.event_end_date);
+                  const dm = getEventBadgeDate(featuredEvent);
                   return (
                     <div className="md:col-span-8 group">
                       <div className="bg-white rounded-3xl overflow-hidden h-full flex flex-col transition-all duration-500 hover:shadow-2xl hover:shadow-[#002659]/10">
@@ -213,7 +220,7 @@ export default function StateEventsListPage({ stateSlug, states }) {
                 })() : null}
 
                 {sideEvents.map((event) => {
-                  const dm = getDayMonth(event.event_start_date, event.event_end_date);
+                  const dm = getEventBadgeDate(event);
                   return (
                     <div key={event.id || event.slug} className="md:col-span-4 group">
                       <div className="bg-white rounded-3xl overflow-hidden h-full flex flex-col transition-all duration-500 hover:shadow-2xl hover:shadow-[#002659]/10">
@@ -247,7 +254,7 @@ export default function StateEventsListPage({ stateSlug, states }) {
                 })}
 
                 {wideEvent ? (() => {
-                  const dm = getDayMonth(wideEvent.event_start_date, wideEvent.event_end_date);
+                  const dm = getEventBadgeDate(wideEvent);
                   return (
                     <div className="md:col-span-8 group">
                       <div className="bg-[#002659] text-white rounded-3xl overflow-hidden h-full flex flex-col md:flex-row transition-all duration-500 hover:shadow-2xl hover:shadow-[#002659]/20">
@@ -287,7 +294,7 @@ export default function StateEventsListPage({ stateSlug, states }) {
               {remainingEvents.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                   {remainingEvents.map((event) => {
-                    const dm = getDayMonth(event.event_start_date, event.event_end_date);
+                    const dm = getEventBadgeDate(event);
                     return (
                       <div key={event.id || event.slug} className="group">
                         <div className="bg-white rounded-3xl overflow-hidden h-full flex flex-col transition-all duration-500 hover:shadow-2xl hover:shadow-[#002659]/10">

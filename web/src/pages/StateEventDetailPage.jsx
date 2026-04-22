@@ -50,6 +50,13 @@ const recurringDayLabel = (value) => {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 };
 
+const formatEventDisplayDate = (item) => {
+  if (item?.recurrence_mode === "weekly") {
+    return `${recurringDayLabel(item?.recurrence_day_of_week)} (Weekly)`;
+  }
+  return formatEventDate(item?.event_start_date, item?.event_end_date);
+};
+
 export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
   const location = useLocation();
   const params = useParams();
@@ -108,9 +115,7 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
                   <div>
                     <p className="text-[10px] uppercase tracking-tighter text-slate-400 font-bold">Date</p>
                     <p className="text-white font-medium">
-                      {event?.recurrence_mode === "weekly"
-                        ? `${recurringDayLabel(event?.recurrence_day_of_week)} (Weekly)`
-                        : formatEventDate(event?.event_start_date, event?.event_end_date)}
+                      {formatEventDisplayDate(event)}
                     </p>
                   </div>
                 </div>
@@ -158,7 +163,7 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
                       </div>
                       <h4 className="text-xl font-bold text-[#002659]">{item.title}</h4>
                       <p className="text-sm text-[#485e8c] font-medium uppercase tracking-widest mb-2">{item.type || "Programme"}</p>
-                      <p className="text-[#434750] text-sm leading-relaxed mb-3">{formatEventDate(item.event_start_date, item.event_end_date)}</p>
+                      <p className="text-[#434750] text-sm leading-relaxed mb-3">{formatEventDisplayDate(item)}</p>
                       <Link to={`/${resolvedStateSlug}/events/${item.slug || item.id}`} className="text-sm font-bold uppercase tracking-widest text-[#002659] hover:underline">
                         View Details
                       </Link>
@@ -240,9 +245,7 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
                 <div className="flex items-center space-x-3 text-sm">
                   <span className="material-symbols-outlined text-[#ffdea1] text-lg">event</span>
                   <span>
-                    {event?.recurrence_mode === "weekly"
-                      ? `${recurringDayLabel(event?.recurrence_day_of_week)} (Weekly)`
-                      : formatEventDate(event?.event_start_date, event?.event_end_date)}
+                    {formatEventDisplayDate(event)}
                   </span>
                 </div>
                 <div className="flex items-center space-x-3 text-sm">
