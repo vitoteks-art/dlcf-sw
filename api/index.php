@@ -1144,6 +1144,30 @@ if ($path === '/public/state-home') {
     json_ok(['item' => $content]);
 }
 
+if ($path === '/public/main-home') {
+    require_method('GET');
+    $db->query("CREATE TABLE IF NOT EXISTS site_pages (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      page_key VARCHAR(100) NOT NULL UNIQUE,
+      content LONGTEXT NOT NULL,
+      updated_by INT NULL,
+      created_at DATETIME NOT NULL,
+      updated_at DATETIME NOT NULL,
+      INDEX idx_site_pages_key (page_key)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $stmt = $db->prepare('SELECT content FROM site_pages WHERE page_key = ? LIMIT 1');
+    $pageKey = 'main_home';
+    $stmt->bind_param('s', $pageKey);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    if (!$rows) {
+        json_ok(['item' => null]);
+    }
+
+    $content = json_decode($rows[0]['content'] ?? '{}', true) ?: null;
+    json_ok(['item' => $content]);
+}
+
 if (preg_match('#^/public/states/([^/]+)/stats$#', $path, $matches)) {
     require_method('GET');
     $stateSlug = $matches[1];
@@ -2156,6 +2180,61 @@ if ($path === '/state/home') {
             $stmt->execute();
         }
         json_ok(['message' => 'State homepage updated']);
+    }
+}
+
+if ($path === '/main-home') {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
+        $db->query("CREATE TABLE IF NOT EXISTS site_pages (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          page_key VARCHAR(100) NOT NULL UNIQUE,
+          content LONGTEXT NOT NULL,
+          updated_by INT NULL,
+          created_at DATETIME NOT NULL,
+          updated_at DATETIME NOT NULL,
+          INDEX idx_site_pages_key (page_key)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $stmt = $db->prepare('SELECT content FROM site_pages WHERE page_key = ? LIMIT 1');
+        $pageKey = 'main_home';
+        $stmt->bind_param('s', $pageKey);
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $content = $rows ? json_decode($rows[0]['content'], true) : null;
+        json_ok(['item' => $content ?: null]);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
+        require_csrf();
+        $payload = read_json();
+        $content = $payload['content'] ?? null;
+        if ($content === null) {
+            json_error('Content is required', 422);
+        }
+        $json = json_encode($content);
+        if ($json === false) {
+            json_error('Invalid content', 422);
+        }
+        $db->query("CREATE TABLE IF NOT EXISTS site_pages (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          page_key VARCHAR(100) NOT NULL UNIQUE,
+          content LONGTEXT NOT NULL,
+          updated_by INT NULL,
+          created_at DATETIME NOT NULL,
+          updated_at DATETIME NOT NULL,
+          INDEX idx_site_pages_key (page_key)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $stmt = db_prepare($db, 'SELECT id FROM site_pages WHERE page_key = ? LIMIT 1', 's', ['main_home']);
+        $stmt->execute();
+        $rows = db_fetch_all($stmt);
+        if ($rows) {
+            $stmt = db_prepare($db, 'UPDATE site_pages SET content = ?, updated_by = ?, updated_at = NOW() WHERE page_key = ?', 'sis', [$json, $user['id'], 'main_home']);
+            $stmt->execute();
+        } else {
+            $stmt = db_prepare($db, 'INSERT INTO site_pages (page_key, content, updated_by, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', 'ssi', ['main_home', $json, $user['id']]);
+            $stmt->execute();
+        }
+        json_ok(['message' => 'Main homepage updated']);
     }
 }
 

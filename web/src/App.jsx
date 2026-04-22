@@ -149,6 +149,71 @@ const defaultStateHomeContent = {
   sections: [{ title: "", content: "" }],
 };
 
+const defaultMainHomeContent = {
+  hero: {
+    kicker: "Deeper Life Campus Fellowship",
+    title: "Inspiring",
+    highlight: "Leadership",
+    body: "Raising disciples through worship, the word, and authentic community across campuses, workplaces, and cities.",
+    primaryCtaLabel: "Join Us",
+    primaryCtaUrl: "#cta",
+    secondaryCtaLabel: "Upcoming Events",
+    secondaryCtaUrl: "#events",
+    backgroundImageUrl: "",
+    metaPrimary: "Sunday Worship",
+    metaSecondary: "10:00 AM & 4:00 PM",
+  },
+  about: {
+    label: "Who we are",
+    title: "Welcome to DLCF South West",
+    body: "Experience inspiring worship, enlightening word, and gracious wonders. We are a people saved by grace, empowered by the Holy Spirit, and committed to authentic Bible Christianity across campuses and cities.",
+    imageUrl: "/hero-image.jpg",
+    pills: ["Our mandate", "We exist primarily", "Passionate about God"],
+  },
+  mediaSpotlight: {
+    label: "Learn and gain spiritual upliftment",
+    title: "Watch & Download Sermons",
+    body: "Explore fresh media messages, devotionals, and teaching resources that strengthen faith and discipleship.",
+    ctaPrimaryLabel: "Get Started",
+    ctaPrimaryUrl: "/media",
+    ctaSecondaryLabel: "Publications",
+    ctaSecondaryUrl: "/publications",
+  },
+  statesHighlight: {
+    label: "From the States",
+    title: "State-wide highlights",
+    body: "Stay connected with what God is doing across states, campuses, and fellowship centres.",
+    cards: [{ title: "Browse States", body: "Explore state pages, fellowship directories, and local updates.", ctaLabel: "Browse States", ctaUrl: "/states" }],
+  },
+  eventsAnnouncements: {
+    label: "Featured Updates",
+    title: "Events & Announcements",
+    body: "Keep the homepage fresh with featured programmes, notices, and ministry updates.",
+    items: [
+      { title: "State Congress Preparation", meta: "TBA", type: "Event" },
+      { title: "Zonal Congress Registration", meta: "TBA", type: "Event" },
+      { title: "Weekly Attendance Portal Update", meta: "TBA", type: "Announcement" },
+    ],
+  },
+  mentor: {
+    label: "Our Mentor",
+    title: "Pastor W.F. Kumuyi",
+    body: "The history of Deeper Life Campus Fellowship cannot be written without mentioning the human agent God used to start Deeper Christian Life Ministry, of which DLCF is an arm.",
+    imageUrl: "/src/assets/gs.png",
+    quote: "A life devoted to biblical truth, holiness, and raising disciples for Christ.",
+  },
+  finalCta: {
+    label: "Take the Next Step",
+    title: "Find your fellowship community",
+    body: "Connect with a campus fellowship, discover resources, and stay rooted in the Word wherever you are.",
+    primaryLabel: "Browse States",
+    primaryUrl: "/states",
+    secondaryLabel: "Watch Messages",
+    secondaryUrl: "/media",
+    imageUrl: "",
+  },
+};
+
 const reservedPublicSegments = new Set([
   "",
   "about",
@@ -472,6 +537,7 @@ function App() {
   const [adminCategoryEditName, setAdminCategoryEditName] = useState("");
   const [adminStateHomeState, setAdminStateHomeState] = useState("");
   const [adminStateHomeContent, setAdminStateHomeContent] = useState(null);
+  const [adminMainHomeContent, setAdminMainHomeContent] = useState(null);
   const [adminStatePostState, setAdminStatePostState] = useState("");
   const [adminStatePostTitle, setAdminStatePostTitle] = useState("");
   const [adminStatePostType, setAdminStatePostType] = useState("");
@@ -712,6 +778,7 @@ function App() {
     ].includes(user.role);
   const canManageCategories = canManageStatePosts;
   const canManageStateHome = canManageStatePosts;
+  const canManageMainHome = canManageStatePosts;
   const canManageStateCongress = canManageStatePosts;
   const canManageZonalCongress = canManageStatePosts;
   const canManageBiodata =
@@ -3014,6 +3081,19 @@ function App() {
     }
   }, []);
 
+  const loadAdminMainHome = useCallback(async () => {
+    try {
+      const response = await apiFetch('/main-home');
+      setAdminMainHomeContent(
+        response?.item
+          ? JSON.parse(JSON.stringify(response.item))
+          : JSON.parse(JSON.stringify(defaultMainHomeContent))
+      );
+    } catch (err) {
+      setAdminMainHomeContent(JSON.parse(JSON.stringify(defaultMainHomeContent)));
+    }
+  }, []);
+
   const handleSaveStateHome = async (event, contentOverride) => {
     event.preventDefault();
     setStatus("");
@@ -3049,6 +3129,45 @@ function App() {
     } catch (err) {
       setStatus(`Failed to save state homepage: ${err.message}`);
       throw err;
+    }
+  };
+
+  const handleSaveMainHome = async (event, contentOverride) => {
+    if (event?.preventDefault) event.preventDefault();
+    try {
+      const nextContent = contentOverride || adminMainHomeContent || defaultMainHomeContent;
+      const mergedContent = {
+        ...(adminMainHomeContent || defaultMainHomeContent),
+        ...(nextContent || {}),
+        hero: { ...(adminMainHomeContent?.hero || defaultMainHomeContent.hero), ...(nextContent.hero || {}) },
+        about: { ...(adminMainHomeContent?.about || defaultMainHomeContent.about), ...(nextContent.about || {}) },
+        mediaSpotlight: { ...(adminMainHomeContent?.mediaSpotlight || defaultMainHomeContent.mediaSpotlight), ...(nextContent.mediaSpotlight || {}) },
+        statesHighlight: {
+          ...(adminMainHomeContent?.statesHighlight || defaultMainHomeContent.statesHighlight),
+          ...(nextContent.statesHighlight || {}),
+          cards: Array.isArray(nextContent.statesHighlight?.cards)
+            ? nextContent.statesHighlight.cards
+            : (adminMainHomeContent?.statesHighlight?.cards || defaultMainHomeContent.statesHighlight.cards),
+        },
+        eventsAnnouncements: {
+          ...(adminMainHomeContent?.eventsAnnouncements || defaultMainHomeContent.eventsAnnouncements),
+          ...(nextContent.eventsAnnouncements || {}),
+          items: Array.isArray(nextContent.eventsAnnouncements?.items)
+            ? nextContent.eventsAnnouncements.items
+            : (adminMainHomeContent?.eventsAnnouncements?.items || defaultMainHomeContent.eventsAnnouncements.items),
+        },
+        mentor: { ...(adminMainHomeContent?.mentor || defaultMainHomeContent.mentor), ...(nextContent.mentor || {}) },
+        finalCta: { ...(adminMainHomeContent?.finalCta || defaultMainHomeContent.finalCta), ...(nextContent.finalCta || {}) },
+      };
+      await apiFetch('/main-home', {
+        method: 'PUT',
+        body: JSON.stringify({ content: mergedContent }),
+      });
+      setAdminMainHomeContent(mergedContent);
+      await loadAdminMainHome();
+      setStatus('Main homepage updated successfully.');
+    } catch (err) {
+      setStatus(`Failed to save main homepage: ${err.message}`);
     }
   };
 
@@ -3118,6 +3237,7 @@ function App() {
     canManageStatePosts,
     canManageCategories,
     canManageStateHome,
+    canManageMainHome,
     canManageStateCongress,
     canManageZonalCongress,
     states,
@@ -3168,6 +3288,7 @@ function App() {
     adminCategoryEditName,
     adminStateHomeState,
     adminStateHomeContent,
+    adminMainHomeContent,
     adminStatePostState,
     adminStatePostTitle,
     adminStatePostType,
@@ -3228,6 +3349,7 @@ function App() {
     setAdminCategoryEditName,
     setAdminStateHomeState,
     setAdminStateHomeContent,
+    setAdminMainHomeContent,
     setAdminStatePostState,
     setAdminStatePostTitle,
     setAdminStatePostType,
@@ -3259,6 +3381,7 @@ function App() {
     loadAdminStatePosts,
     loadAdminCategories,
     loadAdminStateHome,
+    loadAdminMainHome,
     adminAttendanceCodes,
     adminAttendanceCodeForm,
     setAdminAttendanceCodeForm,
@@ -3289,6 +3412,7 @@ function App() {
     handleEditCategory,
     handleDeleteCategory,
     handleSaveStateHome,
+    handleSaveMainHome,
     loadStateCongressSettings,
     saveStateCongressSettings,
     loadZonalCongressSettings,

@@ -8,6 +8,7 @@ import AdminRoles from "../components/admin/AdminRoles";
 import AdminStatePosts from "../components/admin/AdminStatePosts";
 import AdminCategories from "../components/admin/AdminCategories";
 import AdminStateHome from "../components/admin/AdminStateHome";
+import AdminMainHome from "../components/admin/AdminMainHome";
 import AdminStateCongress from "../components/admin/AdminStateCongress";
 import AdminZonalCongress from "../components/admin/AdminZonalCongress";
 import AdminMedia from "../components/admin/AdminMedia";
@@ -29,6 +30,7 @@ export default function AdminPage(props) {
     canManageStatePosts,
     canManageCategories,
     canManageStateHome,
+    canManageMainHome,
     canManageStateCongress,
     canManageZonalCongress,
     canPublishMedia,
@@ -46,9 +48,11 @@ export default function AdminPage(props) {
     loadAdminStatePosts,
     loadAdminCategories,
     loadAdminStateHome,
+    loadAdminMainHome,
     adminInstitutionState,
     adminStatePostState,
     adminStateHomeState,
+    adminMainHomeContent,
   } = props;
 
   const navigate = useNavigate();
@@ -98,6 +102,11 @@ export default function AdminPage(props) {
   }, [canManageStateHome, adminStateHomeState]);
 
   useEffect(() => {
+    if (!canManageMainHome) return;
+    loadAdminMainHome();
+  }, [canManageMainHome]);
+
+  useEffect(() => {
     if (!canManageRegions || !props.adminRegionState) return;
     loadAdminRegions(props.adminRegionState);
   }, [canManageRegions, props.adminRegionState]);
@@ -115,6 +124,7 @@ export default function AdminPage(props) {
     { id: "roles", label: "Roles", show: canManageRoles },
     { id: "state-posts", label: "Events", show: canManageStatePosts },
     { id: "state-home", label: "State Home", show: canManageStateHome },
+    { id: "main-home", label: "Main Home", show: canManageMainHome },
     { id: "state-congress", label: "State Congress", show: canManageStateCongress },
     { id: "zonal-congress", label: "Zonal Congress", show: canManageZonalCongress },
     { id: "media", label: "Media", show: canManageMedia || canPublishMedia },
@@ -166,6 +176,7 @@ export default function AdminPage(props) {
         {activeTab === "roles" && <AdminRoles {...props} />}
         {activeTab === "state-posts" && <AdminStatePosts {...props} />}
         {activeTab === "state-home" && <AdminStateHome {...props} />}
+        {activeTab === "main-home" && <AdminMainHome {...props} />}
         {activeTab === "state-congress" && <AdminStateCongress {...props} />}
         {activeTab === "zonal-congress" && <AdminZonalCongress {...props} />}
         {activeTab === "media" && <AdminMedia {...props} />}
