@@ -44,6 +44,12 @@ const excerpt = (value, max = 160) => {
   return clean.length > max ? `${clean.slice(0, max).trim()}…` : clean;
 };
 
+const recurringDayLabel = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "Weekly";
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+};
+
 export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
   const location = useLocation();
   const params = useParams();
@@ -101,7 +107,11 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
                   <span className="material-symbols-outlined text-[#f2bf50] mr-4">calendar_today</span>
                   <div>
                     <p className="text-[10px] uppercase tracking-tighter text-slate-400 font-bold">Date</p>
-                    <p className="text-white font-medium">{formatEventDate(event?.event_start_date, event?.event_end_date)}</p>
+                    <p className="text-white font-medium">
+                      {event?.recurrence_mode === "weekly"
+                        ? `${recurringDayLabel(event?.recurrence_day_of_week)} (Weekly)`
+                        : formatEventDate(event?.event_start_date, event?.event_end_date)}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/10">
@@ -229,7 +239,11 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 text-sm">
                   <span className="material-symbols-outlined text-[#ffdea1] text-lg">event</span>
-                  <span>{formatEventDate(event?.event_start_date, event?.event_end_date)}</span>
+                  <span>
+                    {event?.recurrence_mode === "weekly"
+                      ? `${recurringDayLabel(event?.recurrence_day_of_week)} (Weekly)`
+                      : formatEventDate(event?.event_start_date, event?.event_end_date)}
+                  </span>
                 </div>
                 <div className="flex items-center space-x-3 text-sm">
                   <span className="material-symbols-outlined text-[#ffdea1] text-lg">schedule</span>

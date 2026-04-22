@@ -87,13 +87,14 @@ if (!$state) {
 $stateId = (int) $state['id'];
 $sql = 'SELECT sp.id, sp.state_id, sp.title, sp.slug, sp.type, sp.content, sp.published_at, sp.feature_image_url,
                sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label,
+               sp.recurrence_mode, sp.recurrence_day_of_week, sp.archive_at,
                GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ",") AS categories
         FROM state_posts sp
         LEFT JOIN state_post_categories spc ON spc.post_id = sp.id
         LEFT JOIN categories c ON c.id = spc.category_id
         WHERE sp.state_id = ? AND sp.slug = ? AND sp.status = ?
         GROUP BY sp.id, sp.state_id, sp.title, sp.slug, sp.type, sp.content, sp.published_at, sp.feature_image_url,
-                 sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label
+                 sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label, sp.recurrence_mode, sp.recurrence_day_of_week, sp.archive_at
         LIMIT 1';
 $stmt = db_prepare($db, $sql, 'iss', [$stateId, $eventSlug, 'published']);
 $stmt->execute();
@@ -108,10 +109,16 @@ $item['categories'] = $item['categories']
     : [];
 
 $relatedSql = 'SELECT sp.id, sp.title, sp.slug, sp.type, sp.feature_image_url, sp.published_at,
-                      sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label
+                      sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label,
+                      sp.recurrence_mode, sp.recurrence_day_of_week, sp.archive_at
                FROM state_posts sp
                WHERE sp.state_id = ? AND sp.id != ? AND sp.status = ?
-               ORDER BY COALESCE(sp.event_start_date, DATE(sp.published_at)) DESC, sp.created_at DESC
+                 AND (
+                   sp.recurrence_mode = "weekly"
+                   OR COALESCE(sp.event_end_date, sp.event_start_date, DATE(sp.published_at)) >= CURDATE()
+                 )
+               ORDER BY CASE WHEN sp.recurrence_mode = "weekly" THEN 0 ELSE 1 END,
+                        COALESCE(sp.event_start_date, DATE(sp.published_at)) ASC, sp.created_at DESC
                LIMIT 3';
 $relatedStmt = db_prepare($db, $relatedSql, 'iis', [$stateId, (int) $item['id'], 'published']);
 $relatedStmt->execute();

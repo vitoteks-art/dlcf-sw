@@ -479,6 +479,8 @@ function App() {
   const [adminStatePostPublishedAt, setAdminStatePostPublishedAt] = useState("");
   const [adminStatePostStartDate, setAdminStatePostStartDate] = useState("");
   const [adminStatePostEndDate, setAdminStatePostEndDate] = useState("");
+  const [adminStatePostRecurrenceMode, setAdminStatePostRecurrenceMode] = useState("one_time");
+  const [adminStatePostRecurrenceDay, setAdminStatePostRecurrenceDay] = useState("");
   const [adminStatePostFeatureImage, setAdminStatePostFeatureImage] = useState("");
   const [adminStatePostContent, setAdminStatePostContent] = useState("");
   const [adminStatePostCategoryIds, setAdminStatePostCategoryIds] = useState([]);
@@ -2892,6 +2894,8 @@ function App() {
         status: adminStatePostStatus,
         feature_image_url: adminStatePostFeatureImage,
         category_ids: adminStatePostCategoryIds,
+        recurrence_mode: adminStatePostRecurrenceMode,
+        recurrence_day_of_week: adminStatePostRecurrenceDay,
         event_start_date: adminStatePostStartDate || "",
         event_end_date: adminStatePostEndDate || "",
       };
@@ -2909,6 +2913,8 @@ function App() {
       setAdminStatePostPublishedAt("");
       setAdminStatePostStartDate("");
       setAdminStatePostEndDate("");
+      setAdminStatePostRecurrenceMode("one_time");
+      setAdminStatePostRecurrenceDay("");
       setAdminStatePostFeatureImage("");
       setAdminStatePostContent("");
       setAdminStatePostCategoryIds([]);
@@ -2929,6 +2935,8 @@ function App() {
         type: adminStatePostType,
         status: adminStatePostStatus,
         published_at: adminStatePostPublishedAt || "",
+        recurrence_mode: adminStatePostRecurrenceMode,
+        recurrence_day_of_week: adminStatePostRecurrenceDay,
         event_start_date: adminStatePostStartDate || "",
         event_end_date: adminStatePostEndDate || "",
         feature_image_url: adminStatePostFeatureImage,
@@ -2942,6 +2950,8 @@ function App() {
       setAdminStatePostEditId("");
       setAdminStatePostStartDate("");
       setAdminStatePostEndDate("");
+      setAdminStatePostRecurrenceMode("one_time");
+      setAdminStatePostRecurrenceDay("");
       loadAdminStatePosts(adminStatePostState);
     } catch (err) {
       setStatus(err.message);
@@ -3165,6 +3175,8 @@ function App() {
     adminStatePostPublishedAt,
     adminStatePostStartDate,
     adminStatePostEndDate,
+    adminStatePostRecurrenceMode,
+    adminStatePostRecurrenceDay,
     adminStatePostFeatureImage,
     adminStatePostContent,
     adminStatePostCategoryIds,
@@ -3223,6 +3235,8 @@ function App() {
     setAdminStatePostPublishedAt,
     setAdminStatePostStartDate,
     setAdminStatePostEndDate,
+    setAdminStatePostRecurrenceMode,
+    setAdminStatePostRecurrenceDay,
     setAdminStatePostFeatureImage,
     setAdminStatePostContent,
     setAdminStatePostCategoryIds,

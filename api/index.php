@@ -425,6 +425,43 @@ function normalize_nullable_date_output($value): ?string
     return $value;
 }
 
+function normalize_state_post_schedule_payload(array $payload): array
+{
+    $recurrenceMode = trim((string) ($payload['recurrence_mode'] ?? 'one_time'));
+    $recurrenceDayOfWeek = trim((string) ($payload['recurrence_day_of_week'] ?? ''));
+    $eventStartDate = trim((string) ($payload['event_start_date'] ?? ''));
+    $eventEndDate = trim((string) ($payload['event_end_date'] ?? ''));
+
+    if (!in_array($recurrenceMode, ['one_time', 'weekly'], true)) {
+        json_error('Invalid recurrence mode', 422);
+    }
+
+    $allowedDays = ['', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    if (!in_array($recurrenceDayOfWeek, $allowedDays, true)) {
+        json_error('Invalid recurrence day', 422);
+    }
+
+    if ($recurrenceMode === 'weekly' && $recurrenceDayOfWeek === '') {
+        json_error('Recurring weekly events require a day of week', 422);
+    }
+
+    if ($recurrenceMode === 'weekly') {
+        $eventStartDate = '';
+        $eventEndDate = '';
+    }
+
+    if ($eventStartDate !== '' && $eventEndDate !== '' && $eventEndDate < $eventStartDate) {
+        json_error('Event end date cannot be earlier than event start date', 422);
+    }
+
+    return [
+        'recurrence_mode' => $recurrenceMode,
+        'recurrence_day_of_week' => $recurrenceDayOfWeek !== '' ? $recurrenceDayOfWeek : null,
+        'event_start_date' => $eventStartDate !== '' ? $eventStartDate : null,
+        'event_end_date' => $eventEndDate !== '' ? $eventEndDate : null,
+    ];
+}
+
 function write_attendance_audit_log(mysqli $db, ?int $codeId, ?int $sessionId, ?int $actorUserId, string $action, array $metadata = []): void
 {
     $stmt = db_prepare(
@@ -1850,6 +1887,7 @@ if ($path === '/state/posts') {
         $sql = 'SELECT sp.id, s.name AS state_name, s.slug AS state_slug,
                        sp.title, sp.slug, sp.type, sp.status, sp.published_at,
                        sp.content, sp.feature_image_url, sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label,
+                       sp.recurrence_mode, sp.recurrence_day_of_week, sp.archive_at,
                        GROUP_CONCAT(c.id ORDER BY c.name SEPARATOR ",") AS category_ids,
                        GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ",") AS categories,
                        sp.created_at, sp.updated_at
@@ -1865,7 +1903,8 @@ if ($path === '/state/posts') {
             $params[] = $stateRow['id'];
         }
         $sql .= ' GROUP BY sp.id, s.name, s.slug, sp.title, sp.slug, sp.type, sp.status, sp.published_at,
-                          sp.content, sp.feature_image_url, sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label, sp.created_at, sp.updated_at
+                          sp.content, sp.feature_image_url, sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label,
+                          sp.recurrence_mode, sp.recurrence_day_of_week, sp.archive_at, sp.created_at, sp.updated_at
                   ORDER BY sp.updated_at DESC';
         $stmt = db_prepare($db, $sql, $types, $params);
         $stmt->execute();
@@ -1892,9 +1931,12 @@ if ($path === '/state/posts') {
         $status = trim($payload['status'] ?? 'draft');
         $featureImageUrl = trim($payload['feature_image_url'] ?? '');
         $eventLocation = trim($payload['event_location'] ?? '');
-        $eventStartDate = trim($payload['event_start_date'] ?? '');
-        $eventEndDate = trim($payload['event_end_date'] ?? '');
+        $schedule = normalize_state_post_schedule_payload($payload);
+        $eventStartDate = $schedule['event_start_date'];
+        $eventEndDate = $schedule['event_end_date'];
         $eventTimeLabel = trim($payload['event_time_label'] ?? '');
+        $recurrenceMode = $schedule['recurrence_mode'];
+        $recurrenceDayOfWeek = $schedule['recurrence_day_of_week'];
         $categoryIds = $payload['category_ids'] ?? [];
         if (($user['role'] === 'state_cord' || $user['role'] === 'state_admin') && $user['state']) {
             $state = $user['state'];
@@ -1927,10 +1969,10 @@ if ($path === '/state/posts') {
         }
         $stmt = db_prepare(
             $db,
-            'INSERT INTO state_posts (state_id, title, slug, feature_image_url, content, type, status, published_at, event_location, event_start_date, event_end_date, event_time_label, created_by, updated_by, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
-            'isssssssssssii',
-            [$stateRow['id'], $title, $slug, $featureImageUrl ?: null, $content, $type, $status, $publishedAt, $eventLocation ?: null, $eventStartDate ?: null, $eventEndDate ?: null, $eventTimeLabel ?: null, $user['id'], $user['id']]
+            'INSERT INTO state_posts (state_id, title, slug, feature_image_url, content, type, status, published_at, event_location, event_start_date, event_end_date, event_time_label, recurrence_mode, recurrence_day_of_week, created_by, updated_by, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            'isssssssssssssii',
+            [$stateRow['id'], $title, $slug, $featureImageUrl ?: null, $content, $type, $status, $publishedAt, $eventLocation ?: null, $eventStartDate, $eventEndDate, $eventTimeLabel ?: null, $recurrenceMode, $recurrenceDayOfWeek, $user['id'], $user['id']]
         );
         if (!$stmt->execute()) {
             json_error('Database error: ' . $stmt->error, 500);
@@ -1954,7 +1996,7 @@ if (preg_match('#^/state/posts/(\\d+)$#', $path, $matches)) {
     $stmt = db_prepare(
         $db,
         'SELECT sp.id, sp.state_id, sp.title, sp.slug, sp.type, sp.status, sp.published_at, sp.content, sp.feature_image_url,
-                sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label,
+                sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label, sp.recurrence_mode, sp.recurrence_day_of_week, sp.archive_at,
                 s.name AS state_name
          FROM state_posts sp
          JOIN states s ON s.id = sp.state_id
@@ -1979,9 +2021,17 @@ if (preg_match('#^/state/posts/(\\d+)$#', $path, $matches)) {
         $status = trim($payload['status'] ?? $post['status']);
         $featureImageUrl = trim($payload['feature_image_url'] ?? $post['feature_image_url'] ?? '');
         $eventLocation = trim($payload['event_location'] ?? $post['event_location'] ?? '');
-        $eventStartDate = trim($payload['event_start_date'] ?? $post['event_start_date'] ?? '');
-        $eventEndDate = trim($payload['event_end_date'] ?? $post['event_end_date'] ?? '');
+        $schedule = normalize_state_post_schedule_payload([
+            'recurrence_mode' => $payload['recurrence_mode'] ?? $post['recurrence_mode'] ?? 'one_time',
+            'recurrence_day_of_week' => $payload['recurrence_day_of_week'] ?? $post['recurrence_day_of_week'] ?? '',
+            'event_start_date' => $payload['event_start_date'] ?? $post['event_start_date'] ?? '',
+            'event_end_date' => $payload['event_end_date'] ?? $post['event_end_date'] ?? '',
+        ]);
+        $eventStartDate = $schedule['event_start_date'];
+        $eventEndDate = $schedule['event_end_date'];
         $eventTimeLabel = trim($payload['event_time_label'] ?? $post['event_time_label'] ?? '');
+        $recurrenceMode = $schedule['recurrence_mode'];
+        $recurrenceDayOfWeek = $schedule['recurrence_day_of_week'];
         $categoryIds = $payload['category_ids'] ?? [];
         if ($title === '' || $content === '' || $type === '') {
             json_error('Title, content, and type are required', 422);
@@ -2012,10 +2062,10 @@ if (preg_match('#^/state/posts/(\\d+)$#', $path, $matches)) {
         }
         $stmt = db_prepare(
             $db,
-            'UPDATE state_posts SET title = ?, slug = ?, feature_image_url = ?, content = ?, type = ?, status = ?, published_at = ?, event_location = ?, event_start_date = ?, event_end_date = ?, event_time_label = ?, updated_by = ?, updated_at = NOW()
+            'UPDATE state_posts SET title = ?, slug = ?, feature_image_url = ?, content = ?, type = ?, status = ?, published_at = ?, event_location = ?, event_start_date = ?, event_end_date = ?, event_time_label = ?, recurrence_mode = ?, recurrence_day_of_week = ?, updated_by = ?, updated_at = NOW()
              WHERE id = ?',
-            'sssssssssssii',
-            [$title, $slug, $featureImageUrl ?: null, $content, $type, $status, $publishedAt, $eventLocation ?: null, $eventStartDate ?: null, $eventEndDate ?: null, $eventTimeLabel ?: null, $user['id'], $postId]
+            'sssssssssssssii',
+            [$title, $slug, $featureImageUrl ?: null, $content, $type, $status, $publishedAt, $eventLocation ?: null, $eventStartDate, $eventEndDate, $eventTimeLabel ?: null, $recurrenceMode, $recurrenceDayOfWeek, $user['id'], $postId]
         );
         if (!$stmt->execute()) {
             json_error('Database error: ' . $stmt->error, 500);

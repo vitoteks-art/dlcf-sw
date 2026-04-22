@@ -21,6 +21,10 @@ export default function AdminStatePosts({
   setAdminStatePostStartDate,
   adminStatePostEndDate,
   setAdminStatePostEndDate,
+  adminStatePostRecurrenceMode,
+  setAdminStatePostRecurrenceMode,
+  adminStatePostRecurrenceDay,
+  setAdminStatePostRecurrenceDay,
   adminStatePostFeatureImage,
   setAdminStatePostFeatureImage,
   adminStatePostContent,
@@ -53,6 +57,8 @@ export default function AdminStatePosts({
     setAdminStatePostPublishedAt("");
     setAdminStatePostStartDate("");
     setAdminStatePostEndDate("");
+    setAdminStatePostRecurrenceMode("one_time");
+    setAdminStatePostRecurrenceDay("");
     setAdminStatePostFeatureImage("");
     setAdminStatePostContent("");
     setAdminStatePostCategoryIds([]);
@@ -173,6 +179,16 @@ export default function AdminStatePosts({
             </div>
             <div className="grid-2">
               <label>
+                Event Schedule Type
+                <select
+                  value={adminStatePostRecurrenceMode}
+                  onChange={(e) => setAdminStatePostRecurrenceMode(e.target.value)}
+                >
+                  <option value="one_time">One-off Event</option>
+                  <option value="weekly">Recurring Weekly Event</option>
+                </select>
+              </label>
+              <label>
                 Status
                 <select
                   value={adminStatePostStatus}
@@ -182,25 +198,51 @@ export default function AdminStatePosts({
                   <option value="published">Published</option>
                 </select>
               </label>
-              <label>
-                Event Start Date
-                <input
-                  type="date"
-                  value={adminStatePostStartDate}
-                  onChange={(e) => setAdminStatePostStartDate(e.target.value)}
-                />
-              </label>
+              {adminStatePostRecurrenceMode === "weekly" ? (
+                <label>
+                  Repeat Every
+                  <select
+                    value={adminStatePostRecurrenceDay}
+                    onChange={(e) => setAdminStatePostRecurrenceDay(e.target.value)}
+                  >
+                    <option value="">Select day</option>
+                    <option value="monday">Monday</option>
+                    <option value="tuesday">Tuesday</option>
+                    <option value="wednesday">Wednesday</option>
+                    <option value="thursday">Thursday</option>
+                    <option value="friday">Friday</option>
+                    <option value="saturday">Saturday</option>
+                    <option value="sunday">Sunday</option>
+                  </select>
+                </label>
+              ) : (
+                <label>
+                  Event Start Date
+                  <input
+                    type="date"
+                    value={adminStatePostStartDate}
+                    onChange={(e) => setAdminStatePostStartDate(e.target.value)}
+                  />
+                </label>
+              )}
             </div>
             <div className="grid-2">
-              <label>
-                Event End Date
-                <input
-                  type="date"
-                  value={adminStatePostEndDate}
-                  onChange={(e) => setAdminStatePostEndDate(e.target.value)}
-                  min={adminStatePostStartDate || undefined}
-                />
-              </label>
+              {adminStatePostRecurrenceMode === "one_time" ? (
+                <label>
+                  Event End Date
+                  <input
+                    type="date"
+                    value={adminStatePostEndDate}
+                    onChange={(e) => setAdminStatePostEndDate(e.target.value)}
+                    min={adminStatePostStartDate || undefined}
+                  />
+                </label>
+              ) : (
+                <label>
+                  Archive Behavior
+                  <input type="text" value="Recurring events stay active until disabled" disabled />
+                </label>
+              )}
               <label>
                 Published At
                 <input
@@ -249,7 +291,11 @@ export default function AdminStatePosts({
                   <td>{post.type}</td>
                   <td>{(post.categories || []).join(", ") || "-"}</td>
                   <td>{post.status}</td>
-                  <td>{post.event_start_date || post.published_at || "-"}</td>
+                  <td>
+                    {post.recurrence_mode === "weekly"
+                      ? `Weekly · ${post.recurrence_day_of_week || "Day not set"}`
+                      : post.event_start_date || post.published_at || "-"}
+                  </td>
                   <td className="actions-cell">
                     <button
                       className="btn-sm btn-outline"
@@ -261,6 +307,8 @@ export default function AdminStatePosts({
                         setAdminStatePostPublishedAt(post.published_at || "");
                         setAdminStatePostStartDate(post.event_start_date || "");
                         setAdminStatePostEndDate(post.event_end_date || "");
+                        setAdminStatePostRecurrenceMode(post.recurrence_mode || "one_time");
+                        setAdminStatePostRecurrenceDay(post.recurrence_day_of_week || "");
                         setAdminStatePostFeatureImage(post.feature_image_url || "");
                         setAdminStatePostContent(post.content || "");
                         setAdminStatePostCategoryIds(post.category_ids || []);

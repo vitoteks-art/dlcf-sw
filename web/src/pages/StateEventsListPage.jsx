@@ -44,6 +44,12 @@ const formatEventDate = (startDate, endDate) => {
   return formatOne(start || end);
 };
 
+const recurringDayLabel = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "Weekly";
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+};
+
 const getDayMonth = (startDate, endDate) => {
   const value = String(startDate || endDate || "").trim();
   if (!value) return { day: "--", month: "TBA" };
@@ -184,7 +190,9 @@ export default function StateEventsListPage({ stateSlug, states }) {
                             <span className="bg-[#ffdea1] text-[#261900] text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">{eventTypeLabel(featuredEvent.type)}</span>
                             <div className="flex items-center text-[#434750] gap-2 text-sm font-medium">
                               <span className="material-symbols-outlined text-base">schedule</span>
-                              {featuredEvent.event_time_label || "Time TBA"}
+                              {featuredEvent.recurrence_mode === "weekly"
+                                ? `${recurringDayLabel(featuredEvent.recurrence_day_of_week)} · ${featuredEvent.event_time_label || "Time TBA"}`
+                                : featuredEvent.event_time_label || "Time TBA"}
                             </div>
                           </div>
                           <h3 className="font-black text-4xl text-[#002659] tracking-tight mb-4 leading-tight">{featuredEvent.title}</h3>
@@ -222,7 +230,9 @@ export default function StateEventsListPage({ stateSlug, states }) {
                           <div className="flex flex-col gap-3 text-[#434750] text-sm mb-6">
                             <div className="flex items-center gap-2">
                               <span className="material-symbols-outlined text-base">schedule</span>
-                              {event.event_time_label || formatEventDate(event.event_start_date, event.event_end_date)}
+                              {event.recurrence_mode === "weekly"
+                                ? `${recurringDayLabel(event.recurrence_day_of_week)} · ${event.event_time_label || "Time TBA"}`
+                                : event.event_time_label || formatEventDate(event.event_start_date, event.event_end_date)}
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="material-symbols-outlined text-base">location_on</span>
@@ -295,7 +305,9 @@ export default function StateEventsListPage({ stateSlug, states }) {
                             <div className="flex flex-col gap-3 text-[#434750] text-sm mb-6">
                               <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-base">schedule</span>
-                                {event.event_time_label || formatEventDate(event.event_start_date, event.event_end_date)}
+                                {event.recurrence_mode === "weekly"
+                                  ? `${recurringDayLabel(event.recurrence_day_of_week)} · ${event.event_time_label || "Time TBA"}`
+                                  : event.event_time_label || formatEventDate(event.event_start_date, event.event_end_date)}
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-base">location_on</span>

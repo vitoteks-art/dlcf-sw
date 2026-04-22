@@ -86,14 +86,20 @@ if (!$state) {
 $stateId = (int) $state['id'];
 $sql = 'SELECT sp.id, sp.title, sp.slug, sp.type, sp.published_at, sp.feature_image_url,
                sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label,
+               sp.recurrence_mode, sp.recurrence_day_of_week, sp.archive_at,
                GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ",") AS categories
         FROM state_posts sp
         LEFT JOIN state_post_categories spc ON spc.post_id = sp.id
         LEFT JOIN categories c ON c.id = spc.category_id
         WHERE sp.state_id = ? AND sp.status = ?
+          AND (
+            sp.recurrence_mode = "weekly"
+            OR COALESCE(sp.event_end_date, sp.event_start_date, DATE(sp.published_at)) >= CURDATE()
+          )
         GROUP BY sp.id, sp.title, sp.slug, sp.type, sp.published_at, sp.feature_image_url,
-                 sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label
-        ORDER BY COALESCE(sp.event_start_date, DATE(sp.published_at)) DESC, sp.created_at DESC';
+                 sp.event_location, sp.event_start_date, sp.event_end_date, sp.event_time_label, sp.recurrence_mode, sp.recurrence_day_of_week, sp.archive_at
+        ORDER BY CASE WHEN sp.recurrence_mode = "weekly" THEN 0 ELSE 1 END,
+                 COALESCE(sp.event_start_date, DATE(sp.published_at)) ASC, sp.created_at DESC';
 
 $stmt = db_prepare($db, $sql, 'is', [$stateId, 'published']);
 $stmt->execute();
