@@ -3387,7 +3387,6 @@ function App() {
         </div>
         <nav className="sidebar-nav">
           <Link to="/">Home</Link>
-          <Link to="/publications">Gospel Library</Link>
           <Link to="/portal">Attendance Portal</Link>
           {canViewAttendanceReports ? <Link to="/attendance-report">Attendance Reports</Link> : null}
           <Link to="/gck">GCK Attendance</Link>
