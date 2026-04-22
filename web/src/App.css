@@ -3088,6 +3088,27 @@ button:disabled {
   border-left: 3px solid var(--accent);
 }
 
+.lifecycle-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.lifecycle-stat-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.lifecycle-stat-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.6rem;
+  color: var(--text);
+}
+
 .actions-cell {
   display: flex;
   gap: 0.75rem;

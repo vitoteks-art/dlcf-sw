@@ -38,6 +38,7 @@ import GckReportPage from "./pages/GckReportPage";
 import BiodataPage from "./pages/BiodataPage";
 import BiodataListPage from "./pages/BiodataListPage";
 import BiodataSpiritualReportPage from "./pages/BiodataSpiritualReportPage";
+import BiodataLifecycleDashboardPage from "./pages/BiodataLifecycleDashboardPage";
 import BiodataLifecycleReportPage from "./pages/BiodataLifecycleReportPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
@@ -446,6 +447,8 @@ function App() {
     search: "",
     student_status: "",
     nysc_status: "",
+    expected_graduation_year: "",
+    lifecycle_bucket: "",
   });
   const [biodataFilterRegions, setBiodataFilterRegions] = useState([]);
   const [biodataFilterCentres, setBiodataFilterCentres] = useState([]);
@@ -453,6 +456,7 @@ function App() {
   const [biodataHistoryById, setBiodataHistoryById] = useState({});
   const [biodataSpiritualReport, setBiodataSpiritualReport] = useState(null);
   const [biodataLifecycleReport, setBiodataLifecycleReport] = useState([]);
+  const [biodataLifecycleDashboard, setBiodataLifecycleDashboard] = useState(null);
   const [adminStates, setAdminStates] = useState([]);
   const [adminRegions, setAdminRegions] = useState([]);
   const [adminFellowships, setAdminFellowships] = useState([]);
@@ -2354,6 +2358,21 @@ function App() {
     try {
       const data = await apiFetch("/biodata-reports/lifecycle");
       setBiodataLifecycleReport(data.items || []);
+      setBiodataLifecycleDashboard(data.dashboard || null);
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const runBiodataLifecycleAction = async (payload) => {
+    setStatus("");
+    try {
+      const data = await apiFetch("/biodata-lifecycle/transition", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      await Promise.all([loadBiodata(), loadBiodataLifecycleReport()]);
+      setStatus(data.message || "Lifecycle status updated.");
     } catch (err) {
       setStatus(err.message);
     }
@@ -3447,6 +3466,7 @@ function App() {
           {user ? <Link to="/biodata">Biodata Form</Link> : null}
           {canManageBiodata ? <Link to="/biodata-list">Biodata List</Link> : null}
           {canManageBiodata ? <Link to="/biodata-report/spiritual">Spiritual Report</Link> : null}
+          {canManageBiodata ? <Link to="/biodata-dashboard/alumni">Alumni Dashboard</Link> : null}
           {canManageBiodata ? <Link to="/biodata-report/lifecycle">Lifecycle Report</Link> : null}
           {canViewAdmin ? <Link to="/admin">Admin</Link> : null}
         </nav>
@@ -3885,6 +3905,19 @@ function App() {
               }
             />
             <Route
+              path="/biodata-dashboard/alumni"
+              element={
+                <BiodataLifecycleDashboardPage
+                  user={user}
+                  canManageBiodata={canManageBiodata}
+                  status={status}
+                  dashboard={biodataLifecycleDashboard}
+                  loadDashboard={loadBiodataLifecycleReport}
+                  onRunAction={runBiodataLifecycleAction}
+                />
+              }
+            />
+            <Route
               path="/biodata-report/lifecycle"
               element={
                 <BiodataLifecycleReportPage
@@ -3892,6 +3925,7 @@ function App() {
                   canManageBiodata={canManageBiodata}
                   status={status}
                   report={biodataLifecycleReport}
+                  dashboard={biodataLifecycleDashboard}
                   loadReport={loadBiodataLifecycleReport}
                 />
               }

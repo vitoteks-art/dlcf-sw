@@ -1,15 +1,6 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-function summarize(items, field) {
-  const map = new Map();
-  (items || []).forEach((row) => {
-    const key = row[field] || "Unspecified";
-    map.set(key, (map.get(key) || 0) + Number(row.total || 0));
-  });
-  return Array.from(map.entries());
-}
-
 function prettyLabel(field, value) {
   const labels = {
     student_status: {
@@ -33,12 +24,22 @@ function prettyLabel(field, value) {
     program_type: {
       Unspecified: "Unspecified",
     },
+    expected_graduation_year: {
+      Unspecified: "Unspecified",
+    },
   };
 
   return labels[field]?.[value] || value;
 }
 
-export default function BiodataLifecycleReportPage({ user, canManageBiodata, status, report, loadReport }) {
+export default function BiodataLifecycleReportPage({
+  user,
+  canManageBiodata,
+  status,
+  report,
+  dashboard,
+  loadReport,
+}) {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -51,30 +52,27 @@ export default function BiodataLifecycleReportPage({ user, canManageBiodata, sta
 
   if (!user || !canManageBiodata) return null;
 
-  const programTypes = summarize(report, "program_type");
-  const academicLevels = summarize(report, "academic_level");
-  const studentStatuses = summarize(report, "student_status");
-  const nyscStatuses = summarize(report, "nysc_status");
-
   const renderTable = (title, rows, field) => (
     <div className="card" style={{ marginTop: 16 }}>
       <h4>{title}</h4>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Label</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(([label, total]) => (
-            <tr key={label}>
-              <td>{prettyLabel(field, label)}</td>
-              <td>{total}</td>
+      <div className="table-container">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Label</th>
+              <th>Total</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {(rows || []).map((row) => (
+              <tr key={`${field}-${row.label}`}>
+                <td>{prettyLabel(field, row.label)}</td>
+                <td>{row.total}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
@@ -84,17 +82,27 @@ export default function BiodataLifecycleReportPage({ user, canManageBiodata, sta
         <div>
           <p className="eyebrow">Biodata Report</p>
           <h2>Lifecycle Report</h2>
-          <p className="lede">Leadership-only view of academic and NYSC member distribution.</p>
+          <p className="lede">Leadership-only view of academic, alumni, and NYSC distribution.</p>
         </div>
-        <Link className="ghost" to="/">
-          Back to Home
-        </Link>
+        <div className="actions-cell">
+          <Link className="ghost" to="/biodata-dashboard/alumni">
+            Open Alumni Dashboard
+          </Link>
+          <Link className="ghost" to="/">
+            Back to Home
+          </Link>
+        </div>
       </div>
       {status ? <div className="status">{status}</div> : null}
-      {renderTable("Program Type Summary", programTypes, "program_type")}
-      {renderTable("Academic Level Summary", academicLevels, "academic_level")}
-      {renderTable("Student Status Summary", studentStatuses, "student_status")}
-      {renderTable("NYSC Status Summary", nyscStatuses, "nysc_status")}
+      {renderTable("Student Status Summary", report, "student_status")}
+      {renderTable("NYSC Status Summary", dashboard?.nysc_summary, "nysc_status")}
+      {renderTable("Program Type Summary", dashboard?.program_summary, "program_type")}
+      {renderTable("Academic Level Summary", dashboard?.academic_summary, "academic_level")}
+      {renderTable(
+        "Expected Graduation Year Summary",
+        dashboard?.graduation_year_summary,
+        "expected_graduation_year"
+      )}
     </section>
   );
 }

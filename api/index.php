@@ -461,6 +461,108 @@ function write_biodata_history_changes(mysqli $db, int $biodataId, ?int $changed
     }
 }
 
+function biodata_transition_state(array $row): array
+{
+    $studentStatus = trim((string) ($row['student_status'] ?? ''));
+    $nyscStatus = trim((string) ($row['nysc_status'] ?? ''));
+    $expectedGraduationYear = isset($row['expected_graduation_year']) && $row['expected_graduation_year'] !== ''
+        ? (int) $row['expected_graduation_year']
+        : null;
+    $currentYear = (int) date('Y');
+
+    $isGraduatedLevel = strtolower(trim((string) ($row['academic_level'] ?? ''))) === 'graduated';
+    $gradYearReached = $expectedGraduationYear !== null && $expectedGraduationYear <= $currentYear;
+    $graduatedSignal = in_array($studentStatus, ['graduated', 'alumni_ready', 'alumni'], true) || $isGraduatedLevel || $gradYearReached;
+    $nyscCompleted = $nyscStatus === 'completed';
+    $nyscServing = $nyscStatus === 'serving';
+
+    $recommendedStatus = $studentStatus;
+    $reason = '';
+
+    if ($studentStatus === 'deferred' || $studentStatus === 'withdrawn') {
+        $recommendedStatus = $studentStatus;
+        $reason = 'Lifecycle is intentionally paused';
+    } elseif ($studentStatus === 'alumni') {
+        $recommendedStatus = 'alumni';
+        $reason = 'Already in alumni status';
+    } elseif ($nyscCompleted && $graduatedSignal) {
+        $recommendedStatus = 'alumni';
+        $reason = 'Completed NYSC after graduation signal';
+    } elseif ($graduatedSignal) {
+        $recommendedStatus = 'alumni_ready';
+        $reason = $nyscServing ? 'Graduated and currently serving NYSC' : 'Graduation signal detected';
+    } else {
+        $recommendedStatus = $studentStatus !== '' ? $studentStatus : 'active_student';
+        $reason = 'Still in active student lifecycle';
+    }
+
+    $transitionMode = 'stable';
+    if ($studentStatus !== $recommendedStatus) {
+        $transitionMode = $recommendedStatus === 'alumni' ? 'auto_promote' : 'review';
+    }
+
+    $isCandidate = in_array($recommendedStatus, ['alumni_ready', 'alumni'], true) && $studentStatus !== $recommendedStatus;
+
+    return [
+        'current_status' => $studentStatus !== '' ? $studentStatus : 'active_student',
+        'recommended_status' => $recommendedStatus,
+        'reason' => $reason,
+        'is_candidate' => $isCandidate,
+        'transition_mode' => $transitionMode,
+        'graduation_signal' => $graduatedSignal,
+        'nysc_completed' => $nyscCompleted,
+        'nysc_serving' => $nyscServing,
+        'expected_graduation_year' => $expectedGraduationYear,
+    ];
+}
+
+function apply_biodata_auto_transition(mysqli $db, int $biodataId, ?int $changedByUserId, array $row): ?string
+{
+    $state = biodata_transition_state($row);
+    $currentStatus = $state['current_status'];
+    $recommendedStatus = $state['recommended_status'];
+
+    if ($recommendedStatus === $currentStatus) {
+        return null;
+    }
+
+    $stmt = db_prepare($db, 'UPDATE biodata SET student_status = ?, updated_at = NOW() WHERE id = ?', 'si', [$recommendedStatus, $biodataId]);
+    $stmt->execute();
+
+    write_biodata_history_changes($db, $biodataId, $changedByUserId, [
+        'student_status' => $currentStatus,
+    ], [
+        'student_status' => $recommendedStatus,
+    ], ['student_status']);
+
+    return $recommendedStatus;
+}
+
+function build_biodata_scope_sql(array $user, string $alias = 'fc'): array
+{
+    $clauses = '';
+    $types = '';
+    $params = [];
+
+    if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+        $clauses .= " AND {$alias}.state = ?";
+        $types .= 's';
+        $params[] = $user['state'];
+    }
+    if (in_array($user['role'], ['region_cord', 'region_admin'], true) && !empty($user['region'])) {
+        $clauses .= " AND {$alias}.region = ?";
+        $types .= 's';
+        $params[] = $user['region'];
+    }
+    if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+        $clauses .= " AND {$alias}.id = ?";
+        $types .= 'i';
+        $params[] = (int) $user['fellowship_centre_id'];
+    }
+
+    return [$clauses, $types, $params];
+}
+
 function generate_attendance_access_code_value(): string
 {
     return 'ATD-' . strtoupper(substr(bin2hex(random_bytes(6)), 0, 12));
@@ -6141,6 +6243,10 @@ if ($path === '/biodata') {
             'region' => $_GET['region'] ?? null,
             'centre' => $_GET['fellowship_centre'] ?? null,
             'search' => $_GET['search'] ?? null,
+            'student_status' => $_GET['student_status'] ?? null,
+            'nysc_status' => $_GET['nysc_status'] ?? null,
+            'expected_graduation_year' => $_GET['expected_graduation_year'] ?? null,
+            'lifecycle_bucket' => $_GET['lifecycle_bucket'] ?? null,
         ];
 
         if (in_array($user['role'], ['region_cord', 'region_admin'], true) && $user['region']) {
@@ -6200,6 +6306,11 @@ if ($path === '/biodata') {
             $types .= 's';
             $params[] = $filters['nysc_status'];
         }
+        if (!empty($filters['expected_graduation_year']) && ctype_digit((string) $filters['expected_graduation_year'])) {
+            $sql .= ' AND b.expected_graduation_year = ?';
+            $types .= 'i';
+            $params[] = (int) $filters['expected_graduation_year'];
+        }
         $sql .= ' ORDER BY b.created_at DESC';
 
         $stmt = db_prepare($db, $sql, $types, $params);
@@ -6210,6 +6321,18 @@ if ($path === '/biodata') {
             foreach (['date_of_birth', 'nysc_start_date', 'nysc_end_date', 'new_birth_date', 'sanctification_date', 'holy_ghost_baptism_date'] as $dateField) {
                 $row[$dateField] = normalize_nullable_date_output($row[$dateField] ?? null);
             }
+            $lifecycleState = biodata_transition_state($row);
+            $row['recommended_student_status'] = $lifecycleState['recommended_status'];
+            $row['lifecycle_reason'] = $lifecycleState['reason'];
+            $row['lifecycle_bucket'] = $lifecycleState['recommended_status'];
+            $row['lifecycle_candidate'] = $lifecycleState['is_candidate'];
+        }
+        unset($row);
+
+        if (!empty($filters['lifecycle_bucket'])) {
+            $rows = array_values(array_filter($rows, static function ($row) use ($filters) {
+                return ($row['lifecycle_bucket'] ?? '') === $filters['lifecycle_bucket'];
+            }));
         }
         json_ok(['items' => $rows]);
     }
@@ -6281,32 +6404,183 @@ if ($path === '/biodata-reports/lifecycle') {
         json_error('Forbidden', 403);
     }
 
-    $sql = 'SELECT program_type, academic_level, student_status, nysc_status, nysc_batch, COUNT(*) AS total
+    [$scopeSql, $scopeTypes, $scopeParams] = build_biodata_scope_sql($user, 'fc');
+
+    $sql = 'SELECT b.id, b.full_name, b.school, b.program_type, b.academic_level, b.entry_year, b.expected_graduation_year,
+                   b.student_status, b.nysc_status, b.nysc_batch, b.nysc_state, b.nysc_end_date,
+                   fc.name AS fellowship_centre, fc.state, fc.region
             FROM biodata b
             JOIN fellowship_centres fc ON fc.id = b.fellowship_centre_id
-            WHERE 1=1';
-    $types = '';
-    $params = [];
-    if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
-        $sql .= ' AND fc.state = ?';
-        $types .= 's';
-        $params[] = $user['state'];
-    }
-    if (in_array($user['role'], ['region_cord', 'region_admin'], true) && !empty($user['region'])) {
-        $sql .= ' AND fc.region = ?';
-        $types .= 's';
-        $params[] = $user['region'];
-    }
-    if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
-        $sql .= ' AND fc.id = ?';
-        $types .= 'i';
-        $params[] = (int) $user['fellowship_centre_id'];
-    }
-    $sql .= ' GROUP BY program_type, academic_level, student_status, nysc_status, nysc_batch';
-    $stmt = db_prepare($db, $sql, $types, $params);
+            WHERE 1=1' . $scopeSql . '
+            ORDER BY b.full_name ASC';
+    $stmt = db_prepare($db, $sql, $scopeTypes, $scopeParams);
     $stmt->execute();
     $rows = db_fetch_all($stmt);
-    json_ok(['items' => $rows]);
+
+    $statusSummary = [];
+    $nyscSummary = [];
+    $programSummary = [];
+    $academicSummary = [];
+    $gradYearSummary = [];
+    $dashboardCounts = [
+        'active_student' => 0,
+        'graduated' => 0,
+        'alumni_ready' => 0,
+        'alumni' => 0,
+        'deferred' => 0,
+        'withdrawn' => 0,
+        'nysc_serving' => 0,
+        'nysc_completed' => 0,
+    ];
+    $candidates = [];
+    $recentlyTransitioned = [];
+
+    foreach ($rows as $row) {
+        $state = biodata_transition_state($row);
+        $currentStatus = $state['current_status'];
+        $recommendedStatus = $state['recommended_status'];
+        $programKey = $row['program_type'] ?: 'Unspecified';
+        $academicKey = $row['academic_level'] ?: 'Unspecified';
+        $nyscKey = $row['nysc_status'] ?: 'Unspecified';
+        $gradYearKey = $row['expected_graduation_year'] ?: 'Unspecified';
+
+        $statusSummary[$currentStatus] = ($statusSummary[$currentStatus] ?? 0) + 1;
+        $nyscSummary[$nyscKey] = ($nyscSummary[$nyscKey] ?? 0) + 1;
+        $programSummary[$programKey] = ($programSummary[$programKey] ?? 0) + 1;
+        $academicSummary[$academicKey] = ($academicSummary[$academicKey] ?? 0) + 1;
+        $gradYearSummary[$gradYearKey] = ($gradYearSummary[$gradYearKey] ?? 0) + 1;
+
+        if (isset($dashboardCounts[$recommendedStatus])) {
+            $dashboardCounts[$recommendedStatus]++;
+        }
+        if ($state['nysc_serving']) {
+            $dashboardCounts['nysc_serving']++;
+        }
+        if ($state['nysc_completed']) {
+            $dashboardCounts['nysc_completed']++;
+        }
+
+        $candidateRow = [
+            'id' => (int) $row['id'],
+            'full_name' => $row['full_name'],
+            'school' => $row['school'],
+            'program_type' => $row['program_type'],
+            'academic_level' => $row['academic_level'],
+            'expected_graduation_year' => $row['expected_graduation_year'],
+            'student_status' => $currentStatus,
+            'recommended_student_status' => $recommendedStatus,
+            'nysc_status' => $row['nysc_status'],
+            'nysc_batch' => $row['nysc_batch'],
+            'state' => $row['state'],
+            'region' => $row['region'],
+            'fellowship_centre' => $row['fellowship_centre'],
+            'reason' => $state['reason'],
+        ];
+
+        if ($state['is_candidate']) {
+            $candidates[] = $candidateRow;
+        }
+        if ($currentStatus !== $recommendedStatus && $recommendedStatus === 'alumni') {
+            $recentlyTransitioned[] = $candidateRow;
+        }
+    }
+
+    $mapSummary = static function (array $summary): array {
+        $items = [];
+        foreach ($summary as $label => $total) {
+            $items[] = ['label' => $label, 'total' => $total];
+        }
+        return $items;
+    };
+
+    json_ok([
+        'items' => $mapSummary($statusSummary),
+        'dashboard' => [
+            'total' => count($rows),
+            'counts' => $dashboardCounts,
+            'candidates' => $candidates,
+            'recent_transitions' => $recentlyTransitioned,
+            'status_summary' => $mapSummary($statusSummary),
+            'nysc_summary' => $mapSummary($nyscSummary),
+            'program_summary' => $mapSummary($programSummary),
+            'academic_summary' => $mapSummary($academicSummary),
+            'graduation_year_summary' => $mapSummary($gradYearSummary),
+        ],
+    ]);
+}
+
+if ($path === '/biodata-lifecycle/transition') {
+    require_method('POST');
+    require_auth();
+    require_csrf();
+    $user = current_user();
+    if (!can_view_biodata_directory($user)) {
+        json_error('Forbidden', 403);
+    }
+
+    $payload = read_json();
+    $action = trim((string) ($payload['action'] ?? 'auto'));
+    $id = (int) ($payload['id'] ?? 0);
+    $allowedActions = ['auto', 'override'];
+    if (!in_array($action, $allowedActions, true)) {
+        json_error('Invalid action', 422);
+    }
+    if ($id <= 0) {
+        json_error('Invalid biodata id', 422);
+    }
+
+    [$scopeSql, $scopeTypes, $scopeParams] = build_biodata_scope_sql($user, 'fc');
+    $stmt = db_prepare(
+        $db,
+        'SELECT b.id, b.student_status, b.expected_graduation_year, b.academic_level, b.nysc_status
+         FROM biodata b
+         JOIN fellowship_centres fc ON fc.id = b.fellowship_centre_id
+         WHERE b.id = ?' . $scopeSql . ' LIMIT 1',
+        'i' . $scopeTypes,
+        array_merge([$id], $scopeParams)
+    );
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    if (!$rows) {
+        json_error('Not found', 404);
+    }
+
+    $row = $rows[0];
+    $beforeStatus = $row['student_status'] ?: 'active_student';
+    $updatedStatus = null;
+
+    $db->begin_transaction();
+    try {
+        if ($action === 'auto') {
+            $updatedStatus = apply_biodata_auto_transition($db, $id, (int) $user['id'], $row);
+            if ($updatedStatus === null) {
+                $updatedStatus = $beforeStatus;
+            }
+        } else {
+            $targetStatus = trim((string) ($payload['student_status'] ?? ''));
+            if (!in_array($targetStatus, ['active_student', 'graduated', 'alumni_ready', 'alumni', 'deferred', 'withdrawn'], true)) {
+                json_error('Invalid override status', 422);
+            }
+            $stmt = db_prepare($db, 'UPDATE biodata SET student_status = ?, updated_at = NOW() WHERE id = ?', 'si', [$targetStatus, $id]);
+            $stmt->execute();
+            write_biodata_history_changes($db, $id, (int) $user['id'], [
+                'student_status' => $beforeStatus,
+            ], [
+                'student_status' => $targetStatus,
+            ], ['student_status']);
+            $updatedStatus = $targetStatus;
+        }
+
+        $db->commit();
+        json_ok([
+            'message' => 'Lifecycle status updated',
+            'student_status' => $updatedStatus,
+        ]);
+    } catch (Throwable $e) {
+        $db->rollback();
+        log_error('Biodata lifecycle transition failed: ' . $e->getMessage(), $config['log_path']);
+        json_error('Failed to update lifecycle status', 500);
+    }
 }
 
 if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {

@@ -1,6 +1,21 @@
 import { Fragment, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+const STATUS_LABELS = {
+  active_student: "Active Student",
+  graduated: "Graduated",
+  alumni_ready: "Alumni Ready",
+  alumni: "Alumni",
+  deferred: "Deferred",
+  withdrawn: "Withdrawn",
+};
+
+const NYSC_LABELS = {
+  none: "No NYSC",
+  serving: "Serving",
+  completed: "Completed",
+};
+
 export default function BiodataListPage({
   user,
   status,
@@ -46,9 +61,14 @@ export default function BiodataListPage({
           <h2>Member Directory</h2>
           <p className="lede">Search and review member biodata records.</p>
         </div>
-        <Link className="ghost" to="/">
-          Back to Home
-        </Link>
+        <div className="actions-cell">
+          <Link className="ghost" to="/biodata-dashboard/alumni">
+            Alumni Dashboard
+          </Link>
+          <Link className="ghost" to="/">
+            Back to Home
+          </Link>
+        </div>
       </div>
       {status ? <div className="status">{status}</div> : null}
       <form onSubmit={loadBiodata} className="form">
@@ -149,6 +169,23 @@ export default function BiodataListPage({
             </select>
           </label>
           <label>
+            Lifecycle Bucket
+            <select
+              value={biodataFilters.lifecycle_bucket || ""}
+              onChange={(e) =>
+                setBiodataFilters({
+                  ...biodataFilters,
+                  lifecycle_bucket: e.target.value,
+                })
+              }
+            >
+              <option value="">All</option>
+              <option value="active_student">Active Student</option>
+              <option value="alumni_ready">Alumni Ready</option>
+              <option value="alumni">Alumni</option>
+            </select>
+          </label>
+          <label>
             NYSC Status
             <select
               value={biodataFilters.nysc_status || ""}
@@ -165,6 +202,20 @@ export default function BiodataListPage({
               <option value="completed">Completed</option>
             </select>
           </label>
+          <label>
+            Expected Graduation Year
+            <input
+              type="number"
+              value={biodataFilters.expected_graduation_year || ""}
+              onChange={(e) =>
+                setBiodataFilters({
+                  ...biodataFilters,
+                  expected_graduation_year: e.target.value,
+                })
+              }
+              placeholder="e.g. 2026"
+            />
+          </label>
         </div>
         <button type="submit">Load Biodata</button>
       </form>
@@ -172,237 +223,187 @@ export default function BiodataListPage({
         {biodataData.length === 0 ? (
           <p>No data yet.</p>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Email</th>
-                <th>Centre</th>
-                <th>State</th>
-                <th>Region</th>
-                <th>Student Status</th>
-                <th>NYSC Status</th>
-                <th>Details</th>
-                {canManageBiodata ? <th>Actions</th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {biodataData.map((row, idx) => (
-                <Fragment key={row.id ?? `${row.email}-${idx}`}>
-                  <tr>
-                    <td>{row.full_name}</td>
-                    <td>{row.phone}</td>
-                    <td>{row.email}</td>
-                    <td>{row.fellowship_centre}</td>
-                    <td>{row.state}</td>
-                    <td>{row.region}</td>
-                    <td>{row.student_status || "-"}</td>
-                    <td>{row.nysc_status || "-"}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn-sm btn-outline"
-                        onClick={() =>
-                          {
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Centre</th>
+                  <th>Student Status</th>
+                  <th>Recommended</th>
+                  <th>NYSC</th>
+                  <th>Expected Grad</th>
+                  <th>Details</th>
+                  {canManageBiodata ? <th>Actions</th> : null}
+                </tr>
+              </thead>
+              <tbody>
+                {biodataData.map((row, idx) => (
+                  <Fragment key={row.id ?? `${row.email}-${idx}`}>
+                    <tr>
+                      <td>
+                        <div>
+                          <strong>{row.full_name}</strong>
+                          <div className="detail-label" style={{ marginTop: 4 }}>
+                            {row.state} / {row.region}
+                          </div>
+                        </div>
+                      </td>
+                      <td>{row.fellowship_centre}</td>
+                      <td>{STATUS_LABELS[row.student_status] || row.student_status || "-"}</td>
+                      <td>
+                        {STATUS_LABELS[row.recommended_student_status] ||
+                          row.recommended_student_status ||
+                          "-"}
+                      </td>
+                      <td>{NYSC_LABELS[row.nysc_status] || row.nysc_status || "-"}</td>
+                      <td>{row.expected_graduation_year || "-"}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn-sm btn-outline"
+                          onClick={() => {
                             const next = expandedId === row.id ? null : row.id;
                             setExpandedId(next);
                             if (next === row.id && !biodataHistoryById[row.id]) {
                               onLoadBiodataHistory(row.id);
                             }
-                          }
-                        }
-                      >
-                        {expandedId === row.id ? "Hide" : "View"}
-                      </button>
-                    </td>
-                    {canManageBiodata ? (
-                      <td>
-                        <div className="actions-cell">
-                          <button
-                            type="button"
-                            className="btn-sm btn-outline"
-                            onClick={() => onEditBiodata(row.id)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-sm btn-danger"
-                            onClick={() => onDeleteBiodata(row.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
+                          }}
+                        >
+                          {expandedId === row.id ? "Hide" : "View"}
+                        </button>
                       </td>
-                    ) : null}
-                  </tr>
-                  {expandedId === row.id ? (
-                    <tr>
-                      <td colSpan={canManageBiodata ? 10 : 9}>
-                        <div className="details-panel">
-                          {row.profile_photo ? (
-                            <div className="details-photo">
-                              <img src={row.profile_photo} alt={row.full_name} />
+                      {canManageBiodata ? (
+                        <td>
+                          <div className="actions-cell">
+                            <button
+                              type="button"
+                              className="btn-sm btn-outline"
+                              onClick={() => onEditBiodata(row.id)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-sm btn-danger"
+                              onClick={() => onDeleteBiodata(row.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      ) : null}
+                    </tr>
+                    {expandedId === row.id ? (
+                      <tr>
+                        <td colSpan={canManageBiodata ? 8 : 7}>
+                          <div className="details-panel">
+                            {row.profile_photo ? (
+                              <div className="details-photo">
+                                <img src={row.profile_photo} alt={row.full_name} />
+                                <div>
+                                  <span className="detail-label">Name</span>
+                                  <span className="detail-value">{row.full_name}</span>
+                                </div>
+                              </div>
+                            ) : null}
+                            <div className="details-grid">
                               <div>
-                                <span className="detail-label">Name</span>
+                                <span className="detail-label">Phone</span>
+                                <span className="detail-value">{row.phone}</span>
+                              </div>
+                              <div>
+                                <span className="detail-label">Email</span>
+                                <span className="detail-value">{row.email}</span>
+                              </div>
+                              <div>
+                                <span className="detail-label">School</span>
+                                <span className="detail-value">{row.school}</span>
+                              </div>
+                              <div>
+                                <span className="detail-label">Program Type</span>
+                                <span className="detail-value">{row.program_type || "-"}</span>
+                              </div>
+                              <div>
+                                <span className="detail-label">Academic Level</span>
+                                <span className="detail-value">{row.academic_level || "-"}</span>
+                              </div>
+                              <div>
+                                <span className="detail-label">Expected Graduation</span>
+                                <span className="detail-value">{row.expected_graduation_year || "-"}</span>
+                              </div>
+                              <div>
+                                <span className="detail-label">Student Status</span>
                                 <span className="detail-value">
-                                  {row.full_name}
+                                  {STATUS_LABELS[row.student_status] || row.student_status || "-"}
                                 </span>
                               </div>
-                            </div>
-                          ) : null}
-                          <div className="details-grid">
-                            <div>
-                              <span className="detail-label">Gender</span>
-                              <span className="detail-value">{row.gender}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Age</span>
-                              <span className="detail-value">{row.age}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">School</span>
-                              <span className="detail-value">{row.school}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Date of Birth</span>
-                              <span className="detail-value">{row.date_of_birth || "-"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Marital Status</span>
-                              <span className="detail-value">{row.marital_status || "-"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Program Type</span>
-                              <span className="detail-value">{row.program_type || "-"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Academic Level</span>
-                              <span className="detail-value">{row.academic_level || "-"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Entry Year</span>
-                              <span className="detail-value">{row.entry_year || "-"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Expected Graduation</span>
-                              <span className="detail-value">{row.expected_graduation_year || "-"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Student Status</span>
-                              <span className="detail-value">{row.student_status || "-"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">NYSC Status</span>
-                              <span className="detail-value">{row.nysc_status || "-"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">NYSC Batch</span>
-                              <span className="detail-value">{row.nysc_batch || "-"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">NYSC State</span>
-                              <span className="detail-value">{row.nysc_state || "-"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">New Birth</span>
-                              <span className="detail-value">{row.new_birth_status ? "Yes" : "No"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Sanctification</span>
-                              <span className="detail-value">{row.sanctification_status ? "Yes" : "No"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Holy Ghost Baptism</span>
-                              <span className="detail-value">{row.holy_ghost_baptism_status ? "Yes" : "No"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Spiritual Notes</span>
-                              <span className="detail-value">{row.spiritual_notes || "-"}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Worker Status</span>
-                              <span className="detail-value">{row.worker_status}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Membership</span>
-                              <span className="detail-value">
-                                {row.membership_status}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Cluster</span>
-                              <span className="detail-value">{row.cluster}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Work Units</span>
-                              <span className="detail-value">
-                                {(row.work_units || []).join(", ")}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Address</span>
-                              <span className="detail-value">{row.address}</span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Next of Kin</span>
-                              <span className="detail-value">
-                                {row.next_of_kin_name}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Next of Kin Phone</span>
-                              <span className="detail-value">
-                                {row.next_of_kin_phone}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="detail-label">Relationship</span>
-                              <span className="detail-value">
-                                {row.next_of_kin_relationship}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="card" style={{ marginTop: "1rem" }}>
-                            <h4>Lifecycle History</h4>
-                            {!biodataHistoryById[row.id] ? (
-                              <p className="small-text">Loading history...</p>
-                            ) : biodataHistoryById[row.id].length === 0 ? (
-                              <p className="small-text">No history entries yet.</p>
-                            ) : (
-                              <div className="report">
-                                <table>
-                                  <thead>
-                                    <tr>
-                                      <th>Field</th>
-                                      <th>Old Value</th>
-                                      <th>New Value</th>
-                                      <th>Changed At</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {biodataHistoryById[row.id].map((entry, index) => (
-                                      <tr key={`${entry.field_name}-${entry.changed_at}-${index}`}>
-                                        <td>{historyFieldLabels[entry.field_name] || entry.field_name}</td>
-                                        <td>{entry.old_value || "-"}</td>
-                                        <td>{entry.new_value || "-"}</td>
-                                        <td>{entry.changed_at}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
+                              <div>
+                                <span className="detail-label">Recommended Status</span>
+                                <span className="detail-value">
+                                  {STATUS_LABELS[row.recommended_student_status] ||
+                                    row.recommended_student_status ||
+                                    "-"}
+                                </span>
                               </div>
-                            )}
+                              <div>
+                                <span className="detail-label">Lifecycle Reason</span>
+                                <span className="detail-value">{row.lifecycle_reason || "-"}</span>
+                              </div>
+                              <div>
+                                <span className="detail-label">NYSC Status</span>
+                                <span className="detail-value">
+                                  {NYSC_LABELS[row.nysc_status] || row.nysc_status || "-"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="detail-label">NYSC Batch</span>
+                                <span className="detail-value">{row.nysc_batch || "-"}</span>
+                              </div>
+                              <div>
+                                <span className="detail-label">NYSC State</span>
+                                <span className="detail-value">{row.nysc_state || "-"}</span>
+                              </div>
+                            </div>
+
+                            <div className="card" style={{ marginTop: 16 }}>
+                              <h4>Status History</h4>
+                              {(biodataHistoryById[row.id] || []).length === 0 ? (
+                                <p className="lede">No history yet.</p>
+                              ) : (
+                                <div className="table-container">
+                                  <table className="data-table">
+                                    <thead>
+                                      <tr>
+                                        <th>Field</th>
+                                        <th>Old</th>
+                                        <th>New</th>
+                                        <th>Changed At</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {(biodataHistoryById[row.id] || []).map((item, index) => (
+                                        <tr key={`${row.id}-history-${index}`}>
+                                          <td>{historyFieldLabels[item.field_name] || item.field_name}</td>
+                                          <td>{item.old_value || "-"}</td>
+                                          <td>{item.new_value || "-"}</td>
+                                          <td>{item.changed_at || "-"}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : null}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </section>
