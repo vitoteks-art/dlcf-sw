@@ -2292,6 +2292,74 @@ button:disabled {
   gap: 10px;
 }
 
+.homepage-updates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.homepage-update-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f8f5ff 100%);
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 20px 36px rgba(51, 32, 99, 0.12);
+  border: 1px solid rgba(111, 44, 255, 0.08);
+  display: grid;
+  gap: 16px;
+}
+
+.homepage-update-card.event {
+  border-top: 4px solid #6f2cff;
+}
+
+.homepage-update-card.announcement {
+  border-top: 4px solid #ff8a00;
+}
+
+.homepage-update-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.homepage-update-card__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(111, 44, 255, 0.1);
+  color: #4f1bb8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.homepage-update-card.announcement .homepage-update-card__badge {
+  background: rgba(255, 138, 0, 0.12);
+  color: #a85400;
+}
+
+.homepage-update-card__meta {
+  color: #6b6f7c;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.homepage-update-card h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #1e1238;
+}
+
+.homepage-update-card p {
+  margin: 0;
+  color: #575b66;
+  line-height: 1.65;
+}
+
 .event-photo {
   height: 160px;
   border-radius: 14px;

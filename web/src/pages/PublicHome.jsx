@@ -315,10 +315,28 @@ export default function PublicHome({ states, stateSummaries, user }) {
           </div>
           <Link to="/events">View All Events</Link>
         </div>
-        <div className="events-grid">
-          {(content.eventsAnnouncements.items || []).map((item, idx) => (
-            <div key={`${item.title}-${idx}`} className="event-card"><div className="event-photo" /><h3>{item.title}</h3><p>{item.meta || item.type || "TBA"}</p></div>
-          ))}
+        <div className="homepage-updates-grid">
+          {(content.eventsAnnouncements.items || []).map((item, idx) => {
+            const typeLabel = String(item.type || "Update").trim() || "Update";
+            const isAnnouncement = /announcement|news|update/i.test(typeLabel);
+            return (
+              <article
+                key={`${item.title}-${idx}`}
+                className={`homepage-update-card ${isAnnouncement ? "announcement" : "event"}`}
+              >
+                <div className="homepage-update-card__top">
+                  <span className="homepage-update-card__badge">{typeLabel}</span>
+                  <span className="homepage-update-card__meta">{item.meta || "Details coming soon"}</span>
+                </div>
+                <h3>{item.title || "Homepage update"}</h3>
+                <p>
+                  {isAnnouncement
+                    ? "Important ministry update curated for the main homepage audience."
+                    : "Featured programme spotlight curated for the main homepage audience."}
+                </p>
+              </article>
+            );
+          })}
         </div>
       </section>
 
