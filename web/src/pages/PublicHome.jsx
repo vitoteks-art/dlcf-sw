@@ -112,7 +112,7 @@ const normalizeContent = (input) => ({
   finalCta: { ...defaultMainHomeContent.finalCta, ...((input || {}).finalCta || {}) },
 });
 
-export default function PublicHome({ states, user }) {
+export default function PublicHome({ states, stateSummaries, user }) {
   const arms = [
     { title: "Students", desc: "Campus fellowships, training, and discipleship for students." },
     { title: "Staff", desc: "Workplace fellowship and mentoring for staff members." },
@@ -147,245 +147,249 @@ export default function PublicHome({ states, user }) {
   const featuredStateMedia = useMemo(() => stateMediaItems.slice(0, 3), [stateMediaItems]);
   const featuredStatePublications = useMemo(() => statePublicationItems.slice(0, 3), [statePublicationItems]);
   const content = useMemo(() => normalizeContent(mainHomeContent), [mainHomeContent]);
-  const heroStyle = content.hero.backgroundImageUrl
-    ? { backgroundImage: `linear-gradient(90deg, rgba(7, 11, 19, 0.94) 0%, rgba(7, 11, 19, 0.72) 46%, rgba(7, 11, 19, 0.26) 100%), url(${content.hero.backgroundImageUrl})` }
-    : undefined;
+  const dashboardItems = content.eventsAnnouncements.items || [];
+  const dashboardEvents = dashboardItems.filter((item) => !/announcement|news|update/i.test(String(item.type || ""))).slice(0, 2);
+  const dashboardAnnouncements = dashboardItems.filter((item) => /announcement|news|update/i.test(String(item.type || ""))).slice(0, 3);
+  const dashboardStates = (Array.isArray(states) ? states : []).slice(0, 5).map((state) => {
+    const stateName = typeof state === "string" ? state : state?.name || state;
+    const stateSlug = slugifyState(typeof state === "string" ? state : state?.slug || state?.name || state);
+    const summary = Array.isArray(stateSummaries)
+      ? stateSummaries.find((entry) => slugifyState(entry?.state || entry?.name || "") === stateSlug)
+      : null;
+    return { name: stateName, slug: stateSlug, campuses: summary?.campus_count || summary?.campuses || null };
+  });
 
   return (
-    <div className="public-home public-home-premium">
+    <div className="public-home">
       <SEO title="Home" description="Deeper Life Campus Fellowship - Inspiring Leadership. Raising disciples through worship, the word, and authentic community." />
       <PublicNav user={user} />
 
-      <section className="public-hero home-hero premium-home-hero" style={heroStyle}>
-        <div className="premium-home-hero__backdrop" />
-        <div className="premium-home-hero__grid">
-          <div className="public-hero-content premium-home-hero__copy">
-            <p className="public-kicker">{content.hero.kicker}</p>
+      <section
+        className="public-hero home-hero home-hero-refined"
+        style={content.hero.backgroundImageUrl ? { backgroundImage: `linear-gradient(90deg, rgba(4, 10, 18, 0.98) 0%, rgba(4, 10, 18, 0.9) 34%, rgba(7, 15, 25, 0.52) 56%, rgba(7, 15, 25, 0.16) 100%), url(${content.hero.backgroundImageUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+      >
+        <div className="home-hero-refined__inner">
+          <div className="public-hero-content home-hero-refined__content">
+            <p className="public-kicker home-hero-refined__kicker">{content.hero.kicker}</p>
             <h1>
               {content.hero.title} <span>{content.hero.highlight}</span>
             </h1>
             <p>{stripHtml(content.hero.body)}</p>
-            <div className="public-cta-row">
+            <div className="public-cta-row home-hero-refined__actions">
               <a className="public-btn primary" href={content.hero.primaryCtaUrl || "#cta"}>{content.hero.primaryCtaLabel || "Join Us"}</a>
               <a className="public-btn ghost" href={content.hero.secondaryCtaUrl || "#events"}>{content.hero.secondaryCtaLabel || "Upcoming Events"}</a>
             </div>
-            <div className="public-meta premium-home-hero__meta">
+            <div className="public-meta home-hero-refined__meta">
               <span>{content.hero.metaPrimary}</span>
               <span>{content.hero.metaSecondary}</span>
-            </div>
-          </div>
-          <div className="premium-home-hero__panel">
-            <div className="premium-home-hero__card premium-home-hero__card--feature">
-              <span className="premium-home-hero__eyebrow">Featured focus</span>
-              <h3>{content.eventsAnnouncements.items?.[0]?.title || "State Congress Preparation"}</h3>
-              <p>{content.eventsAnnouncements.items?.[0]?.meta || "Curated flagship programme spotlight"}</p>
-            </div>
-            <div className="premium-home-hero__card premium-home-hero__card--stat">
-              <strong>13 States</strong>
-              <span>Connected fellowship network across campuses and cities</span>
             </div>
           </div>
         </div>
       </section>
 
-      <main className="premium-home-main">
-        <section className="public-section premium-home-section premium-home-section--about">
-          <div className="premium-home-about">
-            <div className="premium-home-about__media">
-              <div className="about-frame premium-frame-card">
-                <img src={content.about.imageUrl || "/hero-image.jpg"} alt="DLCF South West leadership" />
-              </div>
-            </div>
-            <div className="about-content premium-home-about__copy">
-              <p className="section-kicker">{content.about.label}</p>
-              <h2>{content.about.title}</h2>
-              <p>{stripHtml(content.about.body)}</p>
-              <div className="about-pill-row">
-                {(content.about.pills || []).filter(Boolean).map((pill) => <span key={pill}>{pill}</span>)}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="public-section premium-home-section premium-home-section--media-callout">
-          <div className="premium-media-callout">
+      <section className="hero-values-band" aria-label="Core values">
+        <div className="hero-values-band__inner">
+          <article className="hero-value-item">
+            <span className="hero-value-item__icon">✚</span>
             <div>
-              <p className="media-cta-kicker">{content.mediaSpotlight.label}</p>
-              <h2>{content.mediaSpotlight.title}</h2>
-              <p>{stripHtml(content.mediaSpotlight.body)}</p>
+              <h3>Christ-Centred</h3>
+              <p>We are rooted in the Word and led by the Spirit.</p>
             </div>
-            <div className="public-cta-row premium-home-cta-row">
-              <Link className="public-btn bright" to={content.mediaSpotlight.ctaPrimaryUrl || "/media"}>{content.mediaSpotlight.ctaPrimaryLabel || "Get Started"}</Link>
-              {content.mediaSpotlight.ctaSecondaryLabel ? <Link className="public-btn ghost" to={content.mediaSpotlight.ctaSecondaryUrl || "/publications"}>{content.mediaSpotlight.ctaSecondaryLabel}</Link> : null}
-            </div>
-          </div>
-        </section>
-
-        <section className="public-section premium-home-section premium-home-section--content-grid">
-          <div className="section-head premium-section-head">
+          </article>
+          <article className="hero-value-item">
+            <span className="hero-value-item__icon">👥</span>
             <div>
-              <p className="section-kicker">Media &amp; Publications</p>
-              <h2>Latest uploads</h2>
+              <h3>Campus Focused</h3>
+              <p>Reaching every campus, transforming every student.</p>
             </div>
-            <div className="preview-actions">
-              <Link to="/media">Media Library</Link>
-              <Link to="/publications">Publications</Link>
-            </div>
-          </div>
-          <div className="premium-media-columns">
-            <div className="media-preview-card premium-surface-card">
-              <div className="preview-head"><h3>Media</h3><p className="lede">Audio &amp; video messages.</p></div>
-              <div className="preview-list">
-                {featuredMedia.length === 0 ? <p className="lede">New media coming soon.</p> : featuredMedia.map((item) => (
-                  <a key={item.id} className="preview-item" href={item.source_url} target="_blank" rel="noreferrer"><div><h4>{item.title}</h4><p>{item.speaker || item.series || item.media_type}</p></div><span className="preview-pill">{item.media_type}</span></a>
-                ))}
-              </div>
-            </div>
-            <div className="media-preview-card premium-surface-card">
-              <div className="preview-head"><h3>Publications</h3><p className="lede">Manuals, outlines, and resources.</p></div>
-              <div className="preview-list">
-                {featuredPublications.length === 0 ? <p className="lede">New publications coming soon.</p> : featuredPublications.map((item) => (
-                  <a key={item.id} className="preview-item" href={item.file_url} target="_blank" rel="noreferrer"><div><h4>{item.title}</h4><p>{item.publication_type}</p></div><span className="preview-pill">PDF</span></a>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="public-section premium-home-section premium-home-section--states">
-          <div className="section-head premium-section-head">
+          </article>
+          <article className="hero-value-item">
+            <span className="hero-value-item__icon">◎</span>
             <div>
-              <p className="section-kicker">{content.statesHighlight.label}</p>
-              <h2>{content.statesHighlight.title}</h2>
-              <p className="lede">{stripHtml(content.statesHighlight.body)}</p>
+              <h3>Kingdom Impact</h3>
+              <p>Raising leaders who will transform society.</p>
             </div>
-            <div className="preview-actions"><Link to="/states">Browse States</Link></div>
+          </article>
+          <article className="hero-value-item">
+            <span className="hero-value-item__icon">❤</span>
+            <div>
+              <h3>Love in Action</h3>
+              <p>Demonstrating Christ’s love on and off our campuses.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="public-section about-intro">
+        <div className="about-media">
+          <div className="about-frame">
+            <img src={content.about.imageUrl || "/hero-image.jpg"} alt="DLCF South West leadership" />
           </div>
-          <div className="premium-state-feature-grid">
-            <div className="premium-state-feed premium-surface-card">
-              <div className="preview-head"><h3>State Media</h3><p className="lede">Recent media across all states.</p></div>
-              <div className="preview-list">
-                {featuredStateMedia.length === 0 ? <p className="lede">No state media yet.</p> : featuredStateMedia.map((item) => {
-                  const stateSlug = slugifyState(item.state || "");
-                  const target = stateSlug ? `/${stateSlug}/media/${item.id}` : "/states";
-                  return <Link key={item.id} className="preview-item" to={target}><div><h4>{item.title}</h4><p>{item.state || "State"}</p></div><span className="preview-pill">{item.media_type}</span></Link>;
-                })}
-              </div>
-            </div>
-            <div className="premium-state-feed premium-surface-card">
-              <div className="preview-head"><h3>State Publications</h3><p className="lede">Recent publications across all states.</p></div>
-              <div className="preview-list">
-                {featuredStatePublications.length === 0 ? <p className="lede">No state publications yet.</p> : featuredStatePublications.map((item) => {
-                  const stateSlug = slugifyState(item.state || "");
-                  const target = stateSlug ? `/${stateSlug}/publications/${item.id}` : "/states";
-                  return <Link key={item.id} className="preview-item" to={target}><div><h4>{item.title}</h4><p>{item.state || "State"}</p></div><span className="preview-pill">PDF</span></Link>;
-                })}
-              </div>
-            </div>
+          <span className="about-orb orb-top" />
+          <span className="about-orb orb-bottom" />
+        </div>
+        <div className="about-content">
+          <p className="section-kicker">{content.about.label}</p>
+          <h2>{content.about.title}</h2>
+          <p>{stripHtml(content.about.body)}</p>
+          <div className="about-pill-row">
+            {(content.about.pills || []).filter(Boolean).map((pill) => <span key={pill}>{pill}</span>)}
           </div>
-          {Array.isArray(content.statesHighlight.cards) && content.statesHighlight.cards.length > 0 ? (
-            <div className="premium-highlight-cards">
-              {content.statesHighlight.cards.map((card, idx) => (
-                <div key={`${card.title}-${idx}`} className="premium-highlight-card">
-                  <span className="premium-highlight-card__eyebrow">Highlight</span>
-                  <h3>{card.title || "Highlight"}</h3>
-                  <p>{stripHtml(card.body)}</p>
-                  <Link to={card.ctaUrl || "/states"}>{card.ctaLabel || "Explore"}</Link>
+        </div>
+      </section>
+
+      <section className="public-section homepage-dashboard">
+        <div className="homepage-dashboard__grid">
+          <article className="homepage-dashboard__panel">
+            <div className="homepage-dashboard__head">
+              <h3>Featured Events</h3>
+              <Link to="/events">View All</Link>
+            </div>
+            <div className="homepage-dashboard__list">
+              {dashboardEvents.length === 0 ? <p className="homepage-dashboard__empty">Featured events will appear here.</p> : dashboardEvents.map((item, idx) => (
+                <div key={`${item.title}-${idx}`} className="homepage-dashboard__event-item">
+                  <div className="homepage-dashboard__thumb" />
+                  <div>
+                    <strong>{item.title}</strong>
+                    <p>{item.meta || "Upcoming event"}</p>
+                  </div>
                 </div>
               ))}
             </div>
-          ) : null}
-        </section>
+          </article>
 
-        <section id="events" className="public-section premium-home-section premium-home-section--updates">
-          <div className="section-head premium-section-head">
-            <div>
-              <p className="section-kicker">{content.eventsAnnouncements.label}</p>
-              <h2>{content.eventsAnnouncements.title}</h2>
-              <p className="lede">{stripHtml(content.eventsAnnouncements.body)}</p>
+          <article className="homepage-dashboard__panel">
+            <div className="homepage-dashboard__head">
+              <h3>Announcements</h3>
+              <Link to="/events">View All</Link>
             </div>
-            <Link to="/events">View All Events</Link>
-          </div>
-          <div className="homepage-updates-grid premium-homepage-updates-grid">
-            {(content.eventsAnnouncements.items || []).map((item, idx) => {
-              const typeLabel = String(item.type || "Update").trim() || "Update";
-              const isAnnouncement = /announcement|news|update/i.test(typeLabel);
-              return (
-                <article
-                  key={`${item.title}-${idx}`}
-                  className={`homepage-update-card premium-homepage-update-card ${isAnnouncement ? "announcement" : "event"}`}
-                >
-                  <div className="homepage-update-card__top">
-                    <span className="homepage-update-card__badge">{typeLabel}</span>
-                    <span className="homepage-update-card__meta">{item.meta || "Details coming soon"}</span>
+            <div className="homepage-dashboard__list homepage-dashboard__list--compact">
+              {dashboardAnnouncements.length === 0 ? <p className="homepage-dashboard__empty">Announcements will appear here.</p> : dashboardAnnouncements.map((item, idx) => (
+                <div key={`${item.title}-${idx}`} className="homepage-dashboard__bullet-item">
+                  <span className="homepage-dashboard__bullet" />
+                  <div>
+                    <strong>{item.title}</strong>
+                    <p>{item.meta || "Latest update"}</p>
                   </div>
-                  <h3>{item.title || "Homepage update"}</h3>
-                  <p>
-                    {isAnnouncement
-                      ? "Important ministry update curated for the main homepage audience."
-                      : "Featured programme spotlight curated for the main homepage audience."}
-                  </p>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        <section id="arms" className="public-section premium-home-section premium-home-section--arms">
-          <div className="section-head premium-section-head">
-            <div>
-              <p className="section-kicker">DLCF Arms</p>
-              <h2>Students, Staff, and Corps Members</h2>
+                </div>
+              ))}
             </div>
-          </div>
-          <div className="arms-grid premium-arms-grid">
-            {arms.map((arm) => (
-              <div key={arm.title} className="arms-card premium-arm-card"><div className="arms-icon">{arm.title.charAt(0)}</div><h3>{arm.title}</h3><p>{arm.desc}</p><Link to="/states">Learn more</Link></div>
-            ))}
-          </div>
-        </section>
+          </article>
 
-        <section id="our-mentor" className="public-section premium-home-section mentor-section premium-mentor-section">
-          <div className="mentor-grid premium-mentor-grid">
-            <div className="mentor-copy premium-mentor-copy">
-              <p className="section-kicker">{content.mentor.label}</p>
-              <h2>{content.mentor.title}</h2>
-              <p>{stripHtml(content.mentor.body)}</p>
-              {content.mentor.quote ? <p><em>{content.mentor.quote}</em></p> : null}
+          <article className="homepage-dashboard__panel">
+            <div className="homepage-dashboard__head">
+              <h3>Mentor Spotlight</h3>
+              <Link to="/about#our-mentor">View All</Link>
             </div>
-            <div className="mentor-media premium-mentor-media">
-              <div className="mentor-frame premium-frame-card"><img src={content.mentor.imageUrl || "/src/assets/gs.png"} alt="General Superintendent" /></div>
-              <div className="mentor-caption">General Superintendent (GS)</div>
+            <div className="homepage-dashboard__mentor">
+              <img src={content.mentor.imageUrl || "/src/assets/gs.png"} alt="Mentor spotlight" />
+              <div>
+                <strong>{content.mentor.title}</strong>
+                <span>{content.mentor.label || "DLCF South West Mentor"}</span>
+                <p>{stripHtml(content.mentor.body).slice(0, 120)}...</p>
+              </div>
             </div>
-          </div>
-        </section>
+          </article>
 
-        <section id="states" className="public-section premium-home-section premium-home-section--states-directory">
-          <div className="section-head premium-section-head">
-            <div>
-              <p className="section-kicker">States Overview</p>
-              <h2>Explore all 13 states</h2>
+          <article className="homepage-dashboard__panel">
+            <div className="homepage-dashboard__head">
+              <h3>State Highlights</h3>
+              <Link to="/states">View All</Link>
             </div>
-          </div>
-          <div className="states-grid premium-states-grid">
-            {states.length === 0 ? <div className="state-tile">No states loaded yet</div> : states.map((state) => {
-              const stateName = typeof state === "string" ? state : state?.name || state;
-              const slugSource = typeof state === "string" ? state : state?.slug || state?.name || state;
-              return <Link to={`/${slugifyState(slugSource)}`} key={stateName} style={{ textDecoration: "none", color: "inherit" }}><div className="state-tile premium-state-tile">{stateName}</div></Link>;
-            })}
-          </div>
-        </section>
+            <div className="homepage-dashboard__list homepage-dashboard__list--compact">
+              {dashboardStates.length === 0 ? <p className="homepage-dashboard__empty">States will appear here.</p> : dashboardStates.map((item) => (
+                <Link key={item.slug || item.name} className="homepage-dashboard__state-item" to={item.slug ? `/${item.slug}` : "/states"}>
+                  <strong>{String(item.name || "State").toUpperCase()}</strong>
+                  <span>{item.campuses ? `${item.campuses} Campuses` : "View State"}</span>
+                </Link>
+              ))}
+            </div>
+          </article>
 
-        <section id="cta" className="public-section callout premium-home-callout">
+          <article className="homepage-dashboard__panel">
+            <div className="homepage-dashboard__head">
+              <h3>Media &amp; Publications</h3>
+              <Link to="/media">View All</Link>
+            </div>
+            <div className="homepage-dashboard__media-feature">
+              {featuredMedia[0] ? <a href={featuredMedia[0].source_url} target="_blank" rel="noreferrer" className="homepage-dashboard__media-card">
+                <div className="homepage-dashboard__media-cover" />
+                <strong>{featuredMedia[0].title}</strong>
+                <p>{featuredMedia[0].speaker || featuredMedia[0].series || featuredMedia[0].media_type}</p>
+              </a> : <p className="homepage-dashboard__empty">Media will appear here.</p>}
+              <div className="homepage-dashboard__mini-resources">
+                {featuredPublications.slice(0, 2).map((item) => (
+                  <a key={item.id} href={item.file_url} target="_blank" rel="noreferrer" className="homepage-dashboard__resource-item">
+                    <div className="homepage-dashboard__resource-cover" />
+                    <div>
+                      <strong>{item.title}</strong>
+                      <p>{item.publication_type || "Publication"}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="homepage-dual-cta">
+        <div className="homepage-dual-cta__inner">
+          <article className="homepage-dual-cta__card">
+            <div className="homepage-dual-cta__icon">◎</div>
+            <div className="homepage-dual-cta__copy">
+              <h3>Get Connected, Get Involved.</h3>
+              <p>There’s a place for you in DLCF South West. Find a fellowship near you and take your next step in your walk with Christ.</p>
+            </div>
+            <Link className="homepage-dual-cta__button" to="/states">Find a Fellowship</Link>
+          </article>
+          <article className="homepage-dual-cta__card">
+            <div className="homepage-dual-cta__icon">❤</div>
+            <div className="homepage-dual-cta__copy">
+              <h3>Partner With Our Mission</h3>
+              <p>Your partnership helps us reach more campuses and raise kingdom leaders across the South West.</p>
+            </div>
+            <Link className="homepage-dual-cta__button" to="/portal">Give Now</Link>
+          </article>
+        </div>
+      </section>
+
+      <section id="arms" className="public-section arms">
+        <p className="section-kicker">DLCF Arms</p>
+        <h2>Students, Staff, and Corps Members</h2>
+        <div className="arms-grid">
+          {arms.map((arm) => (
+            <div key={arm.title} className="arms-card"><div className="arms-icon">{arm.title.charAt(0)}</div><h3>{arm.title}</h3><p>{arm.desc}</p><Link to="/states">Learn more</Link></div>
+          ))}
+        </div>
+      </section>
+
+      <section id="our-mentor" className="public-section mentor-section mentor-section--premium">
+        <div className="mentor-grid mentor-grid--premium">
+          <div className="mentor-media mentor-media--premium">
+            <div className="mentor-frame mentor-frame--premium"><img src={content.mentor.imageUrl || "/src/assets/gs.png"} alt="General Superintendent" /></div>
+            <div className="mentor-caption">General Superintendent (GS)</div>
+          </div>
+          <div className="mentor-copy mentor-copy--premium">
+            <p className="section-kicker">{content.mentor.label}</p>
+            <h2>{content.mentor.title}</h2>
+            <p>{stripHtml(content.mentor.body)}</p>
+            {content.mentor.quote ? <p className="mentor-quote"><em>{content.mentor.quote}</em></p> : null}
+          </div>
+        </div>
+      </section>
+
+      <section id="cta" className="public-section callout callout--premium">
+        <div className="callout__inner">
           <p className="section-kicker">{content.finalCta.label}</p>
           <h2>{content.finalCta.title}</h2>
           <p>{stripHtml(content.finalCta.body)}</p>
-          <div className="public-cta-row premium-home-cta-row">
+          <div className="public-cta-row callout__actions">
             <Link className="public-btn primary" to={content.finalCta.primaryUrl || "/states"}>{content.finalCta.primaryLabel || "Find Your State"}</Link>
             {content.finalCta.secondaryLabel ? <Link className="public-btn ghost" to={content.finalCta.secondaryUrl || "/media"}>{content.finalCta.secondaryLabel}</Link> : null}
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
       <PublicFooter />
     </div>
