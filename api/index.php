@@ -79,6 +79,12 @@ function can_manage_publications(array $user): bool
     return in_array($user['role'], ['administrator'], true) || user_has_work_unit($user, 'Publication Team');
 }
 
+function can_manage_giving(array $user): bool
+{
+    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin'], true)
+        || user_has_work_unit($user, 'Publication Team');
+}
+
 function can_manage_state_gallery(array $user): bool
 {
     return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin'], true);
@@ -937,6 +943,62 @@ if ($path === '/' || $path === '/health') {
 if ($path === '/csrf') {
     $_SESSION['csrf'] = bin2hex(random_bytes(16));
     json_ok(['token' => $_SESSION['csrf']]);
+}
+
+if ($path === '/contact-captcha') {
+    require_method('GET');
+    $a = random_int(1, 9);
+    $b = random_int(1, 9);
+    $_SESSION['contact_captcha_answer'] = (string) ($a + $b);
+    $_SESSION['contact_captcha_question'] = "What is {$a} + {$b}?";
+    json_ok(['question' => $_SESSION['contact_captcha_question']]);
+}
+
+if ($path === '/contact-submit') {
+    require_method('POST');
+    require_csrf();
+    $payload = read_json();
+
+    $name = trim($payload['name'] ?? '');
+    $email = trim($payload['email'] ?? '');
+    $subjectLine = trim($payload['subject'] ?? '');
+    $messageBody = trim($payload['message'] ?? '');
+    $captchaAnswer = trim((string) ($payload['captcha_answer'] ?? ''));
+
+    if ($name === '' || $email === '' || $subjectLine === '' || $messageBody === '' || $captchaAnswer === '') {
+        json_error('Name, email, subject, message, and captcha answer are required', 422);
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        json_error('A valid email address is required', 422);
+    }
+
+    $expectedAnswer = (string) ($_SESSION['contact_captcha_answer'] ?? '');
+    if ($expectedAnswer === '' || !hash_equals($expectedAnswer, $captchaAnswer)) {
+        json_error('Incorrect captcha answer', 422);
+    }
+
+    unset($_SESSION['contact_captcha_answer'], $_SESSION['contact_captcha_question']);
+
+    $to = 'info@dlcfsw.org.ng';
+    $subject = 'DLCF Contact Form: ' . $subjectLine;
+    $safeName = str_replace(["\r", "\n"], ' ', $name);
+    $safeEmail = str_replace(["\r", "\n"], '', $email);
+    $message = "New contact form submission from DLCF website\n\n"
+        . "Name: {$safeName}\n"
+        . "Email: {$safeEmail}\n"
+        . "Subject: {$subjectLine}\n\n"
+        . "Message:\n{$messageBody}\n";
+    $headers = "From: noreply@dlcfsw.org.ng\r\n"
+        . "Reply-To: {$safeEmail}\r\n"
+        . "Content-Type: text/plain; charset=UTF-8";
+
+    $sent = @mail($to, $subject, $message, $headers);
+    if (!$sent) {
+        json_error('Unable to send message right now. Please try again later.', 500);
+    }
+
+    json_ok(['message' => 'Your message has been sent successfully.']);
 }
 
 if ($path === '/meta/states') {
@@ -2382,6 +2444,43 @@ if ($path === '/media-items') {
     json_ok(['items' => $rows]);
 }
 
+if ($path === '/giving-campaigns') {
+    require_method('GET');
+    $state = trim($_GET['state'] ?? '');
+    $scope = trim($_GET['scope'] ?? '');
+    $campaignType = trim($_GET['campaign_type'] ?? '');
+    $urgent = trim($_GET['urgent'] ?? '');
+    $sql = 'SELECT id, title, slug, summary, description_html, campaign_type, cover_image_url,
+                   target_amount, amount_raised, beneficiary_name, payment_details, deadline,
+                   is_urgent, scope, state, status, published_at, created_at
+            FROM giving_campaigns WHERE status = "published"';
+    $types = '';
+    $params = [];
+    if ($state !== '') {
+        $sql .= ' AND (scope = "zonal" OR (scope = "state" AND state = ?))';
+        $types .= 's';
+        $params[] = $state;
+    }
+    if ($scope !== '' && in_array($scope, ['zonal', 'state'], true)) {
+        $sql .= ' AND scope = ?';
+        $types .= 's';
+        $params[] = $scope;
+    }
+    if ($campaignType !== '') {
+        $sql .= ' AND campaign_type = ?';
+        $types .= 's';
+        $params[] = $campaignType;
+    }
+    if ($urgent === '1') {
+        $sql .= ' AND is_urgent = 1';
+    }
+    $sql .= ' ORDER BY is_urgent DESC, CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC, deadline ASC, id DESC';
+    $stmt = db_prepare($db, $sql, $types, $params);
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    json_ok(['items' => $rows]);
+}
+
 if ($path === '/publication-items') {
     require_method('GET');
     $state = trim($_GET['state'] ?? '');
@@ -2416,6 +2515,26 @@ if (preg_match('#^/media-items/(\\d+)$#', $path, $matches)) {
         'SELECT id, title, description, speaker, series, media_type, source_url, thumbnail_url,
                 duration_seconds, event_date, tags, scope, state, status, published_at
          FROM media_items WHERE id = ? AND status = "published" LIMIT 1',
+        'i',
+        [$id]
+    );
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    if (empty($rows)) {
+        json_error('Not found', 404);
+    }
+    json_ok(['item' => $rows[0]]);
+}
+
+if (preg_match('#^/giving-campaigns/(\\d+)$#', $path, $matches)) {
+    require_method('GET');
+    $id = (int) $matches[1];
+    $stmt = db_prepare(
+        $db,
+        'SELECT id, title, slug, summary, description_html, campaign_type, cover_image_url,
+                target_amount, amount_raised, beneficiary_name, payment_details, deadline,
+                is_urgent, scope, state, status, published_at
+         FROM giving_campaigns WHERE id = ? AND status = "published" LIMIT 1',
         'i',
         [$id]
     );
@@ -2791,6 +2910,197 @@ if (preg_match('#^/admin/state-gallery-items/(\\d+)$#', $path, $matches)) {
         $stmt = db_prepare($db, 'DELETE FROM state_gallery_items WHERE id = ?', 'i', [$id]);
         $stmt->execute();
         json_ok(['message' => 'State gallery item deleted']);
+    }
+}
+
+if ($path === '/admin/giving-campaigns') {
+    $user = require_auth();
+    $user = current_user();
+    if (!can_manage_giving($user) && !can_publish_media($user)) {
+        json_error('Forbidden', 403);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        $state = trim($_GET['state'] ?? '');
+        $status = trim($_GET['status'] ?? '');
+        $sql = 'SELECT id, title, slug, summary, description_html, campaign_type, cover_image_url,
+                       target_amount, amount_raised, beneficiary_name, payment_details, deadline,
+                       is_urgent, scope, state, status, published_at, created_at, updated_at
+                FROM giving_campaigns WHERE 1=1';
+        $types = '';
+        $params = [];
+        if ($state !== '') {
+            $sql .= ' AND state = ?';
+            $types .= 's';
+            $params[] = $state;
+        }
+        if ($status !== '') {
+            $sql .= ' AND status = ?';
+            $types .= 's';
+            $params[] = $status;
+        }
+        $sql .= ' ORDER BY is_urgent DESC, CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC, deadline ASC, id DESC';
+        $stmt = db_prepare($db, $sql, $types, $params);
+        $stmt->execute();
+        $rows = db_fetch_all($stmt);
+        json_ok(['items' => $rows]);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!can_manage_giving($user)) {
+            json_error('Forbidden', 403);
+        }
+        require_csrf();
+        $payload = read_json();
+        $title = trim($payload['title'] ?? '');
+        $slug = trim($payload['slug'] ?? '');
+        $summary = trim($payload['summary'] ?? '');
+        $descriptionHtml = trim($payload['description_html'] ?? '');
+        $campaignType = trim($payload['campaign_type'] ?? '');
+        $coverImageUrl = trim($payload['cover_image_url'] ?? '');
+        $targetAmount = (float) ($payload['target_amount'] ?? 0);
+        $amountRaised = (float) ($payload['amount_raised'] ?? 0);
+        $beneficiaryName = trim($payload['beneficiary_name'] ?? '');
+        $paymentDetails = trim($payload['payment_details'] ?? '');
+        $deadline = $payload['deadline'] ?? null;
+        $isUrgent = !empty($payload['is_urgent']) ? 1 : 0;
+        $scope = trim($payload['scope'] ?? 'zonal');
+        $state = trim($payload['state'] ?? '');
+        $status = trim($payload['status'] ?? 'draft');
+
+        if ($title === '' || $campaignType === '') {
+            json_error('title and campaign_type are required', 422);
+        }
+        if (!in_array($scope, ['zonal', 'state'], true)) {
+            json_error('Invalid scope', 422);
+        }
+        if ($scope === 'state' && $state === '') {
+            json_error('State is required for state scope', 422);
+        }
+        if (!in_array($status, ['draft', 'published', 'paused', 'completed'], true)) {
+            json_error('Invalid status', 422);
+        }
+        if ($status === 'published' && !can_publish_media($user)) {
+            json_error('Forbidden', 403);
+        }
+        $publishedAt = $status === 'published' ? date('Y-m-d H:i:s') : null;
+
+        $stmt = db_prepare(
+            $db,
+            'INSERT INTO giving_campaigns
+             (title, slug, summary, description_html, campaign_type, cover_image_url, target_amount, amount_raised,
+              beneficiary_name, payment_details, deadline, is_urgent, scope, state, status, published_at, created_by, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            'ssssssddsssissssi',
+            [
+                $title,
+                $slug !== '' ? $slug : null,
+                $summary !== '' ? $summary : null,
+                $descriptionHtml !== '' ? $descriptionHtml : null,
+                $campaignType,
+                $coverImageUrl !== '' ? $coverImageUrl : null,
+                $targetAmount,
+                $amountRaised,
+                $beneficiaryName !== '' ? $beneficiaryName : null,
+                $paymentDetails !== '' ? $paymentDetails : null,
+                $deadline !== '' ? $deadline : null,
+                $isUrgent,
+                $scope,
+                $state !== '' ? $state : null,
+                $status,
+                $publishedAt,
+                $user['id'],
+            ]
+        );
+        $stmt->execute();
+        json_ok(['id' => $db->insert_id], 201);
+    }
+}
+
+if (preg_match('#^/admin/giving-campaigns/(\\d+)$#', $path, $matches)) {
+    $user = require_auth();
+    $user = current_user();
+    if (!can_manage_giving($user) && !can_publish_media($user)) {
+        json_error('Forbidden', 403);
+    }
+    $id = (int) $matches[1];
+    if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+        if (!can_manage_giving($user)) {
+            json_error('Forbidden', 403);
+        }
+        require_csrf();
+        $payload = read_json();
+        $title = trim($payload['title'] ?? '');
+        $slug = trim($payload['slug'] ?? '');
+        $summary = trim($payload['summary'] ?? '');
+        $descriptionHtml = trim($payload['description_html'] ?? '');
+        $campaignType = trim($payload['campaign_type'] ?? '');
+        $coverImageUrl = trim($payload['cover_image_url'] ?? '');
+        $targetAmount = (float) ($payload['target_amount'] ?? 0);
+        $amountRaised = (float) ($payload['amount_raised'] ?? 0);
+        $beneficiaryName = trim($payload['beneficiary_name'] ?? '');
+        $paymentDetails = trim($payload['payment_details'] ?? '');
+        $deadline = $payload['deadline'] ?? null;
+        $isUrgent = !empty($payload['is_urgent']) ? 1 : 0;
+        $scope = trim($payload['scope'] ?? 'zonal');
+        $state = trim($payload['state'] ?? '');
+        $status = trim($payload['status'] ?? 'draft');
+
+        if ($title === '' || $campaignType === '') {
+            json_error('title and campaign_type are required', 422);
+        }
+        if (!in_array($scope, ['zonal', 'state'], true)) {
+            json_error('Invalid scope', 422);
+        }
+        if ($scope === 'state' && $state === '') {
+            json_error('State is required for state scope', 422);
+        }
+        if (!in_array($status, ['draft', 'published', 'paused', 'completed'], true)) {
+            json_error('Invalid status', 422);
+        }
+        if ($status === 'published' && !can_publish_media($user)) {
+            json_error('Forbidden', 403);
+        }
+        $publishedAt = $status === 'published' ? date('Y-m-d H:i:s') : null;
+
+        $stmt = db_prepare(
+            $db,
+            'UPDATE giving_campaigns
+             SET title = ?, slug = ?, summary = ?, description_html = ?, campaign_type = ?, cover_image_url = ?, target_amount = ?,
+                 amount_raised = ?, beneficiary_name = ?, payment_details = ?, deadline = ?, is_urgent = ?, scope = ?, state = ?,
+                 status = ?, published_at = ?, updated_by = ?, updated_at = NOW()
+             WHERE id = ?',
+            'ssssssddsssissssii',
+            [
+                $title,
+                $slug !== '' ? $slug : null,
+                $summary !== '' ? $summary : null,
+                $descriptionHtml !== '' ? $descriptionHtml : null,
+                $campaignType,
+                $coverImageUrl !== '' ? $coverImageUrl : null,
+                $targetAmount,
+                $amountRaised,
+                $beneficiaryName !== '' ? $beneficiaryName : null,
+                $paymentDetails !== '' ? $paymentDetails : null,
+                $deadline !== '' ? $deadline : null,
+                $isUrgent,
+                $scope,
+                $state !== '' ? $state : null,
+                $status,
+                $publishedAt,
+                $user['id'],
+                $id,
+            ]
+        );
+        $stmt->execute();
+        json_ok(['message' => 'Giving campaign updated']);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+        if (!can_manage_giving($user)) {
+            json_error('Forbidden', 403);
+        }
+        require_csrf();
+        $stmt = db_prepare($db, 'DELETE FROM giving_campaigns WHERE id = ?', 'i', [$id]);
+        $stmt->execute();
+        json_ok(['message' => 'Giving campaign deleted']);
     }
 }
 

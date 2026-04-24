@@ -770,7 +770,12 @@ function App() {
     user &&
     (user.role === "administrator" ||
       userWorkUnits.includes("Publication Team"));
-  const canManageGiving = canManagePublications;
+  const canManageGiving =
+    user &&
+    (
+      ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin"].includes(user.role) ||
+      userWorkUnits.includes("Publication Team")
+    );
   const canManageStateGallery =
     user &&
     ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin"].includes(user.role);
