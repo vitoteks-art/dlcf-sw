@@ -1,5 +1,49 @@
 # RELEASE NOTES
 
+## GIVING-FEATURED-HOMEPAGE
+
+### Summary
+Extended the DLCF-SW giving system so featured campaigns can appear on homepage surfaces by scope.
+
+### Included
+- Added `is_featured` support for giving campaigns
+- Added admin `Feature on homepage` toggle in Giving manager
+- Added featured zonal giving section to main homepage
+- Added featured state giving section to state homepages
+- Added featured zonal giving section to state homepages
+- Kept `/give` as the full zonal giving listing
+- Kept `/:stateSlug/give` as the full state giving listing
+- Preserved `urgent` as a separate priority badge/ordering signal
+
+### Files Added / Updated
+- `api/index.php`
+- `scripts/schema.sql`
+- `scripts/migrations/20260423_giving_campaigns.sql`
+- `scripts/migrations/20260424_giving_featured_homepage.sql`
+- `web/src/components/FeaturedGivingCard.jsx`
+- `web/src/components/admin/AdminGiving.jsx`
+- `web/src/pages/PublicHome.jsx`
+- `web/src/pages/StateDetailPage.jsx`
+- `web/src/App.css`
+- `docs/PLAN-GIVING-FEATURED-HOMEPAGE.md`
+- `docs/UI-GIVING-FEATURED-HOMEPAGE.md`
+- `docs/RUNBOOK.md`
+
+### Validation
+- `php -l api/index.php` passed
+- `cd web && npm run build` passed
+
+### Known Limits
+- Existing large frontend chunk warning remains non-blocking
+- Homepage sections only show campaigns that are both `published` and `featured`
+- State homepages show zonal featured campaigns in addition to matching state featured campaigns
+
+### Commits
+- `9fd09cd` - `Add featured giving homepage plan and UI spec`
+- `59196dd` - `Implement featured giving homepage flow`
+
+---
+
 ## STATE-GALLERY-ADMIN
 
 ### Summary
