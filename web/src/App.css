@@ -5274,6 +5274,66 @@ button:disabled {
   box-shadow: 0 14px 24px rgba(26, 13, 118, 0.35);
 }
 
+@media (max-width: 900px) {
+  .state-public-header {
+    height: auto;
+    min-height: var(--nav-height);
+    padding: 10px 0;
+  }
+
+  .header-container {
+    padding: 0 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .public-links {
+    order: 3;
+    width: 100%;
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .public-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .state-public-header .public-link-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-size: 0.88rem;
+  }
+
+  .watch-live-btn {
+    padding: 10px 16px;
+    border-radius: 14px;
+    font-size: 0.88rem;
+  }
+
+  .brand-mark {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+
+  .brand-mark img {
+    width: 26px;
+    height: 26px;
+  }
+
+  .brand-text .brand-title {
+    font-size: 0.92rem;
+  }
+
+  .brand-text .brand-sub {
+    letter-spacing: 0.22em;
+    font-size: 0.68rem;
+  }
+}
+
 /* --- GOSPEL LIBRARY PAGE STYLES --- */
 .gospel-library-page {
   background: #ffffff;

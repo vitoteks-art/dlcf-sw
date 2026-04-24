@@ -679,7 +679,7 @@
 
   .state-ref-section,
   .state-ref-hero {
-    padding: 72px 0;
+    padding: 64px 0;
   }
 
   .state-ref-actions,
@@ -700,15 +700,134 @@
   }
 
   .state-ref-hero__copy h1 {
-    font-size: 3rem;
+    font-size: 2.4rem;
+    line-height: 1.12;
+  }
+
+  .state-ref-hero__copy p,
+  .state-ref-bento__intro p,
+  .state-ref-sectionHead p,
+  .state-ref-community__copy p,
+  .state-ref-ctaBand p {
+    font-size: 0.98rem;
+    line-height: 1.75;
+  }
+
+  .state-ref-btn {
+    width: 100%;
+    padding: 16px 20px;
+  }
+
+  .state-ref-actionCard,
+  .state-ref-leadershipCard__body,
+  .state-ref-messageCard__body,
+  .state-ref-resourceCard__body,
+  .state-ref-infoCard {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .state-ref-eventCard__body,
+  .state-ref-galleryCard__caption,
+  .state-ref-contactMini,
+  .state-ref-communityItem {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 
   .state-ref-hero__imageCard img {
     height: 420px;
   }
 
+  .state-ref-hero__imageCard,
+  .state-ref-bento__image .state-ref-hero__imageCard {
+    transform: none;
+    border-radius: 24px;
+  }
+
+  .state-ref-sectionHead--center > div,
+  .state-ref-sectionHead > div {
+    max-width: 100%;
+  }
+
+  .state-ref-moreLink {
+    width: 100%;
+  }
+
+  .state-ref-eventMeta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .state-ref-communityItem {
+    gap: 12px;
+  }
 
   .state-ref-community__map {
     min-height: 300px;
+  }
+}
+
+@media (max-width: 560px) {
+  .state-home-reference .container {
+    padding: 0 16px;
+  }
+
+  .state-ref-section,
+  .state-ref-hero {
+    padding: 52px 0;
+  }
+
+  .state-ref-badge,
+  .section-label {
+    letter-spacing: 0.16em;
+    font-size: 0.68rem;
+  }
+
+  .state-ref-hero__copy h1,
+  .state-ref-bento__intro h2,
+  .state-ref-sectionHead h2,
+  .state-ref-community__copy h2,
+  .state-ref-ctaBand h2 {
+    font-size: 2rem;
+  }
+
+  .state-ref-hero__imageCard img {
+    height: 320px;
+  }
+
+  .state-ref-actionCard,
+  .state-ref-infoCard,
+  .state-ref-communityItem,
+  .state-ref-contactMini,
+  .state-ref-leadershipCard__body,
+  .state-ref-messageCard__body,
+  .state-ref-resourceCard__body,
+  .state-ref-eventCard__body,
+  .state-ref-galleryCard__caption {
+    padding: 16px;
+  }
+
+  .state-ref-actions {
+    gap: 12px;
+  }
+
+  .state-ref-btn {
+    min-height: 52px;
+    border-radius: 14px;
+    font-size: 0.95rem;
+  }
+
+  .state-ref-searchBox {
+    padding: 14px 16px;
+  }
+
+  .state-ref-searchBox input {
+    font-size: 0.95rem;
+  }
+
+  .state-ref-community__map {
+    min-height: 240px;
   }
 }
