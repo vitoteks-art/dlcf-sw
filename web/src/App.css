@@ -671,6 +671,20 @@ button:disabled {
   box-shadow: 0 14px 28px rgba(77, 41, 146, 0.08);
 }
 
+.public-home .publication-card-premium h4,
+.public-home .publication-card-premium .lede,
+.public-home .giving-card-premium h4,
+.public-home .giving-card-premium .lede,
+.public-home .giving-progress-meta,
+.public-home .giving-progress-meta span,
+.public-home .giving-progress-meta strong {
+  color: #231b3a;
+}
+
+.public-home .giving-progress-meta span {
+  color: #5b5670;
+}
+
 .public-home .media-item-header .media-pill {
   background: rgba(111, 44, 255, 0.14);
   color: #4a2bb3;
