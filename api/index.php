@@ -2450,9 +2450,10 @@ if ($path === '/giving-campaigns') {
     $scope = trim($_GET['scope'] ?? '');
     $campaignType = trim($_GET['campaign_type'] ?? '');
     $urgent = trim($_GET['urgent'] ?? '');
+    $featured = trim($_GET['featured'] ?? '');
     $sql = 'SELECT id, title, slug, summary, description_html, campaign_type, cover_image_url,
                    target_amount, amount_raised, beneficiary_name, payment_details, deadline,
-                   is_urgent, scope, state, status, published_at, created_at
+                   is_urgent, is_featured, scope, state, status, published_at, created_at
             FROM giving_campaigns WHERE status = "published"';
     $types = '';
     $params = [];
@@ -2473,6 +2474,9 @@ if ($path === '/giving-campaigns') {
     }
     if ($urgent === '1') {
         $sql .= ' AND is_urgent = 1';
+    }
+    if ($featured === '1') {
+        $sql .= ' AND is_featured = 1';
     }
     $sql .= ' ORDER BY is_urgent DESC, CASE WHEN deadline IS NULL THEN 1 ELSE 0 END ASC, deadline ASC, id DESC';
     $stmt = db_prepare($db, $sql, $types, $params);
@@ -2533,7 +2537,7 @@ if (preg_match('#^/giving-campaigns/(\\d+)$#', $path, $matches)) {
         $db,
         'SELECT id, title, slug, summary, description_html, campaign_type, cover_image_url,
                 target_amount, amount_raised, beneficiary_name, payment_details, deadline,
-                is_urgent, scope, state, status, published_at
+                is_urgent, is_featured, scope, state, status, published_at
          FROM giving_campaigns WHERE id = ? AND status = "published" LIMIT 1',
         'i',
         [$id]
@@ -2924,7 +2928,7 @@ if ($path === '/admin/giving-campaigns') {
         $status = trim($_GET['status'] ?? '');
         $sql = 'SELECT id, title, slug, summary, description_html, campaign_type, cover_image_url,
                        target_amount, amount_raised, beneficiary_name, payment_details, deadline,
-                       is_urgent, scope, state, status, published_at, created_at, updated_at
+                       is_urgent, is_featured, scope, state, status, published_at, created_at, updated_at
                 FROM giving_campaigns WHERE 1=1';
         $types = '';
         $params = [];
@@ -2962,6 +2966,7 @@ if ($path === '/admin/giving-campaigns') {
         $paymentDetails = trim($payload['payment_details'] ?? '');
         $deadline = $payload['deadline'] ?? null;
         $isUrgent = !empty($payload['is_urgent']) ? 1 : 0;
+        $isFeatured = !empty($payload['is_featured']) ? 1 : 0;
         $scope = trim($payload['scope'] ?? 'zonal');
         $state = trim($payload['state'] ?? '');
         $status = trim($payload['status'] ?? 'draft');
@@ -2987,9 +2992,9 @@ if ($path === '/admin/giving-campaigns') {
             $db,
             'INSERT INTO giving_campaigns
              (title, slug, summary, description_html, campaign_type, cover_image_url, target_amount, amount_raised,
-              beneficiary_name, payment_details, deadline, is_urgent, scope, state, status, published_at, created_by, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
-            'ssssssddsssissssi',
+              beneficiary_name, payment_details, deadline, is_urgent, is_featured, scope, state, status, published_at, created_by, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            'ssssssddsssiissssi',
             [
                 $title,
                 $slug !== '' ? $slug : null,
@@ -3003,6 +3008,7 @@ if ($path === '/admin/giving-campaigns') {
                 $paymentDetails !== '' ? $paymentDetails : null,
                 $deadline !== '' ? $deadline : null,
                 $isUrgent,
+                $isFeatured,
                 $scope,
                 $state !== '' ? $state : null,
                 $status,
@@ -3040,6 +3046,7 @@ if (preg_match('#^/admin/giving-campaigns/(\\d+)$#', $path, $matches)) {
         $paymentDetails = trim($payload['payment_details'] ?? '');
         $deadline = $payload['deadline'] ?? null;
         $isUrgent = !empty($payload['is_urgent']) ? 1 : 0;
+        $isFeatured = !empty($payload['is_featured']) ? 1 : 0;
         $scope = trim($payload['scope'] ?? 'zonal');
         $state = trim($payload['state'] ?? '');
         $status = trim($payload['status'] ?? 'draft');
@@ -3065,10 +3072,10 @@ if (preg_match('#^/admin/giving-campaigns/(\\d+)$#', $path, $matches)) {
             $db,
             'UPDATE giving_campaigns
              SET title = ?, slug = ?, summary = ?, description_html = ?, campaign_type = ?, cover_image_url = ?, target_amount = ?,
-                 amount_raised = ?, beneficiary_name = ?, payment_details = ?, deadline = ?, is_urgent = ?, scope = ?, state = ?,
+                 amount_raised = ?, beneficiary_name = ?, payment_details = ?, deadline = ?, is_urgent = ?, is_featured = ?, scope = ?, state = ?,
                  status = ?, published_at = ?, updated_by = ?, updated_at = NOW()
              WHERE id = ?',
-            'ssssssddsssissssii',
+            'ssssssddsssiissssii',
             [
                 $title,
                 $slug !== '' ? $slug : null,
@@ -3082,6 +3089,7 @@ if (preg_match('#^/admin/giving-campaigns/(\\d+)$#', $path, $matches)) {
                 $paymentDetails !== '' ? $paymentDetails : null,
                 $deadline !== '' ? $deadline : null,
                 $isUrgent,
+                $isFeatured,
                 $scope,
                 $state !== '' ? $state : null,
                 $status,

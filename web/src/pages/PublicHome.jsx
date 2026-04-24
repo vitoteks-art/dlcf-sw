@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import PublicNav from "../components/PublicNav";
 import PublicFooter from "../components/PublicFooter";
 import SEO from "../components/SEO";
+import FeaturedGivingCard from "../components/FeaturedGivingCard";
 import { apiFetch } from "../api";
 
 const slugifyState = (value) =>
@@ -123,6 +124,7 @@ export default function PublicHome({ states, stateSummaries, user }) {
   const [publicationItems, setPublicationItems] = useState([]);
   const [stateMediaItems, setStateMediaItems] = useState([]);
   const [statePublicationItems, setStatePublicationItems] = useState([]);
+  const [featuredGivingItems, setFeaturedGivingItems] = useState([]);
 
   useEffect(() => {
     apiFetch("/public/main-home")
@@ -140,12 +142,16 @@ export default function PublicHome({ states, stateSummaries, user }) {
     apiFetch("/publication-items?scope=state")
       .then((data) => setStatePublicationItems(data.items || []))
       .catch(() => setStatePublicationItems([]));
+    apiFetch("/giving-campaigns?scope=zonal&featured=1")
+      .then((data) => setFeaturedGivingItems(data.items || []))
+      .catch(() => setFeaturedGivingItems([]));
   }, []);
 
   const featuredMedia = useMemo(() => mediaItems.slice(0, 3), [mediaItems]);
   const featuredPublications = useMemo(() => publicationItems.slice(0, 3), [publicationItems]);
   const featuredStateMedia = useMemo(() => stateMediaItems.slice(0, 3), [stateMediaItems]);
   const featuredStatePublications = useMemo(() => statePublicationItems.slice(0, 3), [statePublicationItems]);
+  const featuredGiving = useMemo(() => featuredGivingItems.slice(0, 3), [featuredGivingItems]);
   const content = useMemo(() => normalizeContent(mainHomeContent), [mainHomeContent]);
   const dashboardItems = content.eventsAnnouncements.items || [];
   const dashboardEvents = dashboardItems.filter((item) => !/announcement|news|update/i.test(String(item.type || ""))).slice(0, 2);
@@ -333,6 +339,24 @@ export default function PublicHome({ states, stateSummaries, user }) {
         </div>
       </section>
 
+      {featuredGiving.length ? (
+        <section className="public-section featured-giving-section">
+          <div className="section-head publications-list-head gospel-library-head featured-giving-section__head">
+            <div>
+              <p className="section-kicker">Featured Giving</p>
+              <h2>Support current zonal needs</h2>
+              <p className="lede">Stand with ongoing zonal projects, urgent support needs, and ministry initiatives making kingdom impact.</p>
+            </div>
+            <Link to="/give" className="public-btn ghost">View all giving</Link>
+          </div>
+          <div className="media-library-grid publications-grid-premium gospel-publications-grid">
+            {featuredGiving.map((item) => (
+              <FeaturedGivingCard key={item.id} item={item} to={`/give/${item.id}`} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section className="homepage-dual-cta">
         <div className="homepage-dual-cta__inner">
           <article className="homepage-dual-cta__card">
@@ -349,7 +373,7 @@ export default function PublicHome({ states, stateSummaries, user }) {
               <h3>Partner With Our Mission</h3>
               <p>Your partnership helps us reach more campuses and raise kingdom leaders across the South West.</p>
             </div>
-            <Link className="homepage-dual-cta__button" to="/portal">Give Now</Link>
+            <Link className="homepage-dual-cta__button" to="/give">Give Now</Link>
           </article>
         </div>
       </section>

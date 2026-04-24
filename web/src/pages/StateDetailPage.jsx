@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
+import FeaturedGivingCard from "../components/FeaturedGivingCard";
 import StatePublicHeader from "../components/StatePublicHeader";
 import PublicFooter from "../components/PublicFooter";
 import SEO from "../components/SEO";
@@ -82,6 +83,8 @@ export default function StateDetailPage({ stateSlug, states }) {
   const [mediaError, setMediaError] = useState("");
   const [publications, setPublications] = useState([]);
   const [publicationsError, setPublicationsError] = useState("");
+  const [featuredStateGiving, setFeaturedStateGiving] = useState([]);
+  const [featuredZonalGiving, setFeaturedZonalGiving] = useState([]);
   const [communityQuery, setCommunityQuery] = useState("");
   const [communityCenters, setCommunityCenters] = useState([]);
 
@@ -134,6 +137,18 @@ export default function StateDetailPage({ stateSlug, states }) {
     apiFetch(`/publication-items?${query.toString()}`)
       .then((data) => setPublications(data.items || []))
       .catch((err) => setPublicationsError(err.message));
+
+    const stateGivingQuery = new URLSearchParams();
+    stateGivingQuery.set("state", resolvedStateName);
+    stateGivingQuery.set("scope", "state");
+    stateGivingQuery.set("featured", "1");
+    apiFetch(`/giving-campaigns?${stateGivingQuery.toString()}`)
+      .then((data) => setFeaturedStateGiving(data.items || []))
+      .catch(() => setFeaturedStateGiving([]));
+
+    apiFetch("/giving-campaigns?scope=zonal&featured=1")
+      .then((data) => setFeaturedZonalGiving(data.items || []))
+      .catch(() => setFeaturedZonalGiving([]));
   }, [resolvedStateName]);
 
   useEffect(() => {
@@ -503,6 +518,48 @@ export default function StateDetailPage({ stateSlug, states }) {
             </div>
           </div>
         </section>
+
+        {featuredStateGiving.length || featuredZonalGiving.length ? (
+          <section className="state-ref-section state-ref-section--white featured-giving-state-shell">
+            <div className="container featured-giving-state-stack">
+              {featuredStateGiving.length ? (
+                <div className="featured-giving-state-block">
+                  <div className="state-ref-sectionHead">
+                    <div>
+                      <span className="section-label">State Giving</span>
+                      <h2>Support needs in this state</h2>
+                      <p>Partner with ongoing projects, urgent needs, and ministry support within {displayName}.</p>
+                    </div>
+                    <Link to={`/${stateId}/give`} className="state-ref-moreLink">View all state giving</Link>
+                  </div>
+                  <div className="media-library-grid publications-grid-premium gospel-publications-grid">
+                    {featuredStateGiving.slice(0, 3).map((item) => (
+                      <FeaturedGivingCard key={`state-give-${item.id}`} item={item} to={`/${stateId}/give/${item.id}`} />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {featuredZonalGiving.length ? (
+                <div className="featured-giving-state-block">
+                  <div className="state-ref-sectionHead">
+                    <div>
+                      <span className="section-label">Zonal Giving</span>
+                      <h2>Support zonal initiatives</h2>
+                      <p>Also support wider zonal campaigns serving campuses and fellowship communities across the region.</p>
+                    </div>
+                    <Link to="/give" className="state-ref-moreLink">View all zonal giving</Link>
+                  </div>
+                  <div className="media-library-grid publications-grid-premium gospel-publications-grid">
+                    {featuredZonalGiving.slice(0, 3).map((item) => (
+                      <FeaturedGivingCard key={`zonal-give-${item.id}`} item={item} to={`/give/${item.id}`} />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
         <section className="state-ref-section state-ref-section--darkBand">
           <div className="container state-ref-community">
