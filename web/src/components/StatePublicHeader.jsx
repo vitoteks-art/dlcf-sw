@@ -1,6 +1,9 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 export default function StatePublicHeader({ stateName = "Osun State", stateSlug = "osun-state" }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
   const baseSlug = stateSlug || stateName.toLowerCase().replace(/\s+/g, "-");
   const navLinks = [
     { label: "Overview", to: `/${baseSlug}` },
@@ -10,6 +13,11 @@ export default function StatePublicHeader({ stateName = "Osun State", stateSlug 
     { label: "Media", to: `/${baseSlug}/media` },
     { label: "Gallery", to: `/${baseSlug}/gallery` },
   ];
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
   return (
     <header className="state-public-header">
       <div className="header-container">
@@ -23,7 +31,19 @@ export default function StatePublicHeader({ stateName = "Osun State", stateSlug 
           </div>
         </Link>
 
-        <nav className="public-links">
+        <button
+          type="button"
+          className={`state-menu-toggle ${menuOpen ? "is-open" : ""}`}
+          aria-expanded={menuOpen}
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          onClick={() => setMenuOpen((prev) => !prev)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        <nav className={`public-links ${menuOpen ? "is-open" : ""}`}>
           {navLinks.map((link) => (
             <Link key={link.label} to={link.to} className="public-link-item">
               {link.label}
