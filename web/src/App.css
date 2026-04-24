@@ -6760,8 +6760,21 @@ button:disabled {
   align-items: flex-end;
 }
 
+.giving-page-premium .media-library-grid,
+.featured-giving-section .media-library-grid,
+.featured-giving-state-block .media-library-grid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 320px));
+  justify-content: start;
+}
+
 .featured-giving-card {
   gap: 12px;
+}
+
+.giving-card-premium,
+.featured-giving-card {
+  width: 100%;
+  max-width: 320px;
 }
 
 .featured-giving-card__cover {
