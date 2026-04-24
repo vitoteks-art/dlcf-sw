@@ -140,9 +140,13 @@ export default function PublicHome({ states, stateSummaries, user }) {
   const [featuredGivingItems, setFeaturedGivingItems] = useState([]);
 
   useEffect(() => {
-    apiFetch("/public/main-home")
+    apiFetch("/public/main-home.php")
       .then((data) => setMainHomeContent(normalizeContent(data.item || null)))
-      .catch(() => setMainHomeContent(defaultMainHomeContent));
+      .catch(() =>
+        apiFetch("/public/main-home")
+          .then((data) => setMainHomeContent(normalizeContent(data.item || null)))
+          .catch(() => setMainHomeContent(defaultMainHomeContent))
+      );
     apiFetch("/media-items")
       .then((data) => setMediaItems(data.items || []))
       .catch(() => setMediaItems([]));
