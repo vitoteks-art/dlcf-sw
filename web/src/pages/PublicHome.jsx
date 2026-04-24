@@ -15,6 +15,19 @@ const slugifyState = (value) =>
 
 const stripHtml = (value) => String(value || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
+const normalizeImageUrl = (value, fallback = "") => {
+  const raw = String(value || "").trim();
+  if (!raw) return fallback;
+  if (/^https?:\/\//i.test(raw) || raw.startsWith("data:")) return raw;
+  if (raw.startsWith("//")) return `https:${raw}`;
+  if (raw.startsWith("/uploads/") || raw.startsWith("uploads/")) {
+    const cleaned = raw.startsWith("/") ? raw : `/${raw}`;
+    return `https://api.dlcfsw.org.ng${cleaned}`;
+  }
+  if (raw.startsWith("/")) return raw;
+  return raw;
+};
+
 const defaultMainHomeContent = {
   hero: {
     kicker: "Deeper Life Campus Fellowship",
@@ -153,6 +166,9 @@ export default function PublicHome({ states, stateSummaries, user }) {
   const featuredStatePublications = useMemo(() => statePublicationItems.slice(0, 3), [statePublicationItems]);
   const featuredGiving = useMemo(() => featuredGivingItems.slice(0, 3), [featuredGivingItems]);
   const content = useMemo(() => normalizeContent(mainHomeContent), [mainHomeContent]);
+  const heroBackgroundImage = useMemo(() => normalizeImageUrl(content.hero.backgroundImageUrl, ""), [content.hero.backgroundImageUrl]);
+  const aboutImage = useMemo(() => normalizeImageUrl(content.about.imageUrl, "/hero-image.jpg"), [content.about.imageUrl]);
+  const mentorImage = useMemo(() => normalizeImageUrl(content.mentor.imageUrl, "/src/assets/gs.png"), [content.mentor.imageUrl]);
   const dashboardItems = content.eventsAnnouncements.items || [];
   const dashboardEvents = dashboardItems.filter((item) => !/announcement|news|update/i.test(String(item.type || ""))).slice(0, 2);
   const dashboardAnnouncements = dashboardItems.filter((item) => /announcement|news|update/i.test(String(item.type || ""))).slice(0, 3);
@@ -172,7 +188,7 @@ export default function PublicHome({ states, stateSummaries, user }) {
 
       <section
         className="public-hero home-hero home-hero-refined"
-        style={content.hero.backgroundImageUrl ? { backgroundImage: `linear-gradient(90deg, rgba(4, 10, 18, 0.98) 0%, rgba(4, 10, 18, 0.9) 34%, rgba(7, 15, 25, 0.52) 56%, rgba(7, 15, 25, 0.16) 100%), url(${content.hero.backgroundImageUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+        style={heroBackgroundImage ? { backgroundImage: `linear-gradient(90deg, rgba(4, 10, 18, 0.98) 0%, rgba(4, 10, 18, 0.9) 34%, rgba(7, 15, 25, 0.52) 56%, rgba(7, 15, 25, 0.16) 100%), url(${heroBackgroundImage})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
       >
         <div className="home-hero-refined__inner">
           <div className="public-hero-content home-hero-refined__content">
@@ -229,7 +245,7 @@ export default function PublicHome({ states, stateSummaries, user }) {
       <section className="public-section about-intro">
         <div className="about-media">
           <div className="about-frame">
-            <img src={content.about.imageUrl || "/hero-image.jpg"} alt="DLCF South West leadership" />
+            <img src={aboutImage} alt="DLCF South West leadership" />
           </div>
           <span className="about-orb orb-top" />
           <span className="about-orb orb-bottom" />
@@ -288,7 +304,7 @@ export default function PublicHome({ states, stateSummaries, user }) {
               <Link to="/about#our-mentor">View All</Link>
             </div>
             <div className="homepage-dashboard__mentor">
-              <img src={content.mentor.imageUrl || "/src/assets/gs.png"} alt="Mentor spotlight" />
+              <img src={mentorImage} alt="Mentor spotlight" />
               <div>
                 <strong>{content.mentor.title}</strong>
                 <span>{content.mentor.label || "DLCF South West Mentor"}</span>
@@ -391,7 +407,7 @@ export default function PublicHome({ states, stateSummaries, user }) {
       <section id="our-mentor" className="public-section mentor-section mentor-section--premium">
         <div className="mentor-grid mentor-grid--premium">
           <div className="mentor-media mentor-media--premium">
-            <div className="mentor-frame mentor-frame--premium"><img src={content.mentor.imageUrl || "/src/assets/gs.png"} alt="General Superintendent" /></div>
+            <div className="mentor-frame mentor-frame--premium"><img src={mentorImage} alt="General Superintendent" /></div>
             <div className="mentor-caption">General Superintendent (GS)</div>
           </div>
           <div className="mentor-copy mentor-copy--premium">
