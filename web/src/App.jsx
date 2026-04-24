@@ -23,6 +23,8 @@ import PublicMediaListPage from "./pages/PublicMediaListPage";
 import PublicMediaDetailPage from "./pages/PublicMediaDetailPage";
 import PublicationsDetailPage from "./pages/PublicationsDetailPage";
 import GospelLibraryPage from "./pages/GospelLibraryPage";
+import GivingListPage from "./pages/GivingListPage";
+import GivingDetailPage from "./pages/GivingDetailPage";
 import StateMediaListPage from "./pages/StateMediaListPage";
 import StateMediaDetailPage from "./pages/StateMediaDetailPage";
 import StateGalleryPage from "./pages/StateGalleryPage";
@@ -44,6 +46,7 @@ import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import AboutPage from "./pages/AboutPage";
 import BeliefsPage from "./pages/BeliefsPage";
+import ContactPage from "./pages/ContactPage";
 import StateDetailPage from "./pages/StateDetailPage";
 import StateFellowshipDirectoryPage from "./pages/StateFellowshipDirectoryPage";
 import StatePostPage from "./pages/StatePostPage";
@@ -218,6 +221,7 @@ const reservedPublicSegments = new Set([
   "",
   "about",
   "beliefs",
+  "contact",
   "states",
   "portal",
   "attendance-report",
@@ -227,6 +231,7 @@ const reservedPublicSegments = new Set([
   "zonal-congress",
   "media",
   "publications",
+  "give",
   "retreat",
   "retreat-report",
   "state-congress-report",
@@ -649,10 +654,11 @@ function App() {
       ? stateSlugs.has(firstSegment)
       : firstSegment !== "" && !reservedPublicSegments.has(firstSegment);
   const isPublicPage =
-    ["/", "/about", "/beliefs", "/states", "/events", "/blog"].includes(location.pathname) ||
+    ["/", "/about", "/beliefs", "/contact", "/states", "/events", "/blog"].includes(location.pathname) ||
     location.pathname.startsWith("/states/") ||
     location.pathname.startsWith("/media") ||
     location.pathname.startsWith("/publications") ||
+    location.pathname.startsWith("/give") ||
     isStatePath;
 
   const total = useMemo(() => {
@@ -764,6 +770,7 @@ function App() {
     user &&
     (user.role === "administrator" ||
       userWorkUnits.includes("Publication Team"));
+  const canManageGiving = canManagePublications;
   const canManageStateGallery =
     user &&
     ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin"].includes(user.role);
@@ -798,6 +805,7 @@ function App() {
     canManageUsers ||
     canManageMedia ||
     canManagePublications ||
+    canManageGiving ||
     canManageStateGallery ||
     canPublishMedia ||
     canViewReportsOnly;
@@ -3233,6 +3241,7 @@ function App() {
     canPublishMedia,
     canManageMedia,
     canManagePublications,
+    canManageGiving,
     canManageStateGallery,
     canManageStatePosts,
     canManageCategories,
@@ -3433,6 +3442,8 @@ function App() {
     const isZonalMediaDetail = segments[0] === "media" && segments[1];
     const isZonalPublicationList = segments[0] === "publications" && !segments[1];
     const isZonalPublicationDetail = segments[0] === "publications" && segments[1];
+    const isZonalGivingList = segments[0] === "give" && !segments[1];
+    const isZonalGivingDetail = segments[0] === "give" && segments[1];
     const isStateMediaList = isStatePath && segments[1] === "media" && !segments[2];
     const isStateMediaDetail =
       isStatePath && segments[1] === "media" && segments[2];
@@ -3440,6 +3451,10 @@ function App() {
       isStatePath && segments[1] === "publications" && !segments[2];
     const isStatePublicationDetail =
       isStatePath && segments[1] === "publications" && segments[2];
+    const isStateGivingList =
+      isStatePath && segments[1] === "give" && !segments[2];
+    const isStateGivingDetail =
+      isStatePath && segments[1] === "give" && segments[2];
     const isStateEventsList = isStatePath && segments[1] === "events" && !segments[2];
     const isStateEventDetail = isStatePath && segments[1] === "events" && segments[2];
     const isStateFellowshipDirectory = isStatePath && segments[1] === "fellowships" && !segments[2];
@@ -3450,6 +3465,8 @@ function App() {
           <PublicHome states={states} stateSummaries={stateSummaries} user={user} />
         ) : location.pathname === "/beliefs" ? (
           <BeliefsPage user={user} />
+        ) : location.pathname === "/contact" ? (
+          <ContactPage user={user} />
         ) : location.pathname === "/states" ? (
           <StatesPage states={states} user={user} />
         ) : isZonalMediaList ? (
@@ -3460,6 +3477,10 @@ function App() {
           <GospelLibraryPage user={user} />
         ) : isZonalPublicationDetail ? (
           <PublicationsDetailPage publicationId={segments[1]} />
+        ) : isZonalGivingList ? (
+          <GivingListPage user={user} states={states} />
+        ) : isZonalGivingDetail ? (
+          <GivingDetailPage campaignId={segments[1]} />
         ) : isStateMediaList ? (
           <StateMediaListPage stateSlug={stateSlug} states={states} />
         ) : isStateMediaDetail ? (
@@ -3468,6 +3489,10 @@ function App() {
           <GospelLibraryPage stateSlug={stateSlug} states={states} user={user} />
         ) : isStatePublicationDetail ? (
           <StatePublicationsDetailPage stateSlug={stateSlug} states={states} publicationId={segments[2]} />
+        ) : isStateGivingList ? (
+          <GivingListPage stateSlug={stateSlug} states={states} user={user} />
+        ) : isStateGivingDetail ? (
+          <GivingDetailPage campaignId={segments[2]} />
         ) : isStateEventsList ? (
           <StateEventsListPage stateSlug={stateSlug} states={states} />
         ) : isStateEventDetail ? (
