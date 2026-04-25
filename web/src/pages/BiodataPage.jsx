@@ -24,6 +24,9 @@ export default function BiodataPage({
   const normalizedCategory = (biodata.category || "").toLowerCase();
   const showStudentFields = normalizedCategory === "student";
   const showNyscFields = normalizedCategory === "corper";
+  const canEditFullLifecycle = Boolean(canViewAdmin && biodataEntryId && !biodataIsSelf);
+  const studentFacingStatuses = ["active_student", "deferred", "withdrawn"];
+  const statusRequiresReason = ["deferred", "withdrawn"].includes(biodata.student_status);
   const emailMismatch =
     user?.email &&
     biodata.email &&
@@ -348,13 +351,42 @@ export default function BiodataPage({
                   onChange={(e) => setBiodata({ ...biodata, student_status: e.target.value })}
                 >
                   <option value="active_student">Active Student</option>
-                  <option value="graduated">Graduated</option>
-                  <option value="alumni_ready">Alumni Ready</option>
-                  <option value="alumni">Alumni</option>
+                  {canEditFullLifecycle ? <option value="graduated">Graduated</option> : null}
+                  {canEditFullLifecycle ? <option value="alumni">Alumni</option> : null}
+                  {!canEditFullLifecycle &&
+                  biodata.student_status &&
+                  !studentFacingStatuses.includes(biodata.student_status) ? (
+                    <option value={biodata.student_status} disabled>
+                      {biodata.student_status === "alumni_ready"
+                        ? "Alumni Ready (legacy)"
+                        : biodata.student_status}
+                    </option>
+                  ) : null}
                   <option value="deferred">Deferred</option>
                   <option value="withdrawn">Withdrawn</option>
                 </select>
+                <span className="field-help">
+                  The system automatically moves active students to Graduated and then Alumni
+                  when their graduation year elapses. Choose Deferred or Withdrawn only if your
+                  academic status has changed.
+                </span>
               </label>
+              {statusRequiresReason ? (
+                <label className="full-span">
+                  Reason for status change
+                  <textarea
+                    value={biodata.lifecycle_status_reason || ""}
+                    onChange={(e) =>
+                      setBiodata({ ...biodata, lifecycle_status_reason: e.target.value })
+                    }
+                    rows="3"
+                    required
+                  />
+                  <span className="field-help">
+                    This status will pause automatic graduation/alumni movement until it is corrected.
+                  </span>
+                </label>
+              ) : null}
             </>
           ) : null}
           {showNyscFields ? (

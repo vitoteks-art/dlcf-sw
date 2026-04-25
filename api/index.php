@@ -480,7 +480,7 @@ function write_attendance_audit_log(mysqli $db, ?int $codeId, ?int $sessionId, ?
     $stmt->execute();
 }
 
-function write_biodata_history_changes(mysqli $db, int $biodataId, ?int $changedByUserId, array $before, array $after, array $fields): void
+function write_biodata_history_changes(mysqli $db, int $biodataId, ?int $changedByUserId, array $before, array $after, array $fields, ?string $reason = null, string $actorType = 'user'): void
 {
     foreach ($fields as $field) {
         $oldValue = array_key_exists($field, $before) ? $before[$field] : null;
@@ -495,10 +495,10 @@ function write_biodata_history_changes(mysqli $db, int $biodataId, ?int $changed
 
         $stmt = db_prepare(
             $db,
-            'INSERT INTO biodata_status_history (biodata_id, field_name, old_value, new_value, changed_by_user_id, changed_at)
-             VALUES (?, ?, ?, ?, ?, NOW())',
-            'isssi',
-            [$biodataId, $field, $oldValue, $newValue, $changedByUserId]
+            'INSERT INTO biodata_status_history (biodata_id, field_name, old_value, new_value, changed_by_user_id, actor_type, change_reason, changed_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
+            'isssiss',
+            [$biodataId, $field, $oldValue, $newValue, $changedByUserId, $actorType, $reason]
         );
         $stmt->execute();
     }
@@ -515,8 +515,8 @@ function biodata_transition_state(array $row): array
     $currentYear = (int) date('Y');
 
     $isGraduatedLevel = strtolower(trim((string) ($row['academic_level'] ?? ''))) === 'graduated';
-    $gradYearReached = $expectedGraduationYear !== null && $expectedGraduationYear <= $currentYear;
-    $graduatedSignal = in_array($studentStatus, ['graduated', 'alumni_ready', 'alumni'], true) || $isGraduatedLevel || $gradYearReached;
+    $gradYearElapsed = $expectedGraduationYear !== null && $expectedGraduationYear < $currentYear;
+    $graduatedSignal = in_array($studentStatus, ['graduated', 'alumni'], true) || $isGraduatedLevel || $gradYearElapsed;
     $nyscCompleted = $nyscStatus === 'completed';
     $nyscServing = $nyscStatus === 'serving';
 
@@ -532,12 +532,12 @@ function biodata_transition_state(array $row): array
     } elseif ($studentStatus === 'alumni') {
         $recommendedStatus = 'alumni';
         $reason = 'Already in alumni status';
-    } elseif ($nyscCompleted && $graduatedSignal) {
+    } elseif ($studentStatus === 'graduated') {
         $recommendedStatus = 'alumni';
-        $reason = 'Completed NYSC after graduation signal';
-    } elseif ($graduatedSignal) {
-        $recommendedStatus = 'alumni_ready';
-        $reason = $nyscServing ? 'Graduated and currently serving NYSC' : 'Graduation signal detected';
+        $reason = 'Graduated student is ready for automatic alumni promotion';
+    } elseif ($gradYearElapsed || $isGraduatedLevel) {
+        $recommendedStatus = 'graduated';
+        $reason = 'Expected graduation year has elapsed';
     } else {
         $recommendedStatus = $studentStatus !== '' ? $studentStatus : 'active_student';
         $reason = 'Still in active student lifecycle';
@@ -545,10 +545,10 @@ function biodata_transition_state(array $row): array
 
     $transitionMode = 'stable';
     if ($recommendedStatus !== '' && $studentStatus !== $recommendedStatus) {
-        $transitionMode = $recommendedStatus === 'alumni' ? 'auto_promote' : 'review';
+        $transitionMode = $recommendedStatus === 'alumni' ? 'auto_promote_alumni' : 'auto_graduate';
     }
 
-    $isCandidate = in_array($recommendedStatus, ['alumni_ready', 'alumni'], true) && $studentStatus !== $recommendedStatus;
+    $isCandidate = in_array($recommendedStatus, ['graduated', 'alumni'], true) && $studentStatus !== $recommendedStatus;
 
     return [
         'category' => $category !== '' ? $category : 'unspecified',
@@ -558,13 +558,14 @@ function biodata_transition_state(array $row): array
         'is_candidate' => $isCandidate,
         'transition_mode' => $transitionMode,
         'graduation_signal' => $graduatedSignal,
+        'graduation_year_elapsed' => $gradYearElapsed,
         'nysc_completed' => $nyscCompleted,
         'nysc_serving' => $nyscServing,
         'expected_graduation_year' => $expectedGraduationYear,
     ];
 }
 
-function apply_biodata_auto_transition(mysqli $db, int $biodataId, ?int $changedByUserId, array $row): ?string
+function apply_biodata_auto_transition(mysqli $db, int $biodataId, ?int $changedByUserId, array $row, string $actorType = 'user'): ?string
 {
     $state = biodata_transition_state($row);
     $currentStatus = $state['current_status'];
@@ -581,7 +582,7 @@ function apply_biodata_auto_transition(mysqli $db, int $biodataId, ?int $changed
         'student_status' => $currentStatus,
     ], [
         'student_status' => $recommendedStatus,
-    ], ['student_status']);
+    ], ['student_status'], $state['reason'], $actorType);
 
     return $recommendedStatus;
 }
@@ -5406,6 +5407,7 @@ if ($path === '/biodata/me') {
             }
 
             $cluster = $cluster === '' ? null : $cluster;
+            $lifecycleStatusReason = trim((string) ($payload['lifecycle_status_reason'] ?? ''));
 
             $stmt = db_prepare($db, 'SELECT id FROM biodata WHERE user_id = ? LIMIT 1', 'i', [$user['id']]);
             $stmt->execute();
@@ -5416,6 +5418,24 @@ if ($path === '/biodata/me') {
                 $stmt = db_prepare($db, 'SELECT student_status, nysc_status, membership_status, category, marital_status, worker_status FROM biodata WHERE id = ? LIMIT 1', 'i', [$existingId]);
                 $stmt->execute();
                 $beforeHistory = db_fetch_all($stmt)[0] ?? [];
+                $beforeStudentStatus = $beforeHistory['student_status'] ?? null;
+                $requestedStudentStatus = $tracking['student_status'];
+                if (
+                    strtolower($category) === 'student' &&
+                    $requestedStudentStatus !== null &&
+                    !in_array($requestedStudentStatus, ['active_student', 'deferred', 'withdrawn'], true) &&
+                    $requestedStudentStatus !== $beforeStudentStatus
+                ) {
+                    json_error('Students can only set Active Student, Deferred, or Withdrawn. Graduation and Alumni movement is automatic.', 422);
+                }
+                if (
+                    strtolower($category) === 'student' &&
+                    in_array($requestedStudentStatus, ['deferred', 'withdrawn'], true) &&
+                    $requestedStudentStatus !== $beforeStudentStatus &&
+                    $lifecycleStatusReason === ''
+                ) {
+                    json_error('Please provide a reason for Deferred or Withdrawn status.', 422);
+                }
                 $sql = 'UPDATE biodata SET fellowship_centre_id = ?, full_name = ?, gender = ?, age = ?, phone = ?, email = ?, state = ?, region = ?, cluster = ?, profile_photo = ?,
                                school = ?, date_of_birth = ?, marital_status = ?, program_type = ?, academic_level = ?, entry_year = ?, expected_graduation_year = ?, student_status = ?,
                                nysc_status = ?, nysc_batch = ?, nysc_state = ?, nysc_start_date = ?, nysc_end_date = ?, new_birth_status = ?, new_birth_date = ?,
@@ -5472,8 +5492,23 @@ if ($path === '/biodata/me') {
                     'marital_status' => $tracking['marital_status'],
                     'worker_status' => $workerStatus,
                 ];
-                write_biodata_history_changes($db, $existingId, (int) $user['id'], $beforeHistory, $afterHistory, $historyFields);
+                write_biodata_history_changes($db, $existingId, (int) $user['id'], $beforeHistory, $afterHistory, $historyFields, $lifecycleStatusReason !== '' ? $lifecycleStatusReason : null, 'student');
                 json_ok(['message' => 'Profile updated']);
+            }
+
+            if (
+                strtolower($category) === 'student' &&
+                $tracking['student_status'] !== null &&
+                !in_array($tracking['student_status'], ['active_student', 'deferred', 'withdrawn'], true)
+            ) {
+                json_error('Students can only set Active Student, Deferred, or Withdrawn. Graduation and Alumni movement is automatic.', 422);
+            }
+            if (
+                strtolower($category) === 'student' &&
+                in_array($tracking['student_status'], ['deferred', 'withdrawn'], true) &&
+                $lifecycleStatusReason === ''
+            ) {
+                json_error('Please provide a reason for Deferred or Withdrawn status.', 422);
             }
 
             $sql = 'INSERT INTO biodata
@@ -5531,7 +5566,7 @@ if ($path === '/biodata/me') {
                 'category' => $category,
                 'marital_status' => $tracking['marital_status'],
                 'worker_status' => $workerStatus,
-            ], $historyFields);
+            ], $historyFields, $lifecycleStatusReason !== '' ? $lifecycleStatusReason : null, 'student');
             json_ok(['message' => 'Profile created'], 201);
         } catch (Throwable $e) {
             json_error('Biodata update failed: ' . $e->getMessage(), 500);
@@ -6899,6 +6934,9 @@ if ($path === '/biodata-reports/lifecycle') {
     ];
     $categorySummary = [];
     $candidates = [];
+    $eligibleGraduation = [];
+    $eligibleAlumniPromotion = [];
+    $skippedAutomation = [];
     $recentlyTransitioned = [];
 
     foreach ($rows as $row) {
@@ -6953,8 +6991,15 @@ if ($path === '/biodata-reports/lifecycle') {
         if (in_array($category, ['student', 'corper'], true) && $state['is_candidate']) {
             $candidates[] = $candidateRow;
         }
+        if (in_array($category, ['student', 'corper'], true) && $currentStatus !== $recommendedStatus && $recommendedStatus === 'graduated') {
+            $eligibleGraduation[] = $candidateRow;
+        }
         if (in_array($category, ['student', 'corper'], true) && $currentStatus !== $recommendedStatus && $recommendedStatus === 'alumni') {
+            $eligibleAlumniPromotion[] = $candidateRow;
             $recentlyTransitioned[] = $candidateRow;
+        }
+        if (in_array($category, ['student', 'corper'], true) && in_array($currentStatus, ['deferred', 'withdrawn'], true)) {
+            $skippedAutomation[] = $candidateRow;
         }
     }
 
@@ -6972,6 +7017,9 @@ if ($path === '/biodata-reports/lifecycle') {
             'total' => count($rows),
             'counts' => $dashboardCounts,
             'candidates' => $candidates,
+            'eligible_graduation' => $eligibleGraduation,
+            'eligible_alumni_promotion' => $eligibleAlumniPromotion,
+            'skipped_automation' => $skippedAutomation,
             'recent_transitions' => $recentlyTransitioned,
             'category_summary' => $mapSummary($categorySummary),
             'status_summary' => $mapSummary($statusSummary),
@@ -6995,6 +7043,7 @@ if ($path === '/biodata-lifecycle/transition') {
     $payload = read_json();
     $action = trim((string) ($payload['action'] ?? 'auto'));
     $id = (int) ($payload['id'] ?? 0);
+    $reason = trim((string) ($payload['reason'] ?? $payload['lifecycle_status_reason'] ?? ''));
     $allowedActions = ['auto', 'override'];
     if (!in_array($action, $allowedActions, true)) {
         json_error('Invalid action', 422);
@@ -7026,7 +7075,7 @@ if ($path === '/biodata-lifecycle/transition') {
     $db->begin_transaction();
     try {
         if ($action === 'auto') {
-            $updatedStatus = apply_biodata_auto_transition($db, $id, (int) $user['id'], $row);
+            $updatedStatus = apply_biodata_auto_transition($db, $id, (int) $user['id'], $row, 'admin');
             if ($updatedStatus === null) {
                 $updatedStatus = $beforeStatus;
             }
@@ -7041,7 +7090,7 @@ if ($path === '/biodata-lifecycle/transition') {
                 'student_status' => $beforeStatus,
             ], [
                 'student_status' => $targetStatus,
-            ], ['student_status']);
+            ], ['student_status'], $reason !== '' ? $reason : 'Admin lifecycle correction', 'admin');
             $updatedStatus = $targetStatus;
         }
 
@@ -7309,7 +7358,7 @@ if (preg_match('#^/biodata/(\d+)/history$#', $path, $matches)) {
         }
     }
 
-    $stmt = db_prepare($db, 'SELECT field_name, old_value, new_value, changed_by_user_id, changed_at
+    $stmt = db_prepare($db, 'SELECT field_name, old_value, new_value, changed_by_user_id, actor_type, change_reason, changed_at
                              FROM biodata_status_history
                              WHERE biodata_id = ?
                              ORDER BY changed_at DESC, id DESC', 'i', [$id]);

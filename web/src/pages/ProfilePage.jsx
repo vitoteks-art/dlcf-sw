@@ -2,6 +2,15 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
 
+const STATUS_LABELS = {
+  active_student: "Active Student",
+  graduated: "Graduated",
+  alumni_ready: "Alumni Ready (legacy)",
+  alumni: "Alumni",
+  deferred: "Deferred",
+  withdrawn: "Withdrawn",
+};
+
 export default function ProfilePage({ user }) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
@@ -38,6 +47,9 @@ export default function ProfilePage({ user }) {
   if (!user) {
     return null;
   }
+
+  const studentStatus = profile?.student_status || "";
+  const automationPaused = ["deferred", "withdrawn"].includes(studentStatus);
 
   return (
     <section className="card retreat-page profile-page">
@@ -113,7 +125,13 @@ export default function ProfilePage({ user }) {
                 </div>
                 <div>
                   <span className="detail-label">Student Status</span>
-                  <span className="detail-value">{profile.student_status || "-"}</span>
+                  <span className="detail-value">
+                    {STATUS_LABELS[profile.student_status] || profile.student_status || "-"}
+                  </span>
+                  <span className="field-help">
+                    Graduation automation uses your expected graduation year.
+                    {automationPaused ? " Automation is currently paused for this profile." : ""}
+                  </span>
                 </div>
                 <div>
                   <span className="detail-label">NYSC Status</span>
@@ -124,12 +142,24 @@ export default function ProfilePage({ user }) {
                   <span className="detail-value">{profile.new_birth_status ? "Yes" : "No"}</span>
                 </div>
                 <div>
+                  <span className="detail-label">New Birth Date</span>
+                  <span className="detail-value">{profile.new_birth_date || "-"}</span>
+                </div>
+                <div>
                   <span className="detail-label">Sanctification</span>
                   <span className="detail-value">{profile.sanctification_status ? "Yes" : "No"}</span>
                 </div>
                 <div>
+                  <span className="detail-label">Sanctification Date</span>
+                  <span className="detail-value">{profile.sanctification_date || "-"}</span>
+                </div>
+                <div>
                   <span className="detail-label">Holy Ghost Baptism</span>
                   <span className="detail-value">{profile.holy_ghost_baptism_status ? "Yes" : "No"}</span>
+                </div>
+                <div>
+                  <span className="detail-label">Holy Ghost Baptism Date</span>
+                  <span className="detail-value">{profile.holy_ghost_baptism_date || "-"}</span>
                 </div>
                 <div>
                   <span className="detail-label">Category</span>

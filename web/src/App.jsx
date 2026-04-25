@@ -480,6 +480,7 @@ function App() {
     entry_year: "",
     expected_graduation_year: "",
     student_status: "active_student",
+    lifecycle_status_reason: "",
     nysc_status: "none",
     nysc_batch: "",
     nysc_state: "",
@@ -2259,6 +2260,13 @@ function App() {
       setStatus("Email must match your account email.");
       return;
     }
+    if (
+      ["deferred", "withdrawn"].includes(biodata.student_status) &&
+      !(biodata.lifecycle_status_reason || "").trim()
+    ) {
+      setStatus("Please provide a reason for Deferred or Withdrawn status.");
+      return;
+    }
     try {
       if (biodataIsSelf) {
         await apiFetch("/biodata/me", {
@@ -2274,11 +2282,12 @@ function App() {
         setStatus("Biodata updated.");
         setBiodataEntryId("");
       } else {
-        await apiFetch("/biodata", {
-          method: "POST",
+        await apiFetch("/biodata/me", {
+          method: "PUT",
           body: JSON.stringify(biodata),
         });
         setStatus("Biodata submitted.");
+        setBiodataIsSelf(true);
       }
     } catch (err) {
       setStatus(err.message);
@@ -2304,6 +2313,7 @@ function App() {
         entry_year: data.item.entry_year || "",
         expected_graduation_year: data.item.expected_graduation_year || "",
         student_status: data.item.student_status || "active_student",
+        lifecycle_status_reason: "",
         nysc_status: data.item.nysc_status || "none",
         nysc_batch: data.item.nysc_batch || "",
         nysc_state: data.item.nysc_state || "",
@@ -2359,6 +2369,7 @@ function App() {
         entry_year: data.item.entry_year || "",
         expected_graduation_year: data.item.expected_graduation_year || "",
         student_status: data.item.student_status || "active_student",
+        lifecycle_status_reason: "",
         nysc_status: data.item.nysc_status || "none",
         nysc_batch: data.item.nysc_batch || "",
         nysc_state: data.item.nysc_state || "",
