@@ -2556,6 +2556,67 @@ function App() {
     }
   };
 
+  const handleAddRegion = async (event) => {
+    event.preventDefault();
+    setStatus("");
+    try {
+      await apiFetch("/admin/regions", {
+        method: "POST",
+        body: JSON.stringify({
+          state: adminRegionState,
+          name: adminRegionName,
+        }),
+      });
+      setStatus("Region added.");
+      setAdminRegionName("");
+      loadAdminRegions(adminRegionState);
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const handleEditRegion = async (event) => {
+    event.preventDefault();
+    if (!adminRegionEditId) return;
+    setStatus("");
+    try {
+      const state = adminRegionEditState || adminRegionState;
+      await apiFetch(`/admin/regions/${adminRegionEditId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          state,
+          name: adminRegionEditName,
+        }),
+      });
+      setStatus("Region updated.");
+      setAdminRegionEditId("");
+      setAdminRegionEditName("");
+      setAdminRegionEditState("");
+      loadAdminRegions(adminRegionState || state);
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
+  const handleDeleteRegion = async (id) => {
+    if (!window.confirm("Delete this region?")) {
+      return;
+    }
+    setStatus("");
+    try {
+      await apiFetch(`/admin/regions/${id}`, { method: "DELETE" });
+      setStatus("Region deleted.");
+      if (String(adminRegionEditId) === String(id)) {
+        setAdminRegionEditId("");
+        setAdminRegionEditName("");
+        setAdminRegionEditState("");
+      }
+      loadAdminRegions(adminRegionState);
+    } catch (err) {
+      setStatus(err.message);
+    }
+  };
+
   const loadAdminInstitutions = async (state) => {
     if (!state) {
       setAdminInstitutions([]);
@@ -3459,6 +3520,9 @@ function App() {
     loadAdminRegions,
     loadAdminInstitutions,
     loadAdminFellowships,
+    handleAddRegion,
+    handleEditRegion,
+    handleDeleteRegion,
     handleAddFellowship,
     handleEditFellowship,
     handleDeleteFellowship,
