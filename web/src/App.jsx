@@ -64,11 +64,13 @@ import "./state-gallery.css";
 import { apiFetch, ensureCsrf, API_BASE } from "./api";
 import { cleanFollowupContacts } from "./components/followupContactUtils";
 
-const emptyCounts = {
+const createEmptyCounts = () => ({
   adult: { male: "", female: "" },
   youth: { male: "", female: "" },
   children: { male: "", female: "" },
-};
+});
+
+const emptyCounts = createEmptyCounts();
 
 const clusters = [
   "UI Cluster",
@@ -1744,8 +1746,19 @@ function App() {
           }),
         });
       }
-      setAttendance((prev) => ({ ...prev, followup_contacts: [] }));
-      setStatus(contacts.length ? "Attendance saved and follow-up contacts captured." : "Attendance saved.");
+      setAttendance((prev) => ({
+        ...prev,
+        entry_date: "",
+        service_day: "sunday_ws",
+        visitors: "",
+        converts: "",
+        tithe_and_offering: "",
+        counts: createEmptyCounts(),
+        followup_contacts: [],
+      }));
+      setAttendanceEntryId("");
+      setAttendanceEntryKey("");
+      setStatus(contacts.length ? "Attendance saved and form cleared. Follow-up contacts captured." : "Attendance saved and form cleared.");
     } catch (err) {
       if (err.message.toLowerCase().includes("already submitted")) {
         try {
