@@ -103,6 +103,22 @@ CREATE TABLE IF NOT EXISTS followup_message_logs (
   CONSTRAINT fk_followup_message_logs_sent_by FOREIGN KEY (sent_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS integration_evolution_api_settings (
+  id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
+  enabled TINYINT(1) NOT NULL DEFAULT 0,
+  base_url VARCHAR(255) NOT NULL DEFAULT '',
+  instance_name VARCHAR(120) NOT NULL DEFAULT '',
+  instance_key VARCHAR(190) NOT NULL DEFAULT '',
+  api_token TEXT NULL,
+  send_endpoint_path VARCHAR(255) NOT NULL DEFAULT '/message/sendText/{instance_name}',
+  default_country_code VARCHAR(10) NOT NULL DEFAULT '234',
+  updated_by INT NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  CONSTRAINT chk_integration_evolution_api_settings_singleton CHECK (id = 1),
+  CONSTRAINT fk_integration_evolution_api_settings_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 INSERT INTO message_templates (channel, name, subject, body, is_active, created_at, updated_at)
 SELECT 'whatsapp', 'First follow-up WhatsApp', NULL,
 'Hello {{name}}, we were glad to have you with DLCF South West. We would love to follow up with you and help you stay connected. God bless you.', 1, NOW(), NOW()

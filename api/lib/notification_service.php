@@ -23,6 +23,77 @@ function followup_normalize_phone(string $phone, string $defaultCountryCode = '2
     return $digits;
 }
 
+function followup_mask_secret(?string $secret): ?string
+{
+    $secret = (string) ($secret ?? '');
+    if ($secret === '') {
+        return null;
+    }
+    $len = strlen($secret);
+    if ($len <= 8) {
+        return str_repeat('•', max(4, $len));
+    }
+    return substr($secret, 0, 4) . str_repeat('•', max(4, $len - 8)) . substr($secret, -4);
+}
+
+function followup_config_evolution_settings(array $config): array
+{
+    $wa = $config['evolution_api'] ?? [];
+    return [
+        'enabled' => (bool) ($wa['enabled'] ?? (($wa['base_url'] ?? '') !== '' && ($wa['api_key'] ?? '') !== '')),
+        'base_url' => (string) ($wa['base_url'] ?? ''),
+        'instance_name' => (string) ($wa['instance_name'] ?? ($wa['instance'] ?? '')),
+        'instance_key' => (string) ($wa['instance_key'] ?? ''),
+        'api_token' => (string) ($wa['api_token'] ?? ($wa['api_key'] ?? '')),
+        'send_endpoint_path' => (string) ($wa['send_endpoint_path'] ?? '/message/sendText/{instance_name}'),
+        'default_country_code' => (string) ($wa['default_country_code'] ?? '234'),
+        'source' => 'config',
+        'updated_at' => null,
+    ];
+}
+
+function followup_get_evolution_settings(?mysqli $db, array $config): array
+{
+    $fallback = followup_config_evolution_settings($config);
+    if (!$db) {
+        return $fallback;
+    }
+
+    try {
+        $stmt = db_prepare($db, 'SELECT * FROM integration_evolution_api_settings WHERE id = 1 LIMIT 1', '', []);
+        $stmt->execute();
+        $rows = db_fetch_all($stmt);
+    } catch (Throwable $e) {
+        return $fallback;
+    }
+
+    if (!$rows) {
+        return $fallback;
+    }
+
+    $row = $rows[0];
+    return [
+        'enabled' => (int) ($row['enabled'] ?? 0) === 1,
+        'base_url' => (string) ($row['base_url'] ?? ''),
+        'instance_name' => (string) ($row['instance_name'] ?? ''),
+        'instance_key' => (string) ($row['instance_key'] ?? ''),
+        'api_token' => (string) ($row['api_token'] ?? ''),
+        'send_endpoint_path' => (string) ($row['send_endpoint_path'] ?? '/message/sendText/{instance_name}'),
+        'default_country_code' => (string) ($row['default_country_code'] ?? '234'),
+        'source' => 'database',
+        'updated_at' => $row['updated_at'] ?? null,
+    ];
+}
+
+function followup_public_evolution_settings(array $settings): array
+{
+    $token = (string) ($settings['api_token'] ?? '');
+    unset($settings['api_token']);
+    $settings['has_api_token'] = $token !== '';
+    $settings['api_token_masked'] = followup_mask_secret($token);
+    return $settings;
+}
+
 function followup_send_email(array $config, string $to, string $subject, string $body): array
 {
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
@@ -46,23 +117,36 @@ function followup_send_email(array $config, string $to, string $subject, string 
     ];
 }
 
-function followup_send_evolution_whatsapp(array $config, string $phone, string $message): array
+function followup_send_evolution_whatsapp(array $config, string $phone, string $message, ?mysqli $db = null): array
 {
-    $wa = $config['evolution_api'] ?? [];
+    $wa = followup_get_evolution_settings($db, $config);
     $baseUrl = rtrim((string) ($wa['base_url'] ?? ''), '/');
-    $instance = (string) ($wa['instance'] ?? '');
-    $apiKey = (string) ($wa['api_key'] ?? '');
+    $instanceName = (string) ($wa['instance_name'] ?? '');
+    $instanceKey = (string) ($wa['instance_key'] ?? '');
+    $apiKey = (string) ($wa['api_token'] ?? '');
+    $sendPath = (string) ($wa['send_endpoint_path'] ?? '/message/sendText/{instance_name}');
     $defaultCountryCode = (string) ($wa['default_country_code'] ?? '234');
     $number = followup_normalize_phone($phone, $defaultCountryCode);
 
     if ($number === '') {
         return ['ok' => false, 'status' => 'failed', 'error' => 'Invalid WhatsApp phone number', 'number' => ''];
     }
-    if ($baseUrl === '' || $instance === '' || $apiKey === '') {
+    if (!($wa['enabled'] ?? false)) {
+        return ['ok' => false, 'status' => 'failed', 'error' => 'Evolution API is disabled', 'number' => $number];
+    }
+    if ($baseUrl === '' || $instanceName === '' || $apiKey === '') {
         return ['ok' => false, 'status' => 'failed', 'error' => 'Evolution API is not configured', 'number' => $number];
     }
 
-    $endpoint = $baseUrl . '/message/sendText/' . rawurlencode($instance);
+    $path = str_replace(
+        ['{instance}', '{instance_name}', '{instance_key}'],
+        [rawurlencode($instanceName), rawurlencode($instanceName), rawurlencode($instanceKey)],
+        $sendPath
+    );
+    if (strpos($path, '{') !== false || strpos($path, '}') !== false) {
+        return ['ok' => false, 'status' => 'failed', 'error' => 'Evolution API send endpoint path contains an unknown placeholder', 'number' => $number];
+    }
+    $endpoint = $baseUrl . '/' . ltrim($path, '/');
     $payload = json_encode(['number' => $number, 'text' => $message], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     $headers = [
         'Content-Type: application/json',

@@ -21,6 +21,75 @@ function can_manage_followup_templates(array $user): bool
     return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin'], true);
 }
 
+function can_manage_integration_settings(array $user): bool
+{
+    return ($user['role'] ?? '') === 'administrator';
+}
+
+if ($path === '/admin/integration-settings/evolution-api') {
+    require_auth();
+    $user = current_user();
+    if (!can_manage_integration_settings($user)) {
+        json_error('Forbidden', 403);
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        json_ok(['settings' => followup_public_evolution_settings(followup_get_evolution_settings($db, $config))]);
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+        require_csrf();
+        $payload = read_json();
+        $existing = followup_get_evolution_settings($db, $config);
+        $enabled = isset($payload['enabled']) ? ((int) !!$payload['enabled']) : ((int) !!($existing['enabled'] ?? false));
+        $baseUrl = rtrim(trim($payload['base_url'] ?? ($existing['base_url'] ?? '')), '/');
+        $instanceName = trim($payload['instance_name'] ?? ($existing['instance_name'] ?? ''));
+        $instanceKey = trim($payload['instance_key'] ?? ($existing['instance_key'] ?? ''));
+        $sendEndpointPath = trim($payload['send_endpoint_path'] ?? ($existing['send_endpoint_path'] ?? '/message/sendText/{instance_name}')) ?: '/message/sendText/{instance_name}';
+        $defaultCountryCode = preg_replace('/\D+/', '', (string) ($payload['default_country_code'] ?? ($existing['default_country_code'] ?? '234'))) ?: '234';
+        $apiToken = (string) ($existing['api_token'] ?? '');
+        if (array_key_exists('api_token', $payload) && trim((string) $payload['api_token']) !== '') {
+            $apiToken = trim((string) $payload['api_token']);
+        }
+        if (!empty($payload['clear_api_token'])) {
+            $apiToken = '';
+        }
+
+        if ($enabled && ($baseUrl === '' || $instanceName === '' || $apiToken === '')) {
+            json_error('Base URL, instance name, and API token are required when Evolution API is enabled', 422);
+        }
+
+        $stmt = db_prepare(
+            $db,
+            'INSERT INTO integration_evolution_api_settings (id, enabled, base_url, instance_name, instance_key, api_token, send_endpoint_path, default_country_code, updated_by, created_at, updated_at)
+             VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+             ON DUPLICATE KEY UPDATE enabled = VALUES(enabled), base_url = VALUES(base_url), instance_name = VALUES(instance_name), instance_key = VALUES(instance_key), api_token = VALUES(api_token), send_endpoint_path = VALUES(send_endpoint_path), default_country_code = VALUES(default_country_code), updated_by = VALUES(updated_by), updated_at = NOW()',
+            'issssssi',
+            [$enabled, $baseUrl, $instanceName, $instanceKey, $apiToken, $sendEndpointPath, $defaultCountryCode, (int) $user['id']]
+        );
+        $stmt->execute();
+        json_ok(['message' => 'Evolution API settings saved', 'settings' => followup_public_evolution_settings(followup_get_evolution_settings($db, $config))]);
+    }
+}
+
+if ($path === '/admin/integration-settings/evolution-api/test-whatsapp') {
+    require_method('POST');
+    require_auth();
+    require_csrf();
+    $user = current_user();
+    if (!can_manage_integration_settings($user)) {
+        json_error('Forbidden', 403);
+    }
+    $payload = read_json();
+    $phone = trim($payload['phone'] ?? '');
+    $message = trim($payload['message'] ?? 'DLCF South West Evolution API test message.');
+    if ($phone === '') {
+        json_error('Phone number is required', 422);
+    }
+    $result = followup_send_evolution_whatsapp($config, $phone, $message, $db);
+    json_ok(['message' => ($result['ok'] ?? false) ? 'Test WhatsApp sent' : 'Test WhatsApp failed', 'result' => $result]);
+}
+
 function followup_scope_sql(array $user, string $contactAlias = 'fc', string $taskAlias = 'ft'): array
 {
     $sql = '';
@@ -445,7 +514,7 @@ if (preg_match('#^/followups/tasks/(\d+)/(assign|status|schedule|notes|email|wha
             $result = followup_send_email($config, $recipient, $subject ?: 'DLCF South West Follow-up', $body);
         } else {
             $recipient = trim($task['phone'] ?? '');
-            $result = followup_send_evolution_whatsapp($config, $recipient, $body);
+            $result = followup_send_evolution_whatsapp($config, $recipient, $body, $db);
             $recipient = $result['number'] ?: $recipient;
         }
         $status = $result['status'] ?? 'failed';
@@ -477,7 +546,8 @@ if (preg_match('#^/followups/tasks/(\d+)/(assign|status|schedule|notes|email|wha
 
     if ($action === 'whatsapp-log') {
         require_method('POST');
-        $recipient = followup_normalize_phone($task['phone'] ?? '', $config['evolution_api']['default_country_code'] ?? '234');
+        $waSettings = followup_get_evolution_settings($db, $config);
+        $recipient = followup_normalize_phone($task['phone'] ?? '', $waSettings['default_country_code'] ?? '234');
         $body = trim($payload['body'] ?? 'Manual WhatsApp follow-up attempt');
         $stmt = db_prepare($db, 'INSERT INTO followup_message_logs (task_id, contact_id, channel, recipient, body_snapshot, send_mode, status, sent_by_user_id, sent_at, created_at) VALUES (?, ?, "whatsapp", ?, ?, "manual", ?, ?, NOW(), NOW())', 'iisssi', [$taskId, (int) $task['contact_id'], $recipient, $body, trim($payload['status'] ?? 'sent') ?: 'sent', (int) $user['id']]);
         $stmt->execute();
@@ -505,7 +575,8 @@ if (preg_match('#^/followups/tasks/(\d+)/whatsapp-link$#', $path, $matches)) {
         json_error('No WhatsApp template found', 422);
     }
     $body = followup_render_template($rows[0]['body'], followup_template_vars($task, $user));
-    $number = followup_normalize_phone($task['phone'] ?? '', $config['evolution_api']['default_country_code'] ?? '234');
+    $waSettings = followup_get_evolution_settings($db, $config);
+    $number = followup_normalize_phone($task['phone'] ?? '', $waSettings['default_country_code'] ?? '234');
     json_ok(['url' => 'https://wa.me/' . $number . '?text=' . rawurlencode($body), 'body' => $body, 'number' => $number]);
 }
 

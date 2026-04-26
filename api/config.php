@@ -28,9 +28,14 @@ return [
         'smtp_pass' => $SMTP_PASS ?? '',
     ],
     'evolution_api' => [
+        'enabled' => $EVOLUTION_API_ENABLED ?? (($EVOLUTION_API_BASE_URL ?? '') !== '' && ($EVOLUTION_API_KEY ?? '') !== ''),
         'base_url' => $EVOLUTION_API_BASE_URL ?? '',
         'instance' => $EVOLUTION_API_INSTANCE ?? '',
+        'instance_name' => $EVOLUTION_API_INSTANCE ?? '',
+        'instance_key' => $EVOLUTION_API_INSTANCE_KEY ?? '',
         'api_key' => $EVOLUTION_API_KEY ?? '',
+        'api_token' => $EVOLUTION_API_KEY ?? '',
+        'send_endpoint_path' => $EVOLUTION_API_SEND_ENDPOINT_PATH ?? '/message/sendText/{instance_name}',
         'default_country_code' => $EVOLUTION_DEFAULT_COUNTRY_CODE ?? '234',
     ],
 ];

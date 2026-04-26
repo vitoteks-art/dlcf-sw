@@ -733,6 +733,7 @@ function App() {
     user && ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin"].includes(user.role);
   const canManageWorkUnits = user && user.role === "administrator";
   const canManageRoles = user && user.role === "administrator";
+  const canManageIntegrationSettings = user && user.role === "administrator";
   const canManageUsers =
     user &&
     [
@@ -821,6 +822,7 @@ function App() {
     canManagePublications ||
     canManageGiving ||
     canManageStateGallery ||
+    canManageIntegrationSettings ||
     canPublishMedia ||
     canViewReportsOnly;
 
@@ -3308,6 +3310,7 @@ function App() {
     canManageInstitutions,
     canManageWorkUnits,
     canManageRoles,
+    canManageIntegrationSettings,
     canManageUsers,
     canManageAttendanceCodes,
     canPublishMedia,

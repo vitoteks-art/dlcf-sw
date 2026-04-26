@@ -13,8 +13,10 @@ import AdminStateCongress from "../components/admin/AdminStateCongress";
 import AdminZonalCongress from "../components/admin/AdminZonalCongress";
 import AdminMedia from "../components/admin/AdminMedia";
 import AdminPublications from "../components/admin/AdminPublications";
+import AdminGiving from "../components/admin/AdminGiving";
 import AdminStateGallery from "../components/admin/AdminStateGallery";
 import AdminAttendanceCodes from "../components/admin/AdminAttendanceCodes";
+import AdminIntegrationSettings from "../components/admin/AdminIntegrationSettings";
 
 export default function AdminPage(props) {
   const {
@@ -36,7 +38,9 @@ export default function AdminPage(props) {
     canPublishMedia,
     canManageMedia,
     canManagePublications,
+    canManageGiving,
     canManageStateGallery,
+    canManageIntegrationSettings,
     loadZonalCongressSettings,
     loadAdminStates,
     loadAdminWorkUnits,
@@ -128,8 +132,11 @@ export default function AdminPage(props) {
     { id: "state-congress", label: "State Congress", show: canManageStateCongress },
     { id: "zonal-congress", label: "Zonal Congress", show: canManageZonalCongress },
     { id: "media", label: "Media", show: canManageMedia || canPublishMedia },
+    { id: "publications", label: "Publications", show: canManagePublications },
+    { id: "giving", label: "Giving", show: canManageGiving },
     { id: "state-gallery", label: "State Gallery", show: canManageStateGallery },
     { id: "attendance-codes", label: "Attendance Codes", show: props.canManageAttendanceCodes },
+    { id: "integrations", label: "Integrations", show: canManageIntegrationSettings },
     { id: "categories", label: "Categories", show: canManageCategories },
   ].filter(t => t.show);
 
@@ -180,9 +187,11 @@ export default function AdminPage(props) {
         {activeTab === "state-congress" && <AdminStateCongress {...props} />}
         {activeTab === "zonal-congress" && <AdminZonalCongress {...props} />}
         {activeTab === "media" && <AdminMedia {...props} />}
-        {activeTab === "state-gallery" && <AdminStateGallery {...props} />}
         {activeTab === "publications" && <AdminPublications {...props} />}
+        {activeTab === "giving" && <AdminGiving {...props} />}
+        {activeTab === "state-gallery" && <AdminStateGallery {...props} />}
         {activeTab === "attendance-codes" && <AdminAttendanceCodes {...props} />}
+        {activeTab === "integrations" && <AdminIntegrationSettings {...props} />}
         {activeTab === "categories" && <AdminCategories {...props} />}
       </div>
     </section>
