@@ -42,6 +42,10 @@ import BiodataListPage from "./pages/BiodataListPage";
 import BiodataSpiritualReportPage from "./pages/BiodataSpiritualReportPage";
 import BiodataLifecycleDashboardPage from "./pages/BiodataLifecycleDashboardPage";
 import BiodataLifecycleReportPage from "./pages/BiodataLifecycleReportPage";
+import FollowupDashboardPage from "./pages/FollowupDashboardPage";
+import FollowupDetailPage from "./pages/FollowupDetailPage";
+import FollowupTemplatesPage from "./pages/FollowupTemplatesPage";
+import FollowupReportPage from "./pages/FollowupReportPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import AboutPage from "./pages/AboutPage";
@@ -58,6 +62,7 @@ import "./state-home-v2.css";
 import "./state-fellowship-directory.css";
 import "./state-gallery.css";
 import { apiFetch, ensureCsrf, API_BASE } from "./api";
+import { cleanFollowupContacts } from "./components/followupContactUtils";
 
 const emptyCounts = {
   adult: { male: "", female: "" },
@@ -225,6 +230,8 @@ const reservedPublicSegments = new Set([
   "states",
   "portal",
   "attendance-report",
+  "followups",
+  "reports",
   "gck",
   "gck-report",
   "stmc",
@@ -277,6 +284,7 @@ function App() {
     converts: "",
     tithe_and_offering: "",
     counts: emptyCounts,
+    followup_contacts: [],
   });
   const [attendanceEntryId, setAttendanceEntryId] = useState("");
   const [attendanceEntryKey, setAttendanceEntryKey] = useState("");
@@ -1681,6 +1689,7 @@ function App() {
       converts: data.converts ?? "",
       tithe_and_offering: data.tithe_and_offering ?? "",
       counts: data.counts || emptyCounts,
+      followup_contacts: [],
     });
     setAttendanceEntryId(String(data.id || ""));
     setAttendanceEntryKey(
@@ -1698,21 +1707,43 @@ function App() {
     event.preventDefault();
     setStatus("");
     try {
+      let entryId = attendanceEntryId;
       if (attendanceEntryId) {
         await apiFetch(`/attendance/${attendanceEntryId}`, {
           method: "PUT",
-          body: JSON.stringify({ counts: attendance.counts }),
+          body: JSON.stringify({
+            counts: attendance.counts,
+            visitors: attendance.visitors,
+            converts: attendance.converts,
+            tithe_and_offering: attendance.tithe_and_offering,
+          }),
         });
-        setStatus("Attendance updated.");
-        return;
+      } else {
+        const data = await apiFetch("/attendance", {
+          method: "POST",
+          body: JSON.stringify(attendance),
+        });
+        entryId = String(data.id || "");
+        setAttendanceEntryId(entryId);
+        setAttendanceEntryKey(buildAttendanceKey(attendance));
       }
-      const data = await apiFetch("/attendance", {
-        method: "POST",
-        body: JSON.stringify(attendance),
-      });
-      setAttendanceEntryId(String(data.id || ""));
-      setAttendanceEntryKey(buildAttendanceKey(attendance));
-      setStatus("Attendance saved.");
+      const contacts = cleanFollowupContacts(attendance.followup_contacts || []);
+      if (contacts.length) {
+        await apiFetch("/followups/contacts/bulk", {
+          method: "POST",
+          body: JSON.stringify({
+            source_type: "attendance",
+            source_id: entryId,
+            attendance_entry_id: entryId,
+            state: attendance.state,
+            region: attendance.region,
+            fellowship_centre: attendance.fellowship_centre,
+            contacts,
+          }),
+        });
+      }
+      setAttendance((prev) => ({ ...prev, followup_contacts: [] }));
+      setStatus(contacts.length ? "Attendance saved and follow-up contacts captured." : "Attendance saved.");
     } catch (err) {
       if (err.message.toLowerCase().includes("already submitted")) {
         try {
@@ -1752,7 +1783,7 @@ function App() {
       state: data.state || gckReport.state,
       region: data.region || gckReport.region,
       fellowship_centre: data.fellowship_centre || gckReport.fellowship_centre,
-      sessions: data.sessions || [],
+      sessions: (data.sessions || []).map((session) => ({ ...session, followup_contacts: session.followup_contacts || [] })),
     });
     setGckEntryId(String(data.id || ""));
     setGckEntryKey(
@@ -1810,21 +1841,46 @@ function App() {
         }
         return;
       }
+      let entryId = gckEntryId;
       if (gckEntryId) {
         await apiFetch(`/gck/${gckEntryId}`, {
           method: "PUT",
           body: JSON.stringify({ sessions: gckReport.sessions }),
         });
-        setStatus("GCK report updated.");
-        return;
+      } else {
+        const data = await apiFetch("/gck", {
+          method: "POST",
+          body: JSON.stringify(gckReport),
+        });
+        entryId = String(data.id || "");
+        setGckEntryId(entryId);
+        setGckEntryKey(buildGckKey(gckReport));
       }
-      const data = await apiFetch("/gck", {
-        method: "POST",
-        body: JSON.stringify(gckReport),
-      });
-      setGckEntryId(String(data.id || ""));
-      setGckEntryKey(buildGckKey(gckReport));
-      setStatus("GCK report submitted.");
+      const contacts = cleanFollowupContacts(
+        (gckReport.sessions || []).flatMap((session) =>
+          (session.followup_contacts || []).map((contact) => ({
+            ...contact,
+            source_type: "gck",
+            source_id: entryId,
+            notes: [session.label, session.program, contact.notes].filter(Boolean).join(" — "),
+          }))
+        )
+      );
+      if (contacts.length) {
+        await apiFetch("/followups/contacts/bulk", {
+          method: "POST",
+          body: JSON.stringify({
+            source_type: "gck",
+            source_id: entryId,
+            state: gckReport.state,
+            region: gckReport.region,
+            fellowship_centre: gckReport.fellowship_centre,
+            contacts,
+          }),
+        });
+      }
+      setGckReport((prev) => ({ ...prev, sessions: prev.sessions.map((session) => ({ ...session, followup_contacts: [] })) }));
+      setStatus(contacts.length ? "GCK report saved and follow-up contacts captured." : "GCK report submitted.");
     } catch (err) {
       if (err.message.toLowerCase().includes("already submitted")) {
         try {
@@ -3588,6 +3644,9 @@ function App() {
           <Link to="/">Home</Link>
           <Link to="/portal">Attendance Portal</Link>
           {canViewAttendanceReports ? <Link to="/attendance-report">Attendance Reports</Link> : null}
+          {user ? <Link to="/followups">Follow-up</Link> : null}
+          {canViewAttendanceReports ? <Link to="/reports/followups">Follow-up Reports</Link> : null}
+          {canViewAdmin ? <Link to="/followups/templates">Message Templates</Link> : null}
           <Link to="/gck">GCK Attendance</Link>
           {canViewGckReports ? <Link to="/gck-report">GCK Reports</Link> : null}
           <Link to="/stmc">STMC</Link>
@@ -3750,6 +3809,10 @@ function App() {
                 />
               }
             />
+            <Route path="/followups" element={<FollowupDashboardPage states={states} />} />
+            <Route path="/followups/templates" element={<FollowupTemplatesPage />} />
+            <Route path="/followups/:id" element={<FollowupDetailPage />} />
+            <Route path="/reports/followups" element={<FollowupReportPage />} />
             <Route
               path="/gck-report"
               element={

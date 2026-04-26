@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
+import FollowupContactRepeater from "../components/FollowupContactRepeater";
 
 const createEmptyCounts = () => ({
   adult: { male: "", female: "" },
@@ -47,7 +48,7 @@ export default function GckPage({
         ...prev,
         sessions: [
           ...prev.sessions,
-        { label: "", program: "", date: "", counts: createEmptyCounts() },
+        { label: "", program: "", date: "", counts: createEmptyCounts(), followup_contacts: [] },
       ],
     }));
   };
@@ -348,6 +349,13 @@ export default function GckPage({
                     </div>
                   ))}
                 </div>
+                <FollowupContactRepeater
+                  contacts={session.followup_contacts || []}
+                  onChange={(contacts) => updateSessionField(index, "followup_contacts", contacts)}
+                  title="Visitors / Converts follow-up details"
+                  helper="Capture people who need follow-up after this program. They will appear in the Follow-up dashboard."
+                  showCountWarning={false}
+                />
               </div>
             ))
           )}

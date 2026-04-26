@@ -7367,4 +7367,6 @@ if (preg_match('#^/biodata/(\d+)/history$#', $path, $matches)) {
     json_ok(['items' => $rows]);
 }
 
+require __DIR__ . '/followup_routes.php';
+
 json_error('Not found', 404);

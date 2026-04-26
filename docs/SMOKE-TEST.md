@@ -85,3 +85,32 @@ Verify automatic student lifecycle movement and exception statuses.
 9. Mark a student Deferred and rerun cron; confirm status is skipped.
 10. Mark a student Withdrawn and rerun cron; confirm status is skipped.
 11. Open Alumni Lifecycle Dashboard and confirm eligible, promotion, and skipped sections render.
+
+---
+
+# SMOKE TEST - FOLLOW-UP-WORKFLOW
+
+## Scope
+Verify visitor/convert follow-up capture, assignment, messaging, and reports.
+
+## Build / Checks
+- Backend syntax: `php -l api/index.php` ✅
+- Follow-up routes syntax: `php -l api/followup_routes.php` ✅
+- Notification helper syntax: `php -l api/lib/notification_service.php` ✅
+- Reminder cron syntax: `php -l api/jobs/followup_reminders.php` ✅
+- Frontend build: `npm run build` ✅
+- Frontend lint: `npm run lint` ✅ (warnings only, no blocking errors)
+
+## Manual Checklist
+1. Apply `scripts/migrations/20260426_followup_workflow.sql`.
+2. Configure backend-only Evolution API placeholders in production config.
+3. Submit attendance with one Visitor/Convert Follow-up Details row.
+4. Submit GCK report with one session follow-up contact row.
+5. Confirm records appear under `/followups`.
+6. Open a follow-up detail page and update assigned worker, status, priority, due date, and next follow-up.
+7. Add a note and confirm it appears in the timeline.
+8. Send Email and WhatsApp; confirm message attempts are logged.
+9. If Evolution API is not configured, confirm WhatsApp failure logs and fallback WhatsApp link opens.
+10. Edit/create templates under `/followups/templates`.
+11. Open `/reports/followups` and confirm totals/status/overdue sections render.
+12. Run `php api/jobs/followup_reminders.php` and confirm it completes without fatal error.

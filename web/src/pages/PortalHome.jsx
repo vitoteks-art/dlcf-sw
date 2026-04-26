@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { apiFetch, ensureCsrf } from "../api";
+import FollowupContactRepeater from "../components/FollowupContactRepeater";
 
 export default function PortalHome({
   states,
@@ -279,6 +280,13 @@ export default function PortalHome({
                     </label>
                   </div>
                 </div>
+
+                <FollowupContactRepeater
+                  contacts={attendance.followup_contacts || []}
+                  onChange={(contacts) => setAttendance({ ...attendance, followup_contacts: contacts })}
+                  visitors={attendance.visitors}
+                  converts={attendance.converts}
+                />
                 <div className="form-actions">
                   <button type="submit">
                     {attendanceEntryId ? "Update Attendance" : "Save Attendance"}
