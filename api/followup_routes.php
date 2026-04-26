@@ -58,6 +58,9 @@ if ($path === '/admin/integration-settings/evolution-api') {
         if ($enabled && ($baseUrl === '' || $instanceName === '' || $apiToken === '')) {
             json_error('Base URL, instance name, and API token are required when Evolution API is enabled', 422);
         }
+        if (!followup_ensure_evolution_settings_table($db)) {
+            json_error('Evolution API settings table is not available. Please apply the follow-up workflow migration.', 500);
+        }
 
         $stmt = db_prepare(
             $db,

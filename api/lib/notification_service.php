@@ -52,17 +52,46 @@ function followup_config_evolution_settings(array $config): array
     ];
 }
 
+function followup_ensure_evolution_settings_table(?mysqli $db): bool
+{
+    if (!$db) {
+        return false;
+    }
+
+    $sql = "CREATE TABLE IF NOT EXISTS integration_evolution_api_settings (
+        id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+        enabled TINYINT(1) NOT NULL DEFAULT 0,
+        base_url VARCHAR(255) DEFAULT NULL,
+        instance_name VARCHAR(190) DEFAULT NULL,
+        instance_key VARCHAR(190) DEFAULT NULL,
+        api_token TEXT DEFAULT NULL,
+        send_endpoint_path VARCHAR(255) NOT NULL DEFAULT '/message/sendText/{instance_name}',
+        default_country_code VARCHAR(10) NOT NULL DEFAULT '234',
+        updated_by BIGINT UNSIGNED DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    try {
+        return (bool) $db->query($sql);
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
 function followup_get_evolution_settings(?mysqli $db, array $config): array
 {
     $fallback = followup_config_evolution_settings($config);
-    if (!$db) {
+    if (!$db || !followup_ensure_evolution_settings_table($db)) {
         return $fallback;
     }
 
     try {
-        $stmt = db_prepare($db, 'SELECT * FROM integration_evolution_api_settings WHERE id = 1 LIMIT 1', '', []);
-        $stmt->execute();
-        $rows = db_fetch_all($stmt);
+        $result = $db->query('SELECT * FROM integration_evolution_api_settings WHERE id = 1 LIMIT 1');
+        if (!$result) {
+            return $fallback;
+        }
+        $rows = $result->fetch_all(MYSQLI_ASSOC);
     } catch (Throwable $e) {
         return $fallback;
     }
