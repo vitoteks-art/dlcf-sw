@@ -544,19 +544,14 @@ export default function BiodataPage({
                 setBiodata({ ...biodata, worker_status: e.target.value })
               }
             >
-              <option value="Member">Member</option>
-              <option value="Worker">Worker</option>
-              <option value="Associate Coord">Associate Coord</option>
-              <option value="State Coord">State Coord</option>
-              <option value="Region Coord">Region Coord</option>
-              <option value="Zonal Coord">Zonal Coord</option>
-              <option value="Exco">Exco</option>
-              <option value="GC">GC</option>
-              <option value="SW">SW</option>
+              <option value="Associate Coordinator">Associate Coordinator</option>
               <option value="Region Coordinator">Region Coordinator</option>
               <option value="State Coordinator">State Coordinator</option>
               <option value="Zonal Coordinator">Zonal Coordinator</option>
-              <option value="Student Exco">Student Exco</option>
+              <option value="General Coordinator">General Coordinator</option>
+              <option value="Sister Welfare">Sister Welfare</option>
+              <option value="Worker">Worker</option>
+              <option value="Member">Member</option>
               <option value="Guest">Guest</option>
             </select>
           </label>
@@ -595,15 +590,14 @@ export default function BiodataPage({
                 setBiodata({ ...biodata, membership_status: e.target.value })
               }
             >
-              <option value="Member">Member</option>
+              <option value="Associate Coordinator">Associate Coordinator</option>
+              <option value="Region Coordinator">Region Coordinator</option>
+              <option value="State Coordinator">State Coordinator</option>
+              <option value="Zonal Coordinator">Zonal Coordinator</option>
+              <option value="General Coordinator">General Coordinator</option>
+              <option value="Sister Welfare">Sister Welfare</option>
               <option value="Worker">Worker</option>
-              <option value="Associate Coord">Associate Coord</option>
-              <option value="State Coord">State Coord</option>
-              <option value="Region Coord">Region Coord</option>
-              <option value="Zonal Coord">Zonal Coord</option>
-              <option value="Exco">Exco</option>
-              <option value="GC">GC</option>
-              <option value="SW">SW</option>
+              <option value="Member">Member</option>
               <option value="Guest">Guest</option>
             </select>
           </label>

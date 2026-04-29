@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { apiFetch } from "../api";
 
-const statuses = ["Guest", "Member", "Worker", "Associate Coord", "State Coord", "Region Coord", "Zonal Coord", "Exco", "GC", "SW"];
+const statuses = ["Associate Coordinator", "Region Coordinator", "State Coordinator", "Zonal Coordinator", "General Coordinator", "Sister Welfare", "Worker", "Member", "Guest"];
 
 export default function StateCongressMembershipReportPage({
   user,
@@ -40,9 +40,17 @@ export default function StateCongressMembershipReportPage({
   const normalizeStatus = (value) => {
     if (!value) return "Guest";
     const normalized = String(value).toLowerCase();
-    if (normalized === "associate coordinator" || normalized === "associate coord") {
-      return "Associate Coord";
-    }
+    const aliases = {
+      "associate coord": "Associate Coordinator",
+      "state coord": "State Coordinator",
+      "region coord": "Region Coordinator",
+      "zonal coord": "Zonal Coordinator",
+      gc: "General Coordinator",
+      sw: "Sister Welfare",
+      exco: "Worker",
+      "student exco": "Worker",
+    };
+    if (aliases[normalized]) return aliases[normalized];
     const match = statuses.find(
       (statusItem) => statusItem.toLowerCase() === normalized
     );
