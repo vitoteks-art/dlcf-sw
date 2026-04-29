@@ -243,6 +243,12 @@ export default function RetreatPage({
               <option value="Member">Member</option>
               <option value="Worker">Worker</option>
               <option value="Associate Coord">Associate Coord</option>
+              <option value="State Coord">State Coord</option>
+              <option value="Region Coord">Region Coord</option>
+              <option value="Zonal Coord">Zonal Coord</option>
+              <option value="Exco">Exco</option>
+              <option value="GC">GC</option>
+              <option value="SW">SW</option>
               <option value="Guest">Guest</option>
             </select>
           </label>

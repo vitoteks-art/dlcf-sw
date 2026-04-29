@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 
-const statuses = ["Guest", "Member", "Worker", "Associate Coord"];
+const statuses = ["Guest", "Member", "Worker", "Associate Coord", "State Coord", "Region Coord", "Zonal Coord", "Exco", "GC", "SW"];
 
 export default function ZonalMembershipReportPage({
   user,

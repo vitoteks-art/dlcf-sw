@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { apiFetch } from "../api";
 
 const categories = ["Student", "Corper", "Staff", "Children", "Youth"];
-const membershipStatuses = ["Member", "Worker", "Associate Coord", "Guest"];
+const membershipStatuses = ["Member", "Worker", "Associate Coord", "State Coord", "Region Coord", "Zonal Coord", "Exco", "GC", "SW", "Guest"];
 
 export default function ZonalCongressPage({
   user,
