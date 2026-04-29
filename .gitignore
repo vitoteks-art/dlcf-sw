@@ -39,3 +39,9 @@ Thumbs.db
 # Backup folders (confirm with user if needed, but safe to ignore generally)
 web208/
 api/config.local.php
+
+# Generated release archives and scratch packaging folders
+*.zip
+tmp/
+api/public/uploads/*.zip
+web/*.zip

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import PublicNav from "../components/PublicNav";
 import PublicFooter from "../components/PublicFooter";
 import SEO from "../components/SEO";
 import { apiFetch } from "../api";
@@ -82,266 +83,173 @@ export default function GospelLibraryPage({ user, stateSlug, states }) {
     : "Explore our collection of scriptural resources, teachings, and community news.";
 
   return (
-    <div className="premium-state-page gospel-library-page">
+    <div className="public-home publications-page-premium gospel-library-page">
       <SEO title={libraryTitle} description={libraryDesc} />
+      <PublicNav user={user} />
 
-      <main className="library-wrapper">
-                <header className="library-header">
-                    <div className="library-inner header-inner">
-                        <div className="library-top">
-                            <Link className="library-brand" to="/">
-                                <img src="/logo.png" alt="Gospel Library" />
-                                <span>Gospel Library</span>
-                            </Link>
-              <div className="library-search">
-                <span className="icon">🔎</span>
-                <input
-                  type="text"
-                  placeholder="Search publications..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+      <section
+        className="public-hero home-hero home-hero-refined publications-page-hero"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, rgba(4, 10, 18, 0.98) 0%, rgba(4, 10, 18, 0.9) 34%, rgba(7, 15, 25, 0.48) 58%, rgba(7, 15, 25, 0.16) 100%), url("/gospel-publication-hero-premium.png")',
+        }}
+      >
+        <div className="home-hero-refined__inner">
+          <div className="public-hero-content home-hero-refined__content">
+            <p className="public-kicker home-hero-refined__kicker">Publications</p>
+            <h1>
+              Gospel <span>Library</span>
+            </h1>
+            <p>{libraryDesc}</p>
+            <div className="public-cta-row home-hero-refined__actions">
+              <Link className="public-btn primary" to={stateSlug ? `/${stateSlug}/media` : "/media"}>View Media</Link>
+              <Link className="public-btn ghost" to={stateSlug ? `/${stateSlug}` : "/states"}>Explore Fellowship</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="hero-values-band" aria-label="Publication page summary">
+        <div className="hero-values-band__inner">
+          <article className="hero-value-item">
+            <span className="hero-value-item__icon">✚</span>
+            <div>
+              <h3>Scriptural Resources</h3>
+              <p>Study outlines, doctrinal materials, and faith-building publications.</p>
+            </div>
+          </article>
+          <article className="hero-value-item">
+            <span className="hero-value-item__icon">◉</span>
+            <div>
+              <h3>Sound Teaching</h3>
+              <p>Resources rooted in Scripture, clarity, and spiritual conviction.</p>
+            </div>
+          </article>
+          <article className="hero-value-item">
+            <span className="hero-value-item__icon">◎</span>
+            <div>
+              <h3>Discipleship</h3>
+              <p>Materials that help believers grow, learn, and live the message.</p>
+            </div>
+          </article>
+          <article className="hero-value-item">
+            <span className="hero-value-item__icon">◆</span>
+            <div>
+              <h3>Library Access</h3>
+              <p>Browse publications by topic and discover the latest releases.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="public-section publications-list-shell gospel-library-shell">
+        <div className="section-head publications-list-head gospel-library-head">
+          <div>
+            <p className="section-kicker">Library Collection</p>
+            <h2>{searchQuery ? `Search results for "${searchQuery}"` : "Latest publications"}</h2>
+          </div>
+          <div className="media-filter-bar publications-filter-bar gospel-library-controls">
+            <label>
+              Search
+              <input
+                type="text"
+                placeholder="Search publications..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </label>
+            <label>
+              Topic
+              <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
+                {topics.map((topic) => (
+                  <option key={topic} value={topic}>
+                    {topic}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+
+        {status ? <p className="status">{status}</p> : null}
+
+        {featuredStudy && activeFilter === "All Topics" && !searchQuery ? (
+          <section className="media-featured-premium gospel-featured-premium">
+            <div className="media-featured-premium__grid">
+              <Link
+                to={stateSlug ? `/${stateSlug}/publications/${featuredStudy.id}` : `/publications/${featuredStudy.id}`}
+                className="lg:col-span-2 relative aspect-video bg-black flex items-center justify-center group cursor-pointer overflow-hidden"
+              >
+                <img
+                  alt={featuredStudy.title}
+                  className="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-700"
+                  src={
+                    featuredStudy.cover_image_url ||
+                    "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&q=80&w=1400"
+                  }
                 />
-              </div>
-              <nav className="library-nav">
-                <Link to="/" className="">
-                  Home
-                </Link>
-                <Link to={stateSlug ? `/${stateSlug}/publications` : "/publications"} className="active">
-                  Library
-                </Link>
-                <Link to={stateSlug ? `/${stateSlug}/media` : "/media"} className="">
-                  Media
-                </Link>
-              </nav>
-              <Link to="/portal" className="btn-signin">
-                Portal
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
               </Link>
-                        </div>
-                    </div>
-                </header>
 
-                <div className="topic-chips-wrapper">
-                    <div className="topic-chips">
-                        {topics.map((topic) => (
-                            <button
-                                key={topic}
-                                className={`chip ${activeFilter === topic ? "active" : ""}`}
-                                onClick={() => setActiveFilter(topic)}
-                            >
-                                {topic}
-                            </button>
-                        ))}
-                    </div>
+              <div className="media-featured-premium__copy">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary mb-4 w-fit">
+                  Featured Publication
+                </span>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white leading-tight mb-4">{featuredStudy.title}</h2>
+                <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                  {featuredStudy.description || "Explore the latest featured publication from our library."}
+                </p>
+                <div className="flex items-center gap-4 mb-8">
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                      {featuredStudy.publication_type || "Publication"}
+                    </p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide">
+                      {new Date(featuredStudy.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-
-        <div className="library-inner">
-          {/* Featured Study Section */}
-          {featuredStudy && activeFilter === "All Topics" && !searchQuery && (
-            <section className="featured-study-hero">
-              <div className="featured-card">
-                <div className="featured-img">
-                  <img
-                    src={
-                      featuredStudy.cover_image_url ||
-                      "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&q=80&w=800"
-                    }
-                    alt="Featured Study"
-                  />
-                </div>
-                <div className="featured-content">
-                  <span className="section-label">Featured Study</span>
-                  <h2>{featuredStudy.title}</h2>
-                  <p className="meta">
-                    Published on{" "}
-                    {new Date(featuredStudy.created_at).toLocaleDateString()} •{" "}
-                    {featuredStudy.reading_time || "10 min read"}
-                  </p>
-                  <p className="excerpt">
-                    {featuredStudy.description ||
-                      "Explore the transformative nature of divine grace and how it shapes our daily walk..."}
-                  </p>
+                <div className="flex gap-3">
                   <Link
-                    to={
-                      stateSlug
-                        ? `/${stateSlug}/publications/${featuredStudy.id}`
-                        : `/publications/${featuredStudy.id}`
-                    }
-                    className="continue-reading"
+                    className="flex-1 bg-primary text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-blue-800 transition-colors"
+                    to={stateSlug ? `/${stateSlug}/publications/${featuredStudy.id}` : `/publications/${featuredStudy.id}`}
                   >
-                    Continue Reading <span>→</span>
+                    Read Now
                   </Link>
                 </div>
               </div>
-            </section>
-          )}
-
-          {/* Library Layout Grid */}
-          <div className="library-layout-grid">
-            {/* Main Content Area */}
-            <div className="library-main">
-              <div className="section-header" style={{ marginBottom: "32px" }}>
-                <h2>
-                  {searchQuery
-                    ? `Search results for "${searchQuery}"`
-                    : "Latest Publications"}
-                </h2>
-              </div>
-
-              <div className="publications-grid">
-                {filteredItems.map((item) => (
-                  <article key={item.id} className="publication-card simple">
-                    <div className="card-thumb">
-                      <img
-                        src={
-                          item.cover_image_url ||
-                          "https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=400"
-                        }
-                        alt={item.title}
-                      />
-                    </div>
-                    <div className="card-body">
-                      <div className="card-meta">
-                        <span className="card-tag">
-                          {item.publication_type}
-                        </span>
-                        <span className="card-date">
-                          •{" "}
-                          {new Date(item.created_at).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            },
-                          )}
-                        </span>
-                      </div>
-                      <h4>{item.title}</h4>
-                      <p>
-                        {item.description ||
-                          "A deep dive into scriptural truths and practical applications..."}
-                      </p>
-                      <Link
-                        to={
-                          stateSlug
-                            ? `/${stateSlug}/publications/${item.id}`
-                            : `/publications/${item.id}`
-                        }
-                        className="read-more"
-                      >
-                        Read More
-                      </Link>
-                    </div>
-                  </article>
-                ))}
-              </div>
-
-              {filteredItems.length === 0 && (
-                <div
-                  className="empty-state centered"
-                  style={{ padding: "80px 0" }}
-                >
-                  <h3>No matching publications</h3>
-                  <p>
-                    We couldn't find anything matching your current filters. Try
-                    a different topic or search term.
-                  </p>
-                </div>
-              )}
-
-              {filteredItems.length > 5 && (
-                <div className="centered" style={{ padding: "60px 0" }}>
-                  <button
-                    className="btn-glass-large"
-                    style={{ color: "var(--text-main)", borderColor: "#eee" }}
-                  >
-                    Load More Articles
-                  </button>
-                </div>
-              )}
             </div>
+          </section>
+        ) : null}
 
-            {/* Sidebar Area */}
-            <aside className="library-sidebar">
-              <div className="sidebar-widget">
-                <h4 className="widget-title">
-                  <span className="icon">📈</span> Popular This Month
-                </h4>
-                <div className="popular-list">
-                  {popularReads.map((item) => (
-                    <Link
-                      key={item.id}
-                      to={
-                        stateSlug
-                          ? `/${stateSlug}/publications/${item.id}`
-                          : `/publications/${item.id}`
-                      }
-                      className="popular-item"
-                    >
-                      <img
-                        src={
-                          item.cover_image_url ||
-                          "https://images.unsplash.com/photo-1519781542704-957ff19ef00a?auto=format&fit=crop&q=80&w=150"
-                        }
-                        alt={item.title}
-                      />
-                      <div className="pop-body">
-                        <h5>{item.title}</h5>
-                        <p>{item.popularity_meta || "4.2k Reads"}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+        <div className="media-library-grid publications-grid-premium gospel-publications-grid">
+          {filteredItems.map((item) => (
+            <article key={item.id} className="media-item-card publication-card-premium">
+              <div className="media-item-header">
+                <span className="media-pill">{item.publication_type || "Publication"}</span>
+                <span className="media-pill subtle">{resolvedStateName ? "State" : "Zonal"}</span>
               </div>
+              {item.cover_image_url ? (
+                <img className="media-thumb" src={item.cover_image_url} alt={item.title} />
+              ) : (
+                <div className="publication-card-premium__cover" />
+              )}
+              <h4>{item.title}</h4>
+              {item.description ? <p className="lede">{item.description}</p> : null}
+              <div className="media-item-actions">
+                <Link to={stateSlug ? `/${stateSlug}/publications/${item.id}` : `/publications/${item.id}`}>Read More</Link>
+              </div>
+            </article>
+          ))}
 
-              <div className="sidebar-widget">
-                <h4 className="widget-title">
-                  <span className="icon">▶️</span> Media
-                </h4>
-                <p style={{ marginTop: 0, color: "rgba(255,255,255,0.85)" }}>
-                  Browse sermons, audio, and video content.
-                </p>
-                <Link
-                  className="btn-primary-large"
-                  style={{ display: "inline-block", marginTop: "10px" }}
-                  to={stateSlug ? `/${stateSlug}/media` : "/media"}
-                >
-                  View Media
-                </Link>
-              </div>
-
-              <div className="sidebar-widget newsletter-widget">
-                <h3>Subscribe to Updates</h3>
-                <p>
-                  Get the latest study outlines and devotionals delivered
-                  directly to your inbox.
-                </p>
-                <div className="subscribe-form">
-                  <input
-                    type="email"
-                    placeholder="Enter your email"
-                    style={{
-                      width: "100%",
-                      marginBottom: "12px",
-                      padding: "12px",
-                      borderRadius: "8px",
-                      border: "1px solid rgba(255,255,255,0.2)",
-                      background: "rgba(255,255,255,0.1)",
-                      color: "#fff",
-                    }}
-                  />
-                  <button
-                    className="btn-primary-large"
-                    style={{ width: "100%", padding: "12px" }}
-                  >
-                    Subscribe Now
-                  </button>
-                </div>
-              </div>
-            </aside>
-          </div>
+          {filteredItems.length === 0 ? (
+            <div className="media-empty card">
+              <h4>No matching publications.</h4>
+              <p className="lede">Try a different topic or search term.</p>
+            </div>
+          ) : null}
         </div>
-      </main>
+      </section>
 
       <PublicFooter />
     </div>

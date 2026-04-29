@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DLCF-SW Progress Report</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #17324d;
+      margin: 0;
+      padding: 0;
+      background: #f4f8fb;
+    }
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 40px 48px 50px;
+    }
+    .header {
+      text-align: center;
+      border-bottom: 4px solid #1e73be;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    .header img {
+      width: 92px;
+      height: 92px;
+      object-fit: contain;
+      margin-bottom: 12px;
+    }
+    .title {
+      font-size: 30px;
+      font-weight: 700;
+      color: #0b4f8a;
+      margin: 0;
+    }
+    .subtitle {
+      font-size: 15px;
+      color: #4d6a85;
+      margin-top: 8px;
+    }
+    .intro {
+      background: linear-gradient(135deg, #eaf4ff, #f5fbff);
+      border-left: 5px solid #1e73be;
+      padding: 18px 20px;
+      border-radius: 8px;
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+    h2 {
+      font-size: 20px;
+      color: #0b4f8a;
+      margin-top: 28px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #d8e6f3;
+      padding-bottom: 6px;
+    }
+    p, li {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #23384d;
+    }
+    ul {
+      margin-top: 8px;
+      padding-left: 20px;
+    }
+    .section {
+      margin-bottom: 18px;
+    }
+    .summary-box {
+      margin-top: 28px;
+      background: #f8fbfe;
+      border: 1px solid #d8e6f3;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .footer {
+      margin-top: 34px;
+      text-align: center;
+      font-size: 12px;
+      color: #6b7f92;
+      border-top: 1px solid #d8e6f3;
+      padding-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <img src="file:///root/.openclaw/workspace-atlas/dlcf-sw/web/public/logo.png" alt="DLCF Logo" />
+      <h1 class="title">DLCF-SW Progress Report</h1>
+      <div class="subtitle">Update on Work Completed So Far</div>
+    </div>
+
+    <div class="intro">
+      Over the past few days, substantial progress has been made on the ongoing DLCF-SW platform improvement plan. The work completed so far has focused mainly on strengthening reporting, improving access control, enhancing biodata management, and expanding administrative efficiency across key operational areas of the system.
+    </div>
+
+    <div class="section">
+      <h2>1. Attendance Access Control and Reporting Improvements</h2>
+      <p>Significant improvements have been made to attendance management and reporting. Access to attendance submission and related reporting has been strengthened to ensure users operate strictly within their approved scope. This has improved accountability and reduced the risk of unauthorized submissions.</p>
+      <p>Attendance reporting has also been expanded to allow filtering by fellowship centre, making it easier for leadership at different levels to view attendance records relevant to their jurisdiction. In addition, data entry has been improved to make attendance input easier and more accurate.</p>
+      <ul>
+        <li>Strengthened attendance access control by scope and role</li>
+        <li>Improved attendance report filtering by fellowship centre</li>
+        <li>Improved attendance data entry experience</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>2. Attendance Service Summary Enhancement</h2>
+      <p>The attendance module has been expanded beyond headcount reporting to allow service-level summary information to be captured. This now provides a broader picture of each service, beyond attendance numbers alone.</p>
+      <ul>
+        <li>Added support for recording visitors</li>
+        <li>Added support for recording converts</li>
+        <li>Added support for recording tithe and offering</li>
+        <li>Integrated these fields into attendance entry, edit, and reporting workflow</li>
+        <li>Maintained a clear distinction between dashboard reporting and Excel export requirements</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>3. Attendance Excel Report Upgrade</h2>
+      <p>The attendance Excel export has been improved to present reports in a more structured and official format suitable for formal reporting. The export now follows a clearer grouped service layout and a more professional presentation style.</p>
+      <ul>
+        <li>Redesigned attendance Excel export format</li>
+        <li>Grouped report output by service categories</li>
+        <li>Aligned report labels for clearer presentation</li>
+        <li>Improved column layout, compactness, and header presentation</li>
+        <li>Added clearer total rows for summary reporting</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>4. GCK Reporting Improvement</h2>
+      <p>The GCK reporting module has been strengthened and modernized to reflect the required reporting terminology and improve usability for field users and leadership.</p>
+      <ul>
+        <li>Updated reporting terminology from Session to Program</li>
+        <li>Added approved program categories</li>
+        <li>Enabled fellowship centre filtering in GCK reports</li>
+        <li>Improved report filtering reliability</li>
+        <li>Improved numeric data entry experience in GCK forms</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>5. Biodata Improvement and Lifecycle Tracking</h2>
+      <p>The biodata system has been improved to support more complete member records and provide better visibility into member development and lifecycle changes.</p>
+      <ul>
+        <li>Improved biodata validation and reporting</li>
+        <li>Added key biodata profile fields such as date of birth and marital status</li>
+        <li>Introduced lifecycle history tracking</li>
+        <li>Added lifecycle history viewing for easier monitoring</li>
+        <li>Improved student and alumni reporting support</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>6. Registration Workflow Improvement Through Biodata Autofill</h2>
+      <p>To reduce repeated manual entry and improve efficiency, biodata autofill has been integrated into key registration processes.</p>
+      <ul>
+        <li>Enabled biodata autofill for retreat registration</li>
+        <li>Enabled biodata autofill for congress registration workflows</li>
+        <li>Improved ease of registration and reduced duplication of effort</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>7. Institution Management Improvement</h2>
+      <p>Administrative institution management has been improved to support bulk upload rather than one-by-one entry, making large-scale institution setup much easier and faster.</p>
+      <ul>
+        <li>Added bulk institution upload through Excel</li>
+        <li>Defined a simple structured upload format</li>
+        <li>Introduced duplicate handling and import feedback</li>
+        <li>Provided downloadable sample template support within the system</li>
+      </ul>
+    </div>
+
+    <div class="summary-box">
+      <h2>Summary of Progress Made So Far</h2>
+      <p>The work completed so far represents major progress in the following areas of the overall plan:</p>
+      <ul>
+        <li>Attendance and GCK reporting enhancement</li>
+        <li>Access control strengthening</li>
+        <li>Biodata improvement and lifecycle tracking</li>
+        <li>Student and alumni reporting support</li>
+        <li>Registration workflow efficiency</li>
+        <li>Administrative data management improvement</li>
+      </ul>
+    </div>
+
+    <div class="summary-box">
+      <h2>Major Items Still Remaining in the Broader Plan</h2>
+      <ul>
+        <li>Full permission and capability-based access system</li>
+        <li>Multi-factor authentication for sensitive users</li>
+        <li>Broader delegated reporting and secure temporary access model</li>
+        <li>Full student-to-alumni lifecycle automation</li>
+        <li>Visitor and convert follow-up workflow</li>
+        <li>STMC expansion into a complete training portal</li>
+        <li>Broader CMS, communication, giving, and public engagement expansion</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>Conclusion</h2>
+      <p>The current phase of work has successfully delivered practical improvements in reporting, biodata handling, administrative processes, and access control. These upgrades provide a stronger operational foundation for the next stage of development and position the platform for more advanced lifecycle management, training systems, and ministry-wide reporting expansion.</p>
+    </div>
+
+    <div class="footer">
+      Official Progress Report • DLCF-SW Platform Improvement Plan
+    </div>
+  </div>
+</body>
+</html>

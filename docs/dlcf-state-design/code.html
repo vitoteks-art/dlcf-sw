@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+
+<html class="scroll-smooth" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DLCF Oyo Central - Building Godly Students and Youths</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;family=Montserrat:wght@700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed": "#001a43",
+                    "surface-bright": "#f7f9fc",
+                    "primary": "#002659",
+                    "secondary": "#485e8c",
+                    "on-primary-fixed": "#001a41",
+                    "primary-container": "#123c7a",
+                    "surface-variant": "#e0e3e6",
+                    "on-error-container": "#93000a",
+                    "on-primary-fixed-variant": "#1f4584",
+                    "outline": "#747781",
+                    "on-secondary-container": "#3e5481",
+                    "on-primary-container": "#87a9ee",
+                    "inverse-surface": "#2d3133",
+                    "primary-fixed": "#d8e2ff",
+                    "on-surface-variant": "#434750",
+                    "surface-container-highest": "#e0e3e6",
+                    "surface-dim": "#d8dadd",
+                    "on-error": "#ffffff",
+                    "surface-container-high": "#e6e8eb",
+                    "background": "#f7f9fc",
+                    "on-tertiary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-low": "#f2f4f7",
+                    "on-tertiary-fixed": "#261900",
+                    "on-secondary-fixed-variant": "#304672",
+                    "secondary-fixed": "#d8e2ff",
+                    "secondary-fixed-dim": "#b1c6fb",
+                    "inverse-primary": "#adc6ff",
+                    "tertiary": "#362500",
+                    "on-surface": "#191c1e",
+                    "on-primary": "#ffffff",
+                    "secondary-container": "#b3c9fd",
+                    "tertiary-fixed-dim": "#f2bf50",
+                    "on-background": "#191c1e",
+                    "tertiary-fixed": "#ffdea1",
+                    "on-secondary": "#ffffff",
+                    "outline-variant": "#c4c6d2",
+                    "inverse-on-surface": "#eff1f4",
+                    "primary-fixed-dim": "#adc6ff",
+                    "tertiary-container": "#513a00",
+                    "surface-container": "#eceef1",
+                    "surface": "#f7f9fc",
+                    "on-tertiary-container": "#d1a235",
+                    "surface-tint": "#3a5d9d",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed-variant": "#5c4300"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Montserrat", "Manrope", "sans-serif"],
+                    "body": ["Inter", "sans-serif"],
+                    "label": ["Inter", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-montserrat { font-family: 'Montserrat', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-line { border: none !important; }
+        .glass-nav {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background selection:bg-tertiary-fixed selection:text-tertiary-container">
+<!-- Top Announcement Bar -->
+<aside class="w-full bg-tertiary text-tertiary-fixed py-2.5 px-4 text-center text-sm font-medium tracking-wide">
+        State Revival Program this Saturday - Registration Now Open!
+    </aside>
+<!-- Header: TopAppBar (Shared Component) -->
+<header class="bg-surface/80 dark:bg-slate-900/80 backdrop-blur-md docked full-width top-0 sticky z-50 shadow-xl shadow-blue-900/5 dark:shadow-none">
+<nav class="flex justify-between items-center px-8 py-4 w-full max-w-7xl mx-auto">
+<a class="text-2xl font-black tracking-tighter text-blue-900 dark:text-blue-100 font-montserrat uppercase" href="#">
+                DLCF Oyo Central
+            </a>
+<!-- Desktop Navigation -->
+<div class="hidden md:flex items-center gap-8">
+<a class="font-montserrat font-bold tracking-tight uppercase text-blue-900 dark:text-blue-100 border-b-2 border-amber-500 pb-1 hover:text-blue-900 dark:hover:text-blue-50 transition-colors" href="#">Home</a>
+<a class="font-montserrat font-bold tracking-tight uppercase text-blue-700/70 dark:text-slate-400 font-medium hover:text-blue-900 dark:hover:text-blue-50 transition-colors" href="#">Sermons</a>
+<a class="font-montserrat font-bold tracking-tight uppercase text-blue-700/70 dark:text-slate-400 font-medium hover:text-blue-900 dark:hover:text-blue-50 transition-colors" href="#">Fellowships</a>
+<a class="font-montserrat font-bold tracking-tight uppercase text-blue-700/70 dark:text-slate-400 font-medium hover:text-blue-900 dark:hover:text-blue-50 transition-colors" href="#">Events</a>
+<a class="font-montserrat font-bold tracking-tight uppercase text-blue-700/70 dark:text-slate-400 font-medium hover:text-blue-900 dark:hover:text-blue-50 transition-colors" href="#">Resources</a>
+</div>
+<div class="flex items-center gap-6">
+<button class="material-symbols-outlined text-blue-900 dark:text-blue-100">notifications</button>
+<a class="hidden lg:block bg-primary text-on-primary px-6 py-2.5 rounded-full font-bold text-sm tracking-wide active:scale-95 duration-200 uppercase" href="#">
+                    Join a Fellowship
+                </a>
+<button class="md:hidden material-symbols-outlined">menu</button>
+</div>
+</nav>
+</header>
+<main>
+<!-- Hero Section -->
+<section class="relative overflow-hidden pt-16 pb-24 md:pt-24 md:pb-32 bg-surface">
+<div class="max-w-7xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+<div class="z-10">
+<span class="inline-block px-4 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-xs font-bold uppercase tracking-widest mb-6">Welcome Home</span>
+<h1 class="text-5xl md:text-7xl font-black font-montserrat text-primary leading-[1.1] mb-8 -tracking-tight">
+                        Welcome to DLCF <span class="text-on-tertiary-container">Oyo (Central)</span> State
+                    </h1>
+<p class="text-lg md:text-xl text-secondary leading-relaxed mb-10 max-w-xl">
+                        Building Godly Students and Youths Through the Word, Prayer, and Evangelism. Discover a community where your spiritual growth is our priority.
+                    </p>
+<div class="flex flex-wrap gap-4">
+<button class="bg-primary text-on-primary px-8 py-4 rounded-xl font-bold text-lg hover:shadow-2xl transition-all active:scale-95">
+                            Join a Fellowship
+                        </button>
+<button class="bg-surface-container-low text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-surface-container-high transition-all active:scale-95 flex items-center gap-2">
+<span class="material-symbols-outlined">play_circle</span>
+                            Watch Messages
+                        </button>
+</div>
+</div>
+<div class="relative">
+<div class="absolute -top-10 -right-10 w-64 h-64 bg-tertiary-fixed opacity-20 rounded-full blur-3xl"></div>
+<div class="relative z-10 rounded-lg overflow-hidden shadow-2xl transform lg:rotate-2 hover:rotate-0 transition-transform duration-500">
+<img alt="Fellowship Gathering" class="w-full h-[500px] object-cover" data-alt="A diverse group of university students gathered in a bright modern hall for a joyful spiritual fellowship session with warm sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAm2lX2j-zqOtUMeJzeE_5wr2VKJEYg8a9CFR9WQn8TnWyfQwoZZGbr3btFQpXz8go_4GUkERGIINhrQpyMgg1h_LVr9l1vNBkaY20KzfyVX-VXtlUes9cEwmkXLDrkvXK686xqiDvFzQbq6RlJ25zY4m79rEYPJbTNLqH2UZOPOQYkvf43H8FLmztBB_HAWFePwh_0MIEdgHRJ8lcxaUORbmTylR3Gnv9EYgfVK_X4JSkjb3ygcsfXjgKeaZ0MuvKLDLtKROm-c-Wr"/>
+</div>
+<div class="absolute -bottom-6 -left-6 bg-surface-container-lowest p-6 rounded-lg shadow-xl hidden md:block">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-primary-fixed rounded-full flex items-center justify-center text-primary font-bold">50+</div>
+<p class="text-sm font-semibold text-secondary">Fellowship Centers Across Oyo State</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Welcome: Mission/Vision (Asymmetric Bento Grid) -->
+<section class="py-24 bg-surface-container-low">
+<div class="max-w-7xl mx-auto px-8">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+<div class="md:col-span-5 flex flex-col justify-center">
+<h2 class="text-4xl font-black font-montserrat text-primary mb-6">Rooted in Grace, Driven by Purpose</h2>
+<p class="text-secondary leading-relaxed">Declamatory Life Christian Fellowship (DLCF) is dedicated to raising a generation of youths who are academically excellent and spiritually vibrant.</p>
+</div>
+<div class="md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6">
+<div class="bg-surface-container-lowest p-10 rounded-lg shadow-sm border-b-4 border-primary">
+<span class="material-symbols-outlined text-4xl text-primary mb-6">auto_awesome</span>
+<h3 class="text-2xl font-bold font-montserrat text-primary mb-4">Who We Are</h3>
+<p class="text-secondary text-sm leading-relaxed">We are a vibrant community of students and youths committed to the apostolic faith and kingdom service.</p>
+</div>
+<div class="bg-surface-container-lowest p-10 rounded-lg shadow-sm border-b-4 border-on-tertiary-container">
+<span class="material-symbols-outlined text-4xl text-on-tertiary-container mb-6">rocket_launch</span>
+<h3 class="text-2xl font-bold font-montserrat text-primary mb-4">Our Mission</h3>
+<p class="text-secondary text-sm leading-relaxed">To win, build, and send forth godly leaders into every sphere of human endeavor through evangelism and teaching.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Quick Actions -->
+<section class="py-24 max-w-7xl mx-auto px-8">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Action 1 -->
+<a class="group bg-surface-container-high p-8 rounded-lg transition-all hover:bg-primary hover:text-on-primary" href="#">
+<span class="material-symbols-outlined text-3xl mb-4 group-hover:text-primary-fixed transition-colors">location_on</span>
+<h4 class="text-xl font-bold mb-2">Find a Center</h4>
+<p class="text-sm opacity-80">Locate the nearest DLCF center near your campus.</p>
+</a>
+<!-- Action 2 -->
+<a class="group bg-surface-container-high p-8 rounded-lg transition-all hover:bg-primary hover:text-on-primary" href="#">
+<span class="material-symbols-outlined text-3xl mb-4 group-hover:text-primary-fixed transition-colors">event</span>
+<h4 class="text-xl font-bold mb-2">Upcoming Programs</h4>
+<p class="text-sm opacity-80">Stay updated with our state and campus activities.</p>
+</a>
+<!-- Action 3 -->
+<a class="group bg-surface-container-high p-8 rounded-lg transition-all hover:bg-primary hover:text-on-primary" href="#">
+<span class="material-symbols-outlined text-3xl mb-4 group-hover:text-primary-fixed transition-colors">support_agent</span>
+<h4 class="text-xl font-bold mb-2">Prayer Request</h4>
+<p class="text-sm opacity-80">Let us stand in faith with you. Submit your requests.</p>
+</a>
+<!-- Action 4 -->
+<a class="group bg-surface-container-high p-8 rounded-lg transition-all hover:bg-primary hover:text-on-primary" href="#">
+<span class="material-symbols-outlined text-3xl mb-4 group-hover:text-primary-fixed transition-colors">video_library</span>
+<h4 class="text-xl font-bold mb-2">Recent Messages</h4>
+<p class="text-sm opacity-80">Access life-changing sermons and Bible studies.</p>
+</a>
+</div>
+</section>
+<!-- Upcoming Events (Spotlight Cards) -->
+<section class="py-24 bg-surface-container-lowest">
+<div class="max-w-7xl mx-auto px-8">
+<div class="flex justify-between items-end mb-16">
+<div>
+<h2 class="text-4xl font-black font-montserrat text-primary">Sacred Gatherings</h2>
+<p class="text-secondary mt-2 uppercase tracking-widest text-xs font-bold">Mark your calendar for these moments</p>
+</div>
+<a class="text-primary font-bold flex items-center gap-2 hover:gap-4 transition-all" href="#">
+                        View All Events <span class="material-symbols-outlined">arrow_forward</span>
+</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+<!-- Event 1 -->
+<div class="group">
+<div class="relative h-64 rounded-lg overflow-hidden mb-6">
+<img alt="Event" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Interior of a modern brightly lit student conference hall with rows of seats and a focused stage lighting atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDH1cpCae_zz9oHU-Cnd2dw8npXZ189ePc6PgpZ06Am5AuLT32ly14nsQCaZfIlGzBuXbs1L5E9YbdcDVBPPsdXiQW-rluihgoRJiJQsaYFt_stYBfL04DCImut6Zdz7STWWpWv__jCZ1UmekG4yJVTAAXQLkJCqxhdAfbsBEDiDrmamktWeXa6h1Yq0vPdmfXR-W7eY5966dS8Ipp4lEu-ioZUlgCb8ehXZlhIN0tNaoJv_PY_YnrGabq09lzP_HkYTVofJRGJqZ4"/>
+<div class="absolute top-4 left-4 bg-tertiary-fixed text-tertiary-container px-3 py-1 rounded-md font-bold text-sm">OCT 24</div>
+</div>
+<h3 class="text-2xl font-bold text-primary mb-2">State Youth Revival</h3>
+<div class="flex items-center gap-4 text-secondary text-sm mb-4">
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-base">schedule</span> 4:00 PM</div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-base">near_me</span> Oyo State HQ</div>
+</div>
+<button class="w-full py-3 rounded-lg bg-surface-container border border-outline-variant font-bold text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">View Details</button>
+</div>
+<!-- Event 2 -->
+<div class="group">
+<div class="relative h-64 rounded-lg overflow-hidden mb-6">
+<img alt="Event" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Close up of an open bible and notepad on a wooden desk with soft warm lighting for a study atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDj-pJrRJWy6iERRkRriViCSDsJlKVOydupRKZi2feL-uRGX4cpyIQpQcBg6CtEXJ79dvB8gqMPcrTADIKMh_Iy7gCRRuLoZfEGwLKpiKklc6KJlpqUdIM5agx4iITN31nBIZyCiw_mpO-kuZWKnEdGb9pFLMKYNTacAfQ_4nO7iekjT0WxbICDTQ5tLb_mPLb1FPM9eubHijrw72K5Gs5BgXZderyOcqtFRSqcGzP-7H3Rca2qjKjPvE0s2RUdgSyQBPnVlB4utgfv"/>
+<div class="absolute top-4 left-4 bg-tertiary-fixed text-tertiary-container px-3 py-1 rounded-md font-bold text-sm">NOV 02</div>
+</div>
+<h3 class="text-2xl font-bold text-primary mb-2">Bible Study Masterclass</h3>
+<div class="flex items-center gap-4 text-secondary text-sm mb-4">
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-base">schedule</span> 5:30 PM</div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-base">near_me</span> Virtual/Centers</div>
+</div>
+<button class="w-full py-3 rounded-lg bg-surface-container border border-outline-variant font-bold text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">View Details</button>
+</div>
+<!-- Event 3 -->
+<div class="group">
+<div class="relative h-64 rounded-lg overflow-hidden mb-6">
+<img alt="Event" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Concert stage with professional lighting and a silhouette of a choir performing in a large sanctuary" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAV2kY0vvKYNm_Ar6ATJ5AO6IziGOTHDj0w4FUonHYQz4kaa_eE52BbBA-ChPvMaVup3hh38tJImzQ8aU8w-YTFXriHAtDCG1o-2mCRHkG6_GzHrjsSS3pCw9TNw5gaOYD3qzhQSNjyghZ_4uYEhMQKq0xShF7d8ZSuBXPqndZxi9f3kcJBCaQkPKSW11X8KcX5DgQWmK4gXCbL6lce6JL0Y8QiEapaCBk7_N21YY_MBu4c5FiMdDWVzD9ODh6MjJuADJoh5UyfcBRz"/>
+<div class="absolute top-4 left-4 bg-tertiary-fixed text-tertiary-container px-3 py-1 rounded-md font-bold text-sm">NOV 15</div>
+</div>
+<h3 class="text-2xl font-bold text-primary mb-2">Night of Praise</h3>
+<div class="flex items-center gap-4 text-secondary text-sm mb-4">
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-base">schedule</span> 9:00 PM</div>
+<div class="flex items-center gap-1"><span class="material-symbols-outlined text-base">near_me</span> UI Campus Hall</div>
+</div>
+<button class="w-full py-3 rounded-lg bg-surface-container border border-outline-variant font-bold text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">View Details</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Find a Fellowship Center (Search & Map Logic) -->
+<section class="py-24 bg-primary text-on-primary overflow-hidden">
+<div class="max-w-7xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+<div class="lg:col-span-5">
+<h2 class="text-4xl font-black font-montserrat mb-6">Find Your Community</h2>
+<p class="text-on-primary-container mb-10 leading-relaxed">DLCF is present in all major higher institutions across Oyo State. Enter your location to find the fellowship center closest to you.</p>
+<div class="relative mb-8">
+<input class="w-full bg-white/10 border-none rounded-xl py-5 px-6 text-white placeholder:text-white/50 focus:ring-2 focus:ring-on-tertiary-container" placeholder="Search by School or City..." type="text"/>
+<button class="absolute right-3 top-3 bg-on-tertiary-container text-tertiary p-2 rounded-lg">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+<div class="space-y-4">
+<div class="p-4 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+<div>
+<h5 class="font-bold">University of Ibadan (UI)</h5>
+<p class="text-xs opacity-70">Main Campus, Ibadan</p>
+</div>
+<span class="material-symbols-outlined text-on-tertiary-container">directions</span>
+</div>
+<div class="p-4 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
+<div>
+<h5 class="font-bold">LAUTECH Center</h5>
+<p class="text-xs opacity-70">Ogbomoso, Oyo State</p>
+</div>
+<span class="material-symbols-outlined text-on-tertiary-container">directions</span>
+</div>
+</div>
+</div>
+<div class="lg:col-span-7 h-[400px] rounded-lg overflow-hidden grayscale contrast-125 opacity-80">
+<img alt="Map" class="w-full h-full object-cover" data-alt="A stylized overhead map view of an African city with complex road networks and urban layout in a moody high-contrast black and white style" data-location="Ibadan, Nigeria" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOCoPBf3fTMx2_dEmTF5TQBUk28uqOUuS7ylnA8A6Keaw4Nu-i7NJXSniRbBfcdWZvvhMlrbbo_JZlPSfFWfZ6LapKbLFJPyOvizrJt58i8HveAw6KaUWHJZjjMpBoCW7sl_KOACkE5O090ok2dIn21F097MEfZRz1w1istdIYwkOm6Rn2eSRH1jJ3Gupk4seFsrgj02c3ezLazKwuPEySeHrMkdtuxKJTCqvfp0RzlmS-cnWTgTjmgvK3Hqf7F61hXZn6rwkxhXhg"/>
+</div>
+</div>
+</section>
+<!-- Recent Messages (Video Grid) -->
+<section class="py-24 bg-surface">
+<div class="max-w-7xl mx-auto px-8">
+<div class="text-center max-w-2xl mx-auto mb-16">
+<h2 class="text-4xl font-black font-montserrat text-primary">Spiritual Nourishment</h2>
+<p class="text-secondary mt-4">Rewatch our most recent teachings and be transformed by the power of the Word.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Message 1 -->
+<div class="bg-surface-container-lowest rounded-lg overflow-hidden group shadow-sm hover:shadow-xl transition-shadow">
+<div class="relative h-48">
+<img alt="Sermon thumbnail" class="w-full h-full object-cover" data-alt="A silhouette of a speaker on a stage with a large projection screen behind them and cinematic lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDj0mVGVkkEFHRrdpZ5pb_A0lHOw3-PrqRhaJIlvbCMuFcd45-LTHLIorpYCTuiDDTvLw5024ZDeOiVpfIpzwwWjta5t_VxtJ7WA4mgbZ7qor5qsxs9mdCyqpkPoSFmZ2yqmCIoTAifwTMrrpfrV3YRA8xQjF_xmEtLSq6MHSl_3pzR4SWK70BZ_NgMUHlayyVERJBiZd6M1PBwZlmVlFV5bicKi2IecItJ6Wblp6BYhRhUS9Lnww3zwnvi_3TL92Ipz4t9kvGk_IXh"/>
+<div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white text-6xl">play_circle</span>
+</div>
+</div>
+<div class="p-6">
+<p class="text-on-tertiary-container text-xs font-black uppercase mb-2">Weekly Bible Study</p>
+<h4 class="text-xl font-bold text-primary mb-4 leading-tight">Walking in Divine Purpose: A Youth's Guide</h4>
+<button class="text-primary font-bold text-sm flex items-center gap-2 group-hover:gap-3 transition-all">Watch Now <span class="material-symbols-outlined text-base">play_arrow</span></button>
+</div>
+</div>
+<!-- Message 2 -->
+<div class="bg-surface-container-lowest rounded-lg overflow-hidden group shadow-sm hover:shadow-xl transition-shadow">
+<div class="relative h-48">
+<img alt="Sermon thumbnail" class="w-full h-full object-cover" data-alt="People raising hands in a dimly lit hall during a worship session with soft blue and purple lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDI5GMQbu4s_gEAXI8ISPLgSmjg1u0G2s-xVCuoin2RtrwPujYQulYFii4wjBTcwL6TN2X6SMXZfOpaBwLKc00l2Ft6Em-9LJshDd5QASC7lUOJxV9ppX5xU5IYLIYXomDXvlwKY1SHgYOYjn_48VsIF-scT247sIgHGh1iMHjtRQNCUSePq5RLiDRLaolssjjaw_6FwnvMVld8W0SD_puFtMvNWWo-U845tpcrcr1BIa1wZav8_cMqz0n5eYnnFEwanFJf2Qsi-Gcc"/>
+<div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white text-6xl">play_circle</span>
+</div>
+</div>
+<div class="p-6">
+<p class="text-on-tertiary-container text-xs font-black uppercase mb-2">State Convergence</p>
+<h4 class="text-xl font-bold text-primary mb-4 leading-tight">The Power of Intercession in Academic Success</h4>
+<button class="text-primary font-bold text-sm flex items-center gap-2 group-hover:gap-3 transition-all">Watch Now <span class="material-symbols-outlined text-base">play_arrow</span></button>
+</div>
+</div>
+<!-- Message 3 -->
+<div class="bg-surface-container-lowest rounded-lg overflow-hidden group shadow-sm hover:shadow-xl transition-shadow">
+<div class="relative h-48">
+<img alt="Sermon thumbnail" class="w-full h-full object-cover" data-alt="Close up of people's hands working together over a table in a collaborative workspace with warm lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAG9PlD9oejd6yR_mhE3KZYdkF-DN2GMyVoy1XTQzRM4cuV4jyKIVQBi5eHPEWcvHWSspp1lxHsTPOyrVu5TTqoTePxy8YPcqsKhoSXbGAn4jf7pTf9IP8l7RPPRY8b1qrLDJXlbuKcTyYeQ-uX5ZUH7bi9GrQhoEQcqSxRy2SC7q4qcSSgVrRwdhJ8q5a3F5yPd8XJmXjbh9-Kr7oRLuqk9myjaahXPVwm_ibH6AtlhW05MZ86o7UIZQ-8GQ1wwGCfQ8IXqoBAxRnq"/>
+<div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white text-6xl">play_circle</span>
+</div>
+</div>
+<div class="p-6">
+<p class="text-on-tertiary-container text-xs font-black uppercase mb-2">Leadership Summit</p>
+<h4 class="text-xl font-bold text-primary mb-4 leading-tight">Leading with Integrity: The Joseph Example</h4>
+<button class="text-primary font-bold text-sm flex items-center gap-2 group-hover:gap-3 transition-all">Watch Now <span class="material-symbols-outlined text-base">play_arrow</span></button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Ministries Grid -->
+<section class="py-24 bg-surface-container-low">
+<div class="max-w-7xl mx-auto px-8">
+<h2 class="text-4xl font-black font-montserrat text-primary text-center mb-16">Serve in His Kingdom</h2>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+<div class="text-center group">
+<div class="w-20 h-20 bg-primary-fixed rounded-full flex items-center justify-center mx-auto mb-6 transition-transform group-hover:-translate-y-2">
+<span class="material-symbols-outlined text-3xl text-primary" style="font-variation-settings: 'FILL' 1;">volunteer_activism</span>
+</div>
+<h4 class="font-bold text-primary">Prayer</h4>
+</div>
+<div class="text-center group">
+<div class="w-20 h-20 bg-tertiary-fixed rounded-full flex items-center justify-center mx-auto mb-6 transition-transform group-hover:-translate-y-2">
+<span class="material-symbols-outlined text-3xl text-tertiary" style="font-variation-settings: 'FILL' 1;">campaign</span>
+</div>
+<h4 class="font-bold text-primary">Evangelism</h4>
+</div>
+<div class="text-center group">
+<div class="w-20 h-20 bg-primary-fixed rounded-full flex items-center justify-center mx-auto mb-6 transition-transform group-hover:-translate-y-2">
+<span class="material-symbols-outlined text-3xl text-primary" style="font-variation-settings: 'FILL' 1;">music_note</span>
+</div>
+<h4 class="font-bold text-primary">Choir</h4>
+</div>
+<div class="text-center group">
+<div class="w-20 h-20 bg-tertiary-fixed rounded-full flex items-center justify-center mx-auto mb-6 transition-transform group-hover:-translate-y-2">
+<span class="material-symbols-outlined text-3xl text-tertiary" style="font-variation-settings: 'FILL' 1;">video_camera_front</span>
+</div>
+<h4 class="font-bold text-primary">Media</h4>
+</div>
+</div>
+</div>
+</section>
+<!-- Prayer/Counseling CTA Band -->
+<section class="py-16 bg-on-tertiary-container">
+<div class="max-w-7xl mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-8 text-tertiary">
+<div>
+<h2 class="text-3xl font-black font-montserrat leading-tight">Need Prayer or Spiritual Counseling?</h2>
+<p class="font-medium opacity-80">Our ministers are available 24/7 to pray and walk with you.</p>
+</div>
+<button class="bg-tertiary text-on-tertiary px-10 py-4 rounded-full font-bold shadow-lg hover:shadow-xl active:scale-95 transition-all">
+                    Reach Out Today
+                </button>
+</div>
+</section>
+</main>
+<!-- Footer: Footer (Shared Component) -->
+<footer class="bg-slate-100 dark:bg-slate-950 full-width pt-16 pb-8">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 px-8 w-full max-w-7xl mx-auto">
+<!-- Brand Column -->
+<div class="space-y-6">
+<a class="text-xl font-bold font-montserrat text-blue-900 dark:text-blue-100" href="#">DLCF Oyo State Central</a>
+<p class="text-blue-800/60 dark:text-slate-400 text-sm leading-relaxed font-inter">
+                    A ministry of Deeper Christian Life Ministry dedicated to students and youths across higher institutions in Oyo State.
+                </p>
+<div class="flex gap-4">
+<a class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">social_leaderboard</span>
+</a>
+<a class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">alternate_email</span>
+</a>
+</div>
+</div>
+<!-- Links 1 -->
+<div>
+<h5 class="text-blue-900 dark:text-blue-100 font-bold mb-6 font-montserrat">Quick Links</h5>
+<ul class="space-y-4 text-blue-800/60 dark:text-slate-400 text-sm font-inter">
+<li><a class="hover:text-amber-500 transition-all" href="#">Ministries</a></li>
+<li><a class="hover:text-amber-500 transition-all" href="#">Locations</a></li>
+<li><a class="hover:text-amber-500 transition-all" href="#">Bible Study</a></li>
+<li><a class="hover:text-amber-500 transition-all" href="#">Contact Us</a></li>
+</ul>
+</div>
+<!-- Links 2 -->
+<div>
+<h5 class="text-blue-900 dark:text-blue-100 font-bold mb-6 font-montserrat">Resources</h5>
+<ul class="space-y-4 text-blue-800/60 dark:text-slate-400 text-sm font-inter">
+<li><a class="hover:text-amber-500 transition-all" href="#">Recent Messages</a></li>
+<li><a class="hover:text-amber-500 transition-all" href="#">Giving</a></li>
+<li><a class="hover:text-amber-500 transition-all" href="#">Privacy Policy</a></li>
+<li><a class="hover:text-amber-500 transition-all" href="#">Sitemap</a></li>
+</ul>
+</div>
+<!-- Contact -->
+<div>
+<h5 class="text-blue-900 dark:text-blue-100 font-bold mb-6 font-montserrat">Location</h5>
+<p class="text-blue-800/60 dark:text-slate-400 text-sm leading-relaxed mb-4 font-inter">
+                    DCLM State Headquarters,<br/>
+                    Ibadan, Oyo State,<br/>
+                    Nigeria.
+                </p>
+<a class="text-amber-600 font-semibold block hover:underline" href="mailto:info@dlcfoyocentral.org">info@dlcfoyocentral.org</a>
+</div>
+</div>
+<div class="mt-16 pt-8 border-t border-slate-200 dark:border-slate-800 text-center max-w-7xl mx-auto px-8">
+<p class="text-blue-800/60 dark:text-slate-400 text-sm font-inter">© 2024 DLCF Oyo State Central. All rights reserved.</p>
+</div>
+</footer>
+</body></html>

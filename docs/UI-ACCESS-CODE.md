@@ -174,6 +174,14 @@ For revoked codes:
 - can see centres only within their state
 - can generate and revoke codes within their state scope
 
+#### Administrator / Zonal Coordinator / Zonal Admin
+- can select any state
+- can drill down to any region and fellowship centre
+
+#### Region Coordinator / Region Admin
+- state/region should resolve to their assigned scope
+- can generate and revoke codes for any fellowship within that region
+
 #### Associate Cord
 - generation form should auto-lock to assigned fellowship centre
 - can only view and revoke codes for assigned fellowship centre

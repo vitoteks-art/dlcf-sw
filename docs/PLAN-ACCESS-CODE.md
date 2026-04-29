@@ -26,8 +26,13 @@ Victor confirmed these rules:
 - After login, clicking attendance should prompt for the code if the user is not in an admin-level attendance role
 - The code should function as a limited attendance-access grant, not a replacement for login
 - Code generation should be available to:
+  - Administrator
+  - Zonal Coordinator
+  - Zonal Admin
   - State Coordinator
   - State Admin
+  - Region Coordinator
+  - Region Admin
   - Associate Cord
 - The following roles should access attendance without code, within their normal scope:
   - `associate_cord` for own centre
@@ -163,6 +168,11 @@ Purpose:
 
 ### Who can generate codes
 Allowed roles:
+- `administrator`
+- `zonal_cord`
+- `zonal_admin`
+- `region_cord`
+- `region_admin`
 - `state_cord`
 - `state_admin`
 - `associate_cord`
@@ -182,6 +192,13 @@ Exempt roles:
 - all other authenticated users who are allowed into attendance entry flow
 
 ### Scope rules
+#### Administrator / Zonal Coordinator / Zonal Admin
+- can generate codes for fellowship centres in any state
+
+#### Region Coordinator / Region Admin
+- can generate codes only for fellowship centres within their assigned region
+- if they also have assigned state, generation is limited to that state-region scope
+
 #### State Coordinator / State Admin
 - can generate codes only for fellowship centres within their state
 

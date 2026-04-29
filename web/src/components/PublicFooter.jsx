@@ -27,6 +27,7 @@ export default function PublicFooter() {
             <Link to="/about">About Us</Link>
             <Link to="/beliefs">Faith & Doctrines</Link>
             <Link to="/states">Our Locations</Link>
+            <Link to="/contact">Contact</Link>
             <Link to="/portal">Portal Access</Link>
           </nav>
         </div>
@@ -36,6 +37,7 @@ export default function PublicFooter() {
           <nav className="footer-nav">
             <Link to="/media">Gospel Media</Link>
             <Link to="/publications">Publications</Link>
+            <Link to="/give">Giving</Link>
             <Link to="/retreat">Retreats</Link>
             <Link to="/gck">GCK Sessions</Link>
             <Link to="/stmc">STMC Training</Link>

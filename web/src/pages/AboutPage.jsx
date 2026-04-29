@@ -65,7 +65,13 @@ export default function AboutPage({ user }) {
       <SEO title="About Us" description="Learn about DLCF South West, our mission, mentor, message, arms, leadership structure, and foundational beliefs." />
       <PublicNav user={user} />
 
-      <section className="public-hero home-hero home-hero-refined about-page-hero">
+      <section
+        className="public-hero home-hero home-hero-refined about-page-hero"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, rgba(4, 10, 18, 0.98) 0%, rgba(4, 10, 18, 0.9) 34%, rgba(7, 15, 25, 0.48) 58%, rgba(7, 15, 25, 0.16) 100%), url("/about-us-hero-premium.png")',
+        }}
+      >
         <div className="home-hero-refined__inner">
           <div className="public-hero-content home-hero-refined__content">
             <p className="public-kicker home-hero-refined__kicker">About Us</p>

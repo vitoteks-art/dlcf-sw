@@ -41,6 +41,7 @@ export default function BiodataSpiritualReportPage({ user, canManageBiodata, sta
               <th>Yes</th>
               <th>No</th>
               <th>% Yes</th>
+              <th>With Date</th>
             </tr>
           </thead>
           <tbody>
@@ -50,6 +51,7 @@ export default function BiodataSpiritualReportPage({ user, canManageBiodata, sta
                 <td>{item.yes}</td>
                 <td>{item.no}</td>
                 <td>{item.percentage_yes}%</td>
+                <td>{item.with_date ?? 0}</td>
               </tr>
             ))}
           </tbody>

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import PublicNav from "../components/PublicNav";
+import PublicFooter from "../components/PublicFooter";
 import SEO from "../components/SEO";
 import { apiFetch } from "../api";
 
@@ -73,66 +75,29 @@ export default function PublicMediaListPage({ user }) {
   const featured = useMemo(() => filtered[0] || null, [filtered]);
 
   return (
-    <div className="relative flex flex-col min-h-screen w-full overflow-x-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div className="public-home media-page-premium">
       <SEO title="Media Library" description="Watch and listen to zonal-wide messages and programs." />
+      <PublicNav user={user} />
 
-      {/* Navigation */}
-      <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-6 lg:px-20 py-4">
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary text-white p-2 rounded-lg size-10 flex items-center justify-center overflow-hidden">
-                <img src="/logo.png" alt="DLCF" className="w-full h-full object-contain" />
-              </div>
-              <div className="flex flex-col leading-tight">
-                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Deeper Life Campus Fellowship</h1>
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">South West Zone • Media</p>
-              </div>
-            </div>
-
-            <nav className="hidden md:flex items-center gap-6">
-              <Link className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors" to="/">
-                Home
-              </Link>
-              <Link className="text-sm font-semibold text-primary" to="/media">
-                Sermons
-              </Link>
-              <Link className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-primary transition-colors" to="/states">
-                Directory
-              </Link>
-              <Link className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-primary transition-colors" to="/publications">
-                Gospel Library
-              </Link>
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="relative hidden sm:block">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
-              <input
-                className="bg-slate-100 dark:bg-slate-800 border-none rounded-lg pl-10 pr-4 py-2 text-sm w-64 focus:ring-2 focus:ring-primary"
-                placeholder="Search sermons..."
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
-            <Link className="bg-primary hover:bg-blue-800 text-white px-5 py-2 rounded-lg text-sm font-bold transition-all" to="/portal">
-              {user ? "Portal" : "Sign In"}
-            </Link>
+      <section
+        className="public-hero home-hero home-hero-refined media-page-hero"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, rgba(4, 10, 18, 0.98) 0%, rgba(4, 10, 18, 0.88) 34%, rgba(7, 15, 25, 0.48) 58%, rgba(7, 15, 25, 0.16) 100%), url("/media-hero-premium.png")',
+        }}
+      >
+        <div className="home-hero-refined__inner">
+          <div className="public-hero-content home-hero-refined__content">
+            <p className="public-kicker home-hero-refined__kicker">Media Library</p>
+            <h1>
+              Watch and <span>Listen</span>
+            </h1>
+            <p>Watch and listen to zonal-wide messages, sermons, and special programs.</p>
           </div>
         </div>
-      </header>
+      </section>
 
-      <main className="flex-1 w-full max-w-[1440px] mx-auto px-6 lg:px-20 py-8">
-        {/* Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-6">
-          <Link className="hover:text-primary" to="/">
-            Home
-          </Link>
-          <span className="material-symbols-outlined text-xs">chevron_right</span>
-          <span className="text-slate-900 dark:text-white font-medium">Media Library</span>
-        </nav>
+      <main className="public-section media-page-shell">
 
         {status ? (
           <div className="mb-6 rounded-xl border border-red-200 bg-red-50 text-red-700 p-4">{status}</div>
@@ -140,8 +105,8 @@ export default function PublicMediaListPage({ user }) {
 
         {/* Featured */}
         {featured ? (
-          <section className="mb-12">
-            <div className="grid lg:grid-cols-3 gap-0 rounded-2xl overflow-hidden shadow-2xl shadow-primary/10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <section className="media-featured-premium">
+            <div className="media-featured-premium__grid">
               <Link
                 to={`/media/${featured.id}`}
                 className="lg:col-span-2 relative aspect-video bg-black flex items-center justify-center group cursor-pointer overflow-hidden"
@@ -170,7 +135,7 @@ export default function PublicMediaListPage({ user }) {
                 ) : null}
               </Link>
 
-              <div className="p-8 lg:p-10 flex flex-col justify-center">
+              <div className="media-featured-premium__copy">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary mb-4 w-fit">
                   Featured Sermon
                 </span>
@@ -219,9 +184,9 @@ export default function PublicMediaListPage({ user }) {
         ) : null}
 
         {/* Controls */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div className="media-controls-premium">
           {/* Tabs (pill style like your UI) */}
-          <div className="flex items-center gap-2 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-fit shadow-sm">
+          <div className="media-tabs-premium">
             <button
               type="button"
               className={`px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
@@ -261,7 +226,7 @@ export default function PublicMediaListPage({ user }) {
           </div>
 
           {/* Filters (button-like selects with caret) */}
-          <div className="flex flex-wrap items-center gap-3 justify-end">
+          <div className="media-filters-premium">
             <div className="relative">
               <select
                 className="appearance-none flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-100 hover:border-primary transition-colors pr-10 focus:ring-2 focus:ring-primary/20"
@@ -299,12 +264,12 @@ export default function PublicMediaListPage({ user }) {
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="media-grid-premium">
           {filtered.map((i) => (
             <Link
               key={i.id}
               to={`/media/${i.id}`}
-              className="group flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 hover:shadow-xl hover:shadow-primary/5 transition-all"
+              className="media-card-premium"
             >
               <div className="relative aspect-video overflow-hidden bg-slate-100">
                 <img
@@ -327,7 +292,7 @@ export default function PublicMediaListPage({ user }) {
                 ) : null}
               </div>
 
-              <div className="p-4 flex flex-col flex-1">
+              <div className="media-card-premium__body">
                 <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">{i.series || "Sermon"}</p>
                 <h3 className="font-bold text-slate-900 dark:text-white line-clamp-2 mb-2 group-hover:text-primary transition-colors leading-snug">
                   {i.title}
@@ -347,6 +312,8 @@ export default function PublicMediaListPage({ user }) {
           ) : null}
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

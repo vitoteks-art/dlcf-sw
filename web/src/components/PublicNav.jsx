@@ -41,8 +41,9 @@ export default function PublicNav({ user }) {
         <Link to="/beliefs">What We Believe</Link>
         <Link to="/media">Media</Link>
         <Link to="/publications">Gospel Library</Link>
+        <Link to="/give">Give</Link>
         <Link to="/states">States</Link>
-        <Link to="/#contact">Contact</Link>
+        <Link to="/contact">Contact</Link>
         <Link to="/portal" className="public-link">
           {user ? "Portal" : "Login"}
         </Link>

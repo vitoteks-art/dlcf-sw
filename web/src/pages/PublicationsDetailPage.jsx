@@ -229,13 +229,12 @@ export default function PublicationsDetailPage({ publicationId: publicationIdPro
                     >
                       Print Article
                     </button>
-                    <a
-                      href="#"
-                      onClick={(e) => e.preventDefault()}
+                    <Link
+                      to="/give"
                       className="px-6 py-2 rounded-full bg-[#D4AF37] text-[#002147] font-bold text-sm hover:opacity-90 transition-all uppercase tracking-tight"
                     >
                       Support Our Mission
-                    </a>
+                    </Link>
                   </div>
                 </div>
 

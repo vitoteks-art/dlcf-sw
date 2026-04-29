@@ -3,6 +3,7 @@ import { useMemo } from "react";
 export default function AdminAttendanceCodes({
   user,
   status,
+  states,
   adminAttendanceCodes,
   adminAttendanceCodeForm,
   setAdminAttendanceCodeForm,
@@ -14,6 +15,8 @@ export default function AdminAttendanceCodes({
   handleRevokeAttendanceCode,
 }) {
   const isAssociate = user?.role === "associate_cord";
+  const isGlobalScopeRole = ["administrator", "zonal_cord", "zonal_admin"].includes(user?.role);
+  const isRegionScopeRole = ["region_cord", "region_admin"].includes(user?.role);
   const visibleCodes = useMemo(() => adminAttendanceCodes || [], [adminAttendanceCodes]);
 
   return (
@@ -30,7 +33,29 @@ export default function AdminAttendanceCodes({
             <div className="grid-2">
               <label>
                 State
-                <input type="text" value={adminAttendanceCodeForm.state} disabled />
+                {isGlobalScopeRole ? (
+                  <select
+                    value={adminAttendanceCodeForm.state}
+                    onChange={(e) =>
+                      setAdminAttendanceCodeForm((prev) => ({
+                        ...prev,
+                        state: e.target.value,
+                        region: "",
+                        fellowship_centre_id: "",
+                      }))
+                    }
+                    required
+                  >
+                    <option value="">Select state</option>
+                    {(states || []).map((state) => (
+                      <option key={state} value={state}>
+                        {state}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input type="text" value={adminAttendanceCodeForm.state} disabled />
+                )}
               </label>
               <label>
                 Region
@@ -43,7 +68,7 @@ export default function AdminAttendanceCodes({
                       fellowship_centre_id: "",
                     }))
                   }
-                  disabled={isAssociate || !adminAttendanceCodeRegions.length}
+                  disabled={isAssociate || isRegionScopeRole || !adminAttendanceCodeRegions.length}
                   required={!isAssociate}
                 >
                   <option value="">Select region</option>

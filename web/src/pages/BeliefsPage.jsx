@@ -163,7 +163,13 @@ export default function BeliefsPage({ user }) {
       />
       <PublicNav user={user} />
 
-      <section className="public-hero home-hero home-hero-refined beliefs-page-hero">
+      <section
+        className="public-hero home-hero home-hero-refined beliefs-page-hero"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, rgba(4, 10, 18, 0.98) 0%, rgba(4, 10, 18, 0.9) 34%, rgba(7, 15, 25, 0.48) 58%, rgba(7, 15, 25, 0.16) 100%), url("/beliefs-hero-premium.png")',
+        }}
+      >
         <div className="home-hero-refined__inner">
           <div className="public-hero-content home-hero-refined__content">
             <p className="public-kicker home-hero-refined__kicker">Bible Doctrines</p>
