@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 export default function AdminUsers({
+    user,
     // Data
     adminUsers,
     adminRoles,
@@ -28,6 +29,10 @@ export default function AdminUsers({
     toggleWorkUnit,
 }) {
     const [showAddForm, setShowAddForm] = useState(false);
+    const isStateScopedAdmin = user && ["state_cord", "state_admin"].includes(user.role);
+    const isRegionScopedAdmin = user && ["region_cord", "region_admin", "associate_cord"].includes(user.role);
+    const isScopedAdmin = isStateScopedAdmin || isRegionScopedAdmin;
+    const visibleStateOptions = isScopedAdmin ? (user?.state ? [user.state] : []) : stateOptions;
 
     return (
         <div className="admin-section">
@@ -96,14 +101,15 @@ export default function AdminUsers({
                                     onChange={(e) =>
                                         setNewUser({
                                             ...newUser,
-                                            state: e.target.value,
+                                            state: isScopedAdmin ? (user?.state || "") : e.target.value,
                                             region: "",
                                             fellowship_centre: "",
                                         })
                                     }
+                                    disabled={!!isScopedAdmin}
                                 >
                                     <option value="">Select state</option>
-                                    {stateOptions.map((state) => (
+                                    {visibleStateOptions.map((state) => (
                                         <option key={state} value={state}>{state}</option>
                                     ))}
                                 </select>
@@ -148,7 +154,7 @@ export default function AdminUsers({
                             <label>
                                 Work Units
                                 <div className="checkbox-grid small-text">
-                                    {workUnitsList.map((unit) => (
+                                    {(isStateScopedAdmin ? [] : workUnitsList).map((unit) => (
                                         <label key={unit} className="checkbox-item">
                                             <input
                                                 type="checkbox"
@@ -224,14 +230,15 @@ export default function AdminUsers({
                                     onChange={(e) =>
                                         setEditUser({
                                             ...editUser,
-                                            state: e.target.value,
+                                            state: isScopedAdmin ? (user?.state || "") : e.target.value,
                                             region: "",
                                             fellowship_centre: "",
                                         })
                                     }
+                                    disabled={!!isScopedAdmin}
                                 >
                                     <option value="">Select state</option>
-                                    {stateOptions.map((state) => (
+                                    {visibleStateOptions.map((state) => (
                                         <option key={state} value={state}>{state}</option>
                                     ))}
                                 </select>
@@ -276,7 +283,7 @@ export default function AdminUsers({
                             <label>
                                 Work Units
                                 <div className="checkbox-grid small-text">
-                                    {workUnitsList.map((unit) => (
+                                    {(isStateScopedAdmin ? [] : workUnitsList).map((unit) => (
                                         <label key={unit} className="checkbox-item">
                                             <input
                                                 type="checkbox"

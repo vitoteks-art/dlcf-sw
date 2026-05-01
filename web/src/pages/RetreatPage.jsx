@@ -101,9 +101,10 @@ export default function RetreatPage({
     }
   };
 
-  const lockedState = user?.state || "";
-  const lockedRegion = user?.region || "";
-  const stateOptions = lockedState ? [lockedState] : states;
+  const isScopedAdmin = ["state_cord", "state_admin", "region_cord", "region_admin"].includes(user?.role);
+  const lockedState = isScopedAdmin ? (user?.state || "") : "";
+  const lockedRegion = ["region_cord", "region_admin"].includes(user?.role) ? (user?.region || "") : "";
+  const stateOptions = isScopedAdmin ? (lockedState ? [lockedState] : []) : states;
   const regionOptions = lockedRegion ? [lockedRegion] : retreatRegions;
 
   if (!canManage) {
@@ -258,7 +259,7 @@ export default function RetreatPage({
               onChange={(e) =>
                 setRetreat({
                   ...retreat,
-                  state: e.target.value,
+                  state: lockedState || e.target.value,
                   region: "",
                   cluster: "",
                   fellowship_centre: "",

@@ -22,6 +22,7 @@ const defaultForm = {
 };
 
 export default function AdminGiving({
+  user,
   states = [],
   setStatus,
   canManageGiving,
@@ -31,6 +32,8 @@ export default function AdminGiving({
   const [filters, setFilters] = useState({ state: "", status: "" });
   const [editId, setEditId] = useState("");
   const [form, setForm] = useState({ ...defaultForm });
+  const isStateScopedAdmin = user && ["state_cord", "state_admin"].includes(user.role);
+  const visibleStates = isStateScopedAdmin ? (user.state ? [user.state] : []) : states;
 
   const isEditing = useMemo(() => editId !== "", [editId]);
 
@@ -73,6 +76,9 @@ export default function AdminGiving({
     try {
       const payload = {
         ...form,
+        scope: isStateScopedAdmin ? "state" : form.scope,
+        state: isStateScopedAdmin ? user.state : form.state,
+        is_featured: isStateScopedAdmin ? false : form.is_featured,
         target_amount: form.target_amount === "" ? 0 : Number(form.target_amount),
         amount_raised: form.amount_raised === "" ? 0 : Number(form.amount_raised),
       };
@@ -191,16 +197,16 @@ export default function AdminGiving({
               <div className="grid-2">
                 <label>
                   Scope
-                  <select value={form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value })}>
+                  <select value={isStateScopedAdmin ? "state" : form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value })} disabled={!!isStateScopedAdmin}>
                     <option value="zonal">Zonal</option>
                     <option value="state">State</option>
                   </select>
                 </label>
                 <label>
                   State
-                  <select value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} disabled={form.scope !== "state"}>
+                  <select value={isStateScopedAdmin ? user.state : form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} disabled={!!isStateScopedAdmin || form.scope !== "state"}>
                     <option value="">Select state</option>
-                    {states.map((state) => (
+                    {visibleStates.map((state) => (
                       <option key={state} value={state}>{state}</option>
                     ))}
                   </select>
@@ -215,7 +221,7 @@ export default function AdminGiving({
                 <span>Mark as urgent</span>
               </label>
               <label className="checkbox-row">
-                <input type="checkbox" checked={!!form.is_featured} onChange={(e) => setForm({ ...form, is_featured: e.target.checked })} />
+                <input type="checkbox" checked={isStateScopedAdmin ? false : !!form.is_featured} disabled={!!isStateScopedAdmin} onChange={(e) => setForm({ ...form, is_featured: e.target.checked })} />
                 <span>Feature on homepage</span>
               </label>
               <div className="form-actions">
@@ -236,7 +242,7 @@ export default function AdminGiving({
             <div className="form-actions">
               <select value={filters.state} onChange={(e) => setFilters({ ...filters, state: e.target.value })}>
                 <option value="">All states</option>
-                {states.map((state) => (
+                {visibleStates.map((state) => (
                   <option key={state} value={state}>{state}</option>
                 ))}
               </select>

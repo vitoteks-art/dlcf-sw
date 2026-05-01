@@ -36,6 +36,11 @@ export default function GckPage({
 }) {
   const navigate = useNavigate();
   const isCodeAuthorized = !canSubmitDirectly && attendanceAccess?.authorized;
+  const isScopedAdmin = ["state_cord", "state_admin", "region_cord", "region_admin", "associate_cord"].includes(user?.role);
+  const lockedState = isScopedAdmin ? (user?.state || "") : "";
+  const stateOptions = isScopedAdmin ? (lockedState ? [lockedState] : []) : states;
+  const lockedRegion = ["region_cord", "region_admin", "associate_cord"].includes(user?.role) ? (user?.region || "") : "";
+  const regionOptions = lockedRegion ? [lockedRegion] : gckRegions;
 
   useEffect(() => {
     if (!user) {
@@ -182,15 +187,15 @@ export default function GckPage({
                   :
                 setGckReport({
                   ...gckReport,
-                  state: e.target.value,
+                  state: lockedState || e.target.value,
                   region: "",
                   fellowship_centre: "",
                 })
               }
-              disabled={isCodeAuthorized}
+              disabled={isCodeAuthorized || !!lockedState}
             >
               <option value="">Select state</option>
-              {states.map((state) => (
+              {stateOptions.map((state) => (
                 <option key={state} value={state}>
                   {state}
                 </option>
@@ -207,14 +212,14 @@ export default function GckPage({
                   :
                 setGckReport({
                   ...gckReport,
-                  region: e.target.value,
+                  region: lockedRegion || e.target.value,
                   fellowship_centre: "",
                 })
               }
-              disabled={isCodeAuthorized || !gckReport.state}
+              disabled={isCodeAuthorized || !!lockedRegion || !gckReport.state}
             >
               <option value="">Select region</option>
-              {gckRegions.map((region) => (
+              {regionOptions.map((region) => (
                 <option key={region} value={region}>
                   {region}
                 </option>

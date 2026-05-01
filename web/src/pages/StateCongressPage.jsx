@@ -62,8 +62,9 @@ export default function StateCongressPage({
   };
 
   const congressDays = buildCongressDays();
-  const lockedState = user?.state || "";
-  const stateOptions = lockedState ? [lockedState] : states;
+  const isScopedAdmin = ["state_cord", "state_admin", "region_cord", "region_admin"].includes(user?.role);
+  const lockedState = isScopedAdmin ? (user?.state || "") : "";
+  const stateOptions = isScopedAdmin ? (lockedState ? [lockedState] : []) : states;
 
   const handleBiodataLookup = async () => {
     if (!lookupQuery.trim()) {
@@ -288,7 +289,7 @@ export default function StateCongressPage({
               onChange={(e) =>
                 setStateCongress({
                   ...stateCongress,
-                  state: e.target.value,
+                  state: lockedState || e.target.value,
                   region: "",
                   cluster: "",
                   fellowship_centre: "",

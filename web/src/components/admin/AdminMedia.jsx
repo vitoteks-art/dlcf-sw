@@ -4,6 +4,7 @@ import { apiFetch } from "../../api";
 const mediaTypes = ["audio", "video"];
 
 export default function AdminMedia({
+  user,
   states = [],
   setStatus,
   canManageMedia,
@@ -27,6 +28,8 @@ export default function AdminMedia({
     state: "",
     status: "draft",
   });
+  const isStateScopedAdmin = user && ["state_cord", "state_admin"].includes(user.role);
+  const visibleStates = isStateScopedAdmin ? (user.state ? [user.state] : []) : states;
 
   const isEditing = useMemo(() => editId !== "", [editId]);
 
@@ -84,12 +87,12 @@ export default function AdminMedia({
       if (isEditing) {
         await apiFetch(`/admin/media-items/${editId}`, {
           method: "PUT",
-          body: JSON.stringify(form),
+          body: JSON.stringify({ ...form, scope: isStateScopedAdmin ? "state" : form.scope, state: isStateScopedAdmin ? user.state : form.state }),
         });
       } else {
         await apiFetch("/admin/media-items", {
           method: "POST",
-          body: JSON.stringify(form),
+          body: JSON.stringify({ ...form, scope: isStateScopedAdmin ? "state" : form.scope, state: isStateScopedAdmin ? user.state : form.state }),
         });
       }
       resetForm();
@@ -238,8 +241,9 @@ export default function AdminMedia({
               <label>
                 Scope
                 <select
-                  value={form.scope}
+                  value={isStateScopedAdmin ? "state" : form.scope}
                   onChange={(e) => setForm({ ...form, scope: e.target.value })}
+                  disabled={!!isStateScopedAdmin}
                 >
                   <option value="zonal">Zonal</option>
                   <option value="state">State</option>
@@ -248,12 +252,12 @@ export default function AdminMedia({
               <label>
                 State
                 <select
-                  value={form.state}
+                  value={isStateScopedAdmin ? user.state : form.state}
                   onChange={(e) => setForm({ ...form, state: e.target.value })}
-                  disabled={form.scope !== "state"}
+                  disabled={!!isStateScopedAdmin || form.scope !== "state"}
                 >
                   <option value="">Select state</option>
-                  {states.map((state) => (
+                  {visibleStates.map((state) => (
                     <option key={state} value={state}>
                       {state}
                     </option>
@@ -296,7 +300,7 @@ export default function AdminMedia({
                 onChange={(e) => setFilters({ ...filters, state: e.target.value })}
               >
                 <option value="">All states</option>
-                {states.map((state) => (
+                {visibleStates.map((state) => (
                   <option key={state} value={state}>
                     {state}
                   </option>

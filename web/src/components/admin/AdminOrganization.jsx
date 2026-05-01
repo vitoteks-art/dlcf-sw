@@ -40,6 +40,7 @@ export default function AdminOrganization(props) {
 }
 
 function InstitutionsPanel({
+    user,
     adminInstitutions,
     adminInstitutionState,
     setAdminInstitutionState,
@@ -58,6 +59,8 @@ function InstitutionsPanel({
     stateOptions
 }) {
     const isEditing = !!adminInstitutionEditId;
+    const isStateScopedAdmin = user && ["state_cord", "state_admin"].includes(user.role);
+    const visibleStateOptions = isStateScopedAdmin ? (user.state ? [user.state] : []) : stateOptions;
     const [uploadFile, setUploadFile] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState("");
@@ -182,18 +185,20 @@ function InstitutionsPanel({
                         <label>
                             State
                             <select
-                                value={isEditing ? (adminInstitutionEditState || adminInstitutionState) : adminInstitutionState}
+                                value={isStateScopedAdmin ? (user?.state || "") : (isEditing ? (adminInstitutionEditState || adminInstitutionState) : adminInstitutionState)}
                                 onChange={(e) => {
+                                    const nextState = isStateScopedAdmin ? (user?.state || "") : e.target.value;
                                     if (isEditing) {
-                                        setAdminInstitutionEditState(e.target.value);
+                                        setAdminInstitutionEditState(nextState);
                                     } else {
-                                        setAdminInstitutionState(e.target.value);
+                                        setAdminInstitutionState(nextState);
                                     }
                                 }}
+                                disabled={!!isStateScopedAdmin}
                                 required
                             >
                                 <option value="">Select state</option>
-                                {stateOptions.map((state) => (
+                                {visibleStateOptions.map((state) => (
                                     <option key={state} value={state}>{state}</option>
                                 ))}
                             </select>

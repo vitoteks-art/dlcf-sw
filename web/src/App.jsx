@@ -723,12 +723,18 @@ function App() {
       })),
     [coverage]
   );
+  const stateScopedRoles = ["state_cord", "state_admin"];
+  const regionScopedRoles = ["region_cord", "region_admin", "associate_cord"];
+  const rawStateOptions = states.map(s => typeof s === 'string' ? s : s.name || s).filter(Boolean);
+  const adminScopedStateOptions = user && [...stateScopedRoles, ...regionScopedRoles].includes(user.role)
+    ? (user.state ? [user.state] : [])
+    : rawStateOptions;
   const canManageStates = user && ["administrator", "zonal_cord", "zonal_admin"].includes(user.role);
   const canManageRegions =
     user && ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin"].includes(user.role);
   const canManageFellowships =
     user &&
-    ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord", "associate_cord"].includes(
+    ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord", "region_admin", "associate_cord"].includes(
       user.role
     );
   const canManageInstitutions =
@@ -800,11 +806,11 @@ function App() {
       "state_cord",
       "state_admin",
     ].includes(user.role);
-  const canManageCategories = canManageStatePosts;
+  const canManageCategories = user && ["administrator", "zonal_cord", "zonal_admin"].includes(user.role);
   const canManageStateHome = canManageStatePosts;
-  const canManageMainHome = canManageStatePosts;
+  const canManageMainHome = user && ["administrator", "zonal_cord", "zonal_admin"].includes(user.role);
   const canManageStateCongress = canManageStatePosts;
-  const canManageZonalCongress = canManageStatePosts;
+  const canManageZonalCongress = canManageMainHome;
   const canManageBiodata =
     user &&
     ["administrator", "zonal_cord", "zonal_admin", "state_cord", "state_admin", "region_cord", "region_admin", "associate_cord"].includes(
@@ -952,6 +958,30 @@ function App() {
       setAdminStateHomeState(user.state);
     }
   }, [user, adminStateHomeState]);
+
+  useEffect(() => {
+    if (!user || !["state_cord", "state_admin"].includes(user.role) || !user.state) return;
+    setNewUser((prev) => (prev.state === user.state ? prev : { ...prev, state: user.state }));
+    setEditUser((prev) => (prev.state === user.state ? prev : { ...prev, state: user.state }));
+    setAdminRegionState(user.state);
+    setAdminRegionEditState((prev) => prev || user.state);
+    setAdminInstitutionState(user.state);
+    setAdminInstitutionEditState((prev) => prev || user.state);
+    setAdminFellowshipState(user.state);
+    setAdminFellowshipEditState((prev) => prev || user.state);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !["region_cord", "region_admin"].includes(user.role)) return;
+    if (user.state) {
+      setAdminFellowshipState(user.state);
+      setAdminFellowshipEditState((prev) => prev || user.state);
+    }
+    if (user.region) {
+      setAdminFellowshipRegion(user.region);
+      setAdminFellowshipEditRegion((prev) => prev || user.region);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!attendance.state) {
@@ -1162,7 +1192,21 @@ function App() {
         state: prev.state || user.state,
       }));
     }
-  }, [user?.state, user?.region, canManageRetreatRegistration, canManageStateCongressRegistration]);
+    if (canManageZonalCongressRegistration) {
+      setZonalRegistration((prev) => ({
+        ...prev,
+        state: prev.state || user.state,
+        region: user.region || prev.region,
+      }));
+    }
+    if (canSubmitGckDirectly) {
+      setGckReport((prev) => ({
+        ...prev,
+        state: prev.state || user.state,
+        region: user.region || prev.region,
+      }));
+    }
+  }, [user?.state, user?.region, canManageRetreatRegistration, canManageStateCongressRegistration, canManageZonalCongressRegistration, canSubmitGckDirectly]);
 
   useEffect(() => {
     if (!stateCongress.state) {
@@ -3408,7 +3452,7 @@ function App() {
     adminUsers,
     adminStatePosts,
     adminCategories,
-    stateOptions: states.map(s => typeof s === 'string' ? s : s.name || s),
+    stateOptions: adminScopedStateOptions,
     adminStateName,
     adminStateEditId,
     adminStateEditName,
@@ -3824,7 +3868,7 @@ function App() {
               path="/portal"
               element={
                 <PortalHome
-                  states={states}
+                  states={adminScopedStateOptions}
                   stateSummaries={stateSummaries}
                   status={status}
                   user={user}
@@ -3868,7 +3912,7 @@ function App() {
                   submitGckReport={submitGckReport}
                   gckEntryId={gckEntryId}
                   loadGckReport={loadGckReport}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -3885,11 +3929,11 @@ function App() {
                   reportCentres={reportCentres}
                   loadReport={loadReport}
                   reportData={reportData}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
-            <Route path="/followups" element={<FollowupDashboardPage states={states} />} />
+            <Route path="/followups" element={<FollowupDashboardPage states={adminScopedStateOptions} />} />
             <Route path="/followups/templates" element={<FollowupTemplatesPage />} />
             <Route path="/followups/:id" element={<FollowupDetailPage />} />
             <Route path="/reports/followups" element={<FollowupReportPage />} />
@@ -3906,7 +3950,7 @@ function App() {
                   gckSummaryCentres={gckSummaryCentres}
                   loadGckSummary={loadGckSummary}
                   gckSummary={gckSummary}
-                  states={states}
+                  states={adminScopedStateOptions}
                   gckSummaryMeta={gckSummaryMeta}
                 />
               }
@@ -3929,7 +3973,7 @@ function App() {
                   setStmcReportFilters={setStmcReportFilters}
                   stmcReportData={stmcReportData}
                   loadStmcReport={loadStmcReport}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -3950,7 +3994,7 @@ function App() {
                   zonalInstitutions={zonalInstitutions}
                   zonalSettings={zonalSettings}
                   submitZonalRegistration={submitZonalRegistration}
-                  states={states}
+                  states={adminScopedStateOptions}
                   loadZonalEntry={loadZonalEntry}
                   zonalEntryId={zonalEntryId}
                 />
@@ -3974,7 +4018,7 @@ function App() {
                   stateCongressRegions={stateCongressRegions}
                   stateCongressCentres={stateCongressCentres}
                   stateCongressSettings={stateCongressSettings}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -3991,7 +4035,7 @@ function App() {
                   loadStateCongressRegionReport={loadStateCongressRegionReport}
                   stateCongressReportRegions={stateCongressReportRegions}
                   stateCongressSettings={stateCongressSettings}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -4008,7 +4052,7 @@ function App() {
                   loadStateCongressCategoryReport={loadStateCongressCategoryReport}
                   stateCongressCategoryRegions={stateCongressCategoryRegions}
                   stateCongressSettings={stateCongressSettings}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -4024,7 +4068,7 @@ function App() {
                   stateCongressMembershipData={stateCongressMembershipData}
                   loadStateCongressMembershipReport={loadStateCongressMembershipReport}
                   stateCongressSettings={stateCongressSettings}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -4040,7 +4084,7 @@ function App() {
                   stateCongressInstitutionData={stateCongressInstitutionData}
                   loadStateCongressInstitutionReport={loadStateCongressInstitutionReport}
                   stateCongressSettings={stateCongressSettings}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -4057,7 +4101,7 @@ function App() {
                   loadStateCongressClusterReport={loadStateCongressClusterReport}
                   clusters={stateCongressClusterReportClusters}
                   stateCongressSettings={stateCongressSettings}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -4073,7 +4117,7 @@ function App() {
                   zonalDailyData={zonalDailyData}
                   loadZonalDailyReport={loadZonalDailyReport}
                   zonalSettings={zonalSettings}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -4089,7 +4133,7 @@ function App() {
                   zonalMembershipData={zonalMembershipData}
                   loadZonalMembershipReport={loadZonalMembershipReport}
                   zonalSettings={zonalSettings}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -4113,7 +4157,7 @@ function App() {
                   retreatEntryId={retreatEntryId}
                   retreatRegions={retreatRegions}
                   retreatCentres={retreatCentres}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -4130,7 +4174,7 @@ function App() {
                   retreatReportData={retreatReportData}
                   loadRetreatReport={loadRetreatReport}
                   clusters={retreatClusters}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -4147,7 +4191,7 @@ function App() {
                   loadRetreatClusterReport={loadRetreatClusterReport}
                   clusters={retreatReportClusters}
                   retreatClusterRegions={retreatClusterRegions}
-                  states={states}
+                  states={adminScopedStateOptions}
                 />
               }
             />
@@ -4162,7 +4206,7 @@ function App() {
                   setRetreatCentreFilters={setRetreatCentreFilters}
                   retreatCentreData={retreatCentreData}
                   loadRetreatCentreReport={loadRetreatCentreReport}
-                  states={states}
+                  states={adminScopedStateOptions}
                   retreatCentreRegions={retreatCentreRegions}
                 />
               }
@@ -4189,7 +4233,7 @@ function App() {
                   biodataCentres={biodataCentres}
                   biodataClusters={biodataClusters}
                   workUnitsList={workUnitsList}
-                  states={states}
+                  states={adminScopedStateOptions}
                   institutions={institutions}
                 />
               }
@@ -4207,7 +4251,7 @@ function App() {
                   biodataFilterCentres={biodataFilterCentres}
                   biodataData={biodataData}
                   biodataHistoryById={biodataHistoryById}
-                  states={states}
+                  states={adminScopedStateOptions}
                   canManageBiodata={canManageBiodata}
                   onEditBiodata={loadBiodataEntry}
                   onDeleteBiodata={deleteBiodataEntry}

@@ -127,6 +127,10 @@ export default function ZonalCongressPage({
     return list;
   }, [zonalSettings?.start_date, zonalSettings?.end_date]);
 
+  const isScopedAdmin = ["state_cord", "state_admin", "region_cord", "region_admin"].includes(user?.role);
+  const lockedState = isScopedAdmin ? (user?.state || "") : "";
+  const stateOptions = isScopedAdmin ? (lockedState ? [lockedState] : []) : states;
+
   if (!canManage) {
     return (
       <section className="card retreat-page">
@@ -312,7 +316,7 @@ export default function ZonalCongressPage({
                 onChange={(e) =>
                   setZonalRegistration({
                     ...zonalRegistration,
-                    state: e.target.value,
+                    state: lockedState || e.target.value,
                     region: "",
                     cluster: "",
                     institution: "",
@@ -320,9 +324,10 @@ export default function ZonalCongressPage({
                   })
                 }
                 required
+                disabled={!!lockedState}
               >
                 <option value="">Select state</option>
-                {states.map((state) => (
+                {stateOptions.map((state) => (
                   <option key={state} value={state}>
                     {state}
                   </option>

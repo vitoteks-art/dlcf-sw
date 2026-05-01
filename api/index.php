@@ -64,6 +64,127 @@ function user_has_work_unit(array $user, string $unit): bool
     return is_array($units) && in_array($unit, $units, true);
 }
 
+function is_zonal_scope_role(array $user): bool
+{
+    return in_array($user['role'] ?? '', ['administrator', 'zonal_cord', 'zonal_admin'], true);
+}
+
+function is_state_scope_role(array $user): bool
+{
+    return in_array($user['role'] ?? '', ['state_cord', 'state_admin'], true);
+}
+
+function is_region_scope_role(array $user): bool
+{
+    return in_array($user['role'] ?? '', ['region_cord', 'region_admin'], true);
+}
+
+function force_user_state_scope(array $user, string &$state): void
+{
+    if (is_state_scope_role($user)) {
+        if (empty($user['state'])) {
+            json_error('No state assigned to this user', 403);
+        }
+        $state = $user['state'];
+    }
+}
+
+function assert_target_in_user_scope(array $user, ?string $targetState, ?string $targetRegion = null, ?int $targetCentreId = null): void
+{
+    if (is_zonal_scope_role($user)) {
+        return;
+    }
+    if (is_state_scope_role($user)) {
+        if (empty($user['state']) || $targetState !== $user['state']) {
+            json_error('Forbidden', 403);
+        }
+        return;
+    }
+    if (is_region_scope_role($user)) {
+        if (empty($user['region']) || $targetRegion !== $user['region']) {
+            json_error('Forbidden', 403);
+        }
+        if (!empty($user['state']) && $targetState !== $user['state']) {
+            json_error('Forbidden', 403);
+        }
+        return;
+    }
+    if (($user['role'] ?? '') === 'associate_cord') {
+        if (empty($user['fellowship_centre_id']) || (int) $targetCentreId !== (int) $user['fellowship_centre_id']) {
+            json_error('Forbidden', 403);
+        }
+        return;
+    }
+    json_error('Forbidden', 403);
+}
+
+function allowed_assignable_roles(array $user): array
+{
+    if (($user['role'] ?? '') === 'administrator') {
+        return ['administrator', 'zonal_cord', 'zonal_admin', 'zonal_rep', 'state_cord', 'state_admin', 'state_rep', 'region_cord', 'region_admin', 'region_rep', 'associate_cord', 'member', 'worker'];
+    }
+    if (in_array($user['role'] ?? '', ['zonal_cord', 'zonal_admin'], true)) {
+        return ['zonal_rep', 'state_cord', 'state_admin', 'state_rep', 'region_cord', 'region_admin', 'region_rep', 'associate_cord', 'member', 'worker'];
+    }
+    if (is_state_scope_role($user)) {
+        return ['state_rep', 'region_cord', 'region_admin', 'region_rep', 'associate_cord', 'member', 'worker'];
+    }
+    if (is_region_scope_role($user)) {
+        return ['region_rep', 'associate_cord', 'member', 'worker'];
+    }
+    if (($user['role'] ?? '') === 'associate_cord') {
+        return ['member', 'worker'];
+    }
+    return [];
+}
+
+function assert_role_assignable(array $actor, string $role): void
+{
+    if (!in_array($role, allowed_assignable_roles($actor), true)) {
+        json_error('You are not allowed to assign this role', 403);
+    }
+}
+
+function constrain_scoped_content_for_actor(array $user, string &$scope, string &$state, int &$isFeatured): void
+{
+    if (is_zonal_scope_role($user)) {
+        return;
+    }
+    if (empty($user['state'])) {
+        json_error('No state assigned to this user', 403);
+    }
+    $scope = 'state';
+    $state = $user['state'];
+    $isFeatured = 0;
+}
+
+function assert_scoped_content_target_allowed(array $user, ?string $scope, ?string $state): void
+{
+    if (is_zonal_scope_role($user)) {
+        return;
+    }
+    if (($scope ?? '') !== 'state' || empty($user['state']) || $state !== $user['state']) {
+        json_error('Forbidden', 403);
+    }
+}
+
+function region_belongs_to_state(mysqli $db, string $state, string $region): bool
+{
+    if ($state === '' || $region === '') {
+        return false;
+    }
+    $stmt = db_prepare($db, 'SELECT id FROM regions WHERE state_name = ? AND name = ? LIMIT 1', 'ss', [$state, $region]);
+    $stmt->execute();
+    return (bool) db_fetch_all($stmt);
+}
+
+function assert_region_belongs_to_state(mysqli $db, string $state, string $region): void
+{
+    if (!region_belongs_to_state($db, $state, $region)) {
+        json_error('Selected region does not belong to the selected state', 422);
+    }
+}
+
 // Keep integration settings routes early so admin config screens do not depend on
 // the long route file reaching its footer include. This also protects cPanel
 // deployments with OPcache/partial uploads from surfacing a generic 500 here.
@@ -253,18 +374,25 @@ function apply_state_region_centre_scope(array $user, ?string &$state, ?string &
     if (in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin'], true)) {
         return;
     }
-    if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+    if (in_array($user['role'], ['state_cord', 'state_admin'], true)) {
+        if (empty($user['state'])) {
+            json_error('No state assigned to this user', 403);
+        }
         $state = $user['state'];
     }
     if (in_array($user['role'], ['region_cord', 'region_admin'], true)) {
+        if (empty($user['region'])) {
+            json_error('No region assigned to this user', 403);
+        }
         if (!empty($user['state'])) {
             $state = $user['state'];
         }
-        if (!empty($user['region'])) {
-            $region = $user['region'];
-        }
+        $region = $user['region'];
     }
-    if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+    if ($user['role'] === 'associate_cord') {
+        if (empty($user['fellowship_centre_id'])) {
+            json_error('No fellowship centre assigned to this user', 403);
+        }
         $centreId = (int) $user['fellowship_centre_id'];
     }
 }
@@ -275,18 +403,22 @@ function apply_registration_scope(array $user, string $context, ?string &$state,
         return;
     }
 
-    if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+    if (in_array($user['role'], ['state_cord', 'state_admin'], true)) {
+        if (empty($user['state'])) {
+            json_error('No state assigned to this user', 403);
+        }
         $state = $user['state'];
         return;
     }
 
     if (in_array($user['role'], ['region_cord', 'region_admin'], true)) {
+        if (empty($user['region'])) {
+            json_error('No region assigned to this user', 403);
+        }
         if (!empty($user['state'])) {
             $state = $user['state'];
         }
-        if (!empty($user['region'])) {
-            $region = $user['region'];
-        }
+        $region = $user['region'];
         return;
     }
 
@@ -659,12 +791,18 @@ function build_biodata_scope_sql(array $user, string $alias = 'fc'): array
     $types = '';
     $params = [];
 
-    if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+    if (in_array($user['role'], ['state_cord', 'state_admin'], true)) {
+        if (empty($user['state'])) {
+            json_error('No state assigned to this user', 403);
+        }
         $clauses .= " AND {$alias}.state = ?";
         $types .= 's';
         $params[] = $user['state'];
     }
-    if (in_array($user['role'], ['region_cord', 'region_admin'], true) && !empty($user['region'])) {
+    if (in_array($user['role'], ['region_cord', 'region_admin'], true)) {
+        if (empty($user['region'])) {
+            json_error('No region assigned to this user', 403);
+        }
         $clauses .= " AND {$alias}.region = ?";
         $types .= 's';
         $params[] = $user['region'];
@@ -1496,6 +1634,11 @@ if ($path === '/logout') {
 if ($path === '/me') {
     require_method('GET');
     require_auth();
+    $user = current_user();
+    if ($user) {
+        $user = refresh_user_access_context($db, $user);
+        login_user($user);
+    }
     json_ok(['user' => current_user()]);
 }
 
@@ -1955,11 +2098,11 @@ if (preg_match('#^/admin/states/(\\d+)$#', $path, $matches)) {
 
 if ($path === '/admin/categories') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
+        require_roles(['administrator', 'zonal_cord', 'zonal_admin']);
         json_ok(['items' => load_categories($db)]);
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
+        require_roles(['administrator', 'zonal_cord', 'zonal_admin']);
         require_csrf();
         $payload = read_json();
         $name = trim($payload['name'] ?? '');
@@ -1987,7 +2130,7 @@ if ($path === '/admin/categories') {
 }
 
 if (preg_match('#^/admin/categories/(\\d+)$#', $path, $matches)) {
-    require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
+    require_roles(['administrator', 'zonal_cord', 'zonal_admin']);
     require_csrf();
     $id = (int) $matches[1];
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
@@ -2025,8 +2168,8 @@ if ($path === '/state/posts') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
         $state = trim($_GET['state'] ?? '');
-        if (($user['role'] === 'state_cord' || $user['role'] === 'state_admin') && $user['state']) {
-            $state = $user['state'];
+        if (is_state_scope_role($user)) {
+            force_user_state_scope($user, $state);
         }
         $stateRow = null;
         if ($state !== '') {
@@ -2034,7 +2177,7 @@ if ($path === '/state/posts') {
             if (!$stateRow) {
                 json_error('State not found', 404);
             }
-        } elseif ($user['role'] === 'state_cord' || $user['role'] === 'state_admin') {
+        } elseif (is_state_scope_role($user)) {
             json_ok(['items' => []]);
         }
         $sql = 'SELECT sp.id, s.name AS state_name, s.slug AS state_slug,
@@ -2091,8 +2234,8 @@ if ($path === '/state/posts') {
         $recurrenceMode = $schedule['recurrence_mode'];
         $recurrenceDayOfWeek = $schedule['recurrence_day_of_week'];
         $categoryIds = $payload['category_ids'] ?? [];
-        if (($user['role'] === 'state_cord' || $user['role'] === 'state_admin') && $user['state']) {
-            $state = $user['state'];
+        if (is_state_scope_role($user)) {
+            force_user_state_scope($user, $state);
         }
         if ($state === '' || $title === '' || $content === '' || $type === '') {
             json_error('State, title, content, and type are required', 422);
@@ -2163,8 +2306,10 @@ if (preg_match('#^/state/posts/(\\d+)$#', $path, $matches)) {
         json_error('Not found', 404);
     }
     $post = $rows[0];
-    if (($user['role'] === 'state_cord' || $user['role'] === 'state_admin') && $user['state'] && $user['state'] !== $post['state_name']) {
-        json_error('Forbidden', 403);
+    if (is_state_scope_role($user)) {
+        if (empty($user['state']) || $user['state'] !== $post['state_name']) {
+            json_error('Forbidden', 403);
+        }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         $payload = read_json();
@@ -2241,8 +2386,8 @@ if ($path === '/state/home') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
         $state = trim($_GET['state'] ?? '');
-        if (($user['role'] === 'state_cord' || $user['role'] === 'state_admin') && $user['state']) {
-            $state = $user['state'];
+        if (is_state_scope_role($user)) {
+            force_user_state_scope($user, $state);
         }
         if ($state === '') {
             json_ok(['item' => null]);
@@ -2268,8 +2413,8 @@ if ($path === '/state/home') {
         $payload = read_json();
         $state = trim($payload['state'] ?? '');
         $content = $payload['content'] ?? null;
-        if (($user['role'] === 'state_cord' || $user['role'] === 'state_admin') && $user['state']) {
-            $state = $user['state'];
+        if (is_state_scope_role($user)) {
+            force_user_state_scope($user, $state);
         }
         if ($state === '' || $content === null) {
             json_error('State and content are required', 422);
@@ -2314,7 +2459,7 @@ if ($path === '/state/home') {
 
 if ($path === '/main-home') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
+        require_roles(['administrator', 'zonal_cord', 'zonal_admin']);
         $db->query("CREATE TABLE IF NOT EXISTS site_pages (
           id INT AUTO_INCREMENT PRIMARY KEY,
           page_key VARCHAR(100) NOT NULL UNIQUE,
@@ -2333,7 +2478,7 @@ if ($path === '/main-home') {
         json_ok(['item' => $content ?: null]);
     }
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
-        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
+        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin']);
         require_csrf();
         $payload = read_json();
         $content = $payload['content'] ?? null;
@@ -2384,7 +2529,7 @@ if ($path === '/state-congress/settings') {
         json_ok(['item' => $rows[0]]);
     }
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
-        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
+        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin']);
         require_csrf();
         $payload = read_json();
         $startDate = $payload['start_date'] ?? '';
@@ -2443,7 +2588,7 @@ if ($path === '/zonal-congress/settings') {
         json_ok(['item' => $rows[0]]);
     }
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
-        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
+        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin']);
         require_csrf();
         $payload = read_json();
         $startDate = $payload['start_date'] ?? '';
@@ -2664,6 +2809,12 @@ if ($path === '/admin/media-items') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $state = trim($_GET['state'] ?? '');
         $status = trim($_GET['status'] ?? '');
+        if (!is_zonal_scope_role($user)) {
+            if (empty($user['state'])) {
+                json_error('No state assigned to this user', 403);
+            }
+            $state = $user['state'];
+        }
         $sql = 'SELECT id, title, description, speaker, series, media_type, source_url, thumbnail_url,
                        duration_seconds, event_date, tags, scope, state, status, published_at, created_at, updated_at
                 FROM media_items WHERE 1=1';
@@ -2704,6 +2855,8 @@ if ($path === '/admin/media-items') {
         $scope = trim($payload['scope'] ?? 'zonal');
         $state = trim($payload['state'] ?? '');
         $status = trim($payload['status'] ?? 'draft');
+        $notFeatured = 0;
+        constrain_scoped_content_for_actor($user, $scope, $state, $notFeatured);
 
         if ($title === '' || $mediaType === '' || $sourceUrl === '') {
             json_error('title, media_type, and source_url are required', 422);
@@ -2759,6 +2912,13 @@ if (preg_match('#^/admin/media-items/(\\d+)$#', $path, $matches)) {
         json_error('Forbidden', 403);
     }
     $id = (int) $matches[1];
+    $stmt = db_prepare($db, 'SELECT scope, state FROM media_items WHERE id = ? LIMIT 1', 'i', [$id]);
+    $stmt->execute();
+    $targetRows = db_fetch_all($stmt);
+    if (!$targetRows) {
+        json_error('Not found', 404);
+    }
+    assert_scoped_content_target_allowed($user, $targetRows[0]['scope'] ?? null, $targetRows[0]['state'] ?? null);
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         if (!can_manage_media($user)) {
             json_error('Forbidden', 403);
@@ -2778,6 +2938,8 @@ if (preg_match('#^/admin/media-items/(\\d+)$#', $path, $matches)) {
         $scope = trim($payload['scope'] ?? 'zonal');
         $state = trim($payload['state'] ?? '');
         $status = trim($payload['status'] ?? 'draft');
+        $notFeatured = 0;
+        constrain_scoped_content_for_actor($user, $scope, $state, $notFeatured);
 
         if ($title === '' || $mediaType === '' || $sourceUrl === '') {
             json_error('title, media_type, and source_url are required', 422);
@@ -2851,7 +3013,10 @@ if ($path === '/admin/state-gallery-items') {
                 FROM state_gallery_items WHERE 1=1';
         $types = '';
         $params = [];
-        if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+        if (is_state_scope_role($user)) {
+            if (empty($user['state'])) {
+                json_error('No state assigned to this user', 403);
+            }
             $sql .= ' AND state = ?';
             $types .= 's';
             $params[] = $user['state'];
@@ -2888,11 +3053,11 @@ if ($path === '/admin/state-gallery-items') {
         $status = trim($payload['status'] ?? 'draft');
         $sortOrder = (int) ($payload['sort_order'] ?? 0);
 
+        if (is_state_scope_role($user)) {
+            force_user_state_scope($user, $state);
+        }
         if ($title === '' || $imageUrl === '' || $category === '' || $state === '') {
             json_error('title, image_url, category, and state are required', 422);
-        }
-        if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state']) && $state !== $user['state']) {
-            json_error('Forbidden', 403);
         }
         if (!in_array($status, ['draft', 'published'], true)) {
             json_error('Invalid status', 422);
@@ -2942,11 +3107,18 @@ if (preg_match('#^/admin/state-gallery-items/(\\d+)$#', $path, $matches)) {
         $status = trim($payload['status'] ?? 'draft');
         $sortOrder = (int) ($payload['sort_order'] ?? 0);
 
+        $stmt = db_prepare($db, 'SELECT state FROM state_gallery_items WHERE id = ? LIMIT 1', 'i', [$id]);
+        $stmt->execute();
+        $targetRows = db_fetch_all($stmt);
+        if (!$targetRows) {
+            json_error('Not found', 404);
+        }
+        assert_target_in_user_scope($user, $targetRows[0]['state'] ?? null, null, null);
+        if (is_state_scope_role($user)) {
+            force_user_state_scope($user, $state);
+        }
         if ($title === '' || $imageUrl === '' || $category === '' || $state === '') {
             json_error('title, image_url, category, and state are required', 422);
-        }
-        if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state']) && $state !== $user['state']) {
-            json_error('Forbidden', 403);
         }
         if (!in_array($status, ['draft', 'published'], true)) {
             json_error('Invalid status', 422);
@@ -2978,6 +3150,13 @@ if (preg_match('#^/admin/state-gallery-items/(\\d+)$#', $path, $matches)) {
     }
     if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
         require_csrf();
+        $stmt = db_prepare($db, 'SELECT state FROM state_gallery_items WHERE id = ? LIMIT 1', 'i', [$id]);
+        $stmt->execute();
+        $targetRows = db_fetch_all($stmt);
+        if (!$targetRows) {
+            json_error('Not found', 404);
+        }
+        assert_target_in_user_scope($user, $targetRows[0]['state'] ?? null, null, null);
         $stmt = db_prepare($db, 'DELETE FROM state_gallery_items WHERE id = ?', 'i', [$id]);
         $stmt->execute();
         json_ok(['message' => 'State gallery item deleted']);
@@ -2993,6 +3172,12 @@ if ($path === '/admin/giving-campaigns') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $state = trim($_GET['state'] ?? '');
         $status = trim($_GET['status'] ?? '');
+        if (!is_zonal_scope_role($user)) {
+            if (empty($user['state'])) {
+                json_error('No state assigned to this user', 403);
+            }
+            $state = $user['state'];
+        }
         $sql = 'SELECT id, title, slug, summary, description_html, campaign_type, cover_image_url,
                        target_amount, amount_raised, beneficiary_name, payment_details, deadline,
                        is_urgent, is_featured, scope, state, status, published_at, created_at, updated_at
@@ -3037,6 +3222,7 @@ if ($path === '/admin/giving-campaigns') {
         $scope = trim($payload['scope'] ?? 'zonal');
         $state = trim($payload['state'] ?? '');
         $status = trim($payload['status'] ?? 'draft');
+        constrain_scoped_content_for_actor($user, $scope, $state, $isFeatured);
 
         if ($title === '' || $campaignType === '') {
             json_error('title and campaign_type are required', 422);
@@ -3095,6 +3281,13 @@ if (preg_match('#^/admin/giving-campaigns/(\\d+)$#', $path, $matches)) {
         json_error('Forbidden', 403);
     }
     $id = (int) $matches[1];
+    $stmt = db_prepare($db, 'SELECT scope, state FROM giving_campaigns WHERE id = ? LIMIT 1', 'i', [$id]);
+    $stmt->execute();
+    $targetRows = db_fetch_all($stmt);
+    if (!$targetRows) {
+        json_error('Not found', 404);
+    }
+    assert_scoped_content_target_allowed($user, $targetRows[0]['scope'] ?? null, $targetRows[0]['state'] ?? null);
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         if (!can_manage_giving($user)) {
             json_error('Forbidden', 403);
@@ -3117,6 +3310,7 @@ if (preg_match('#^/admin/giving-campaigns/(\\d+)$#', $path, $matches)) {
         $scope = trim($payload['scope'] ?? 'zonal');
         $state = trim($payload['state'] ?? '');
         $status = trim($payload['status'] ?? 'draft');
+        constrain_scoped_content_for_actor($user, $scope, $state, $isFeatured);
 
         if ($title === '' || $campaignType === '') {
             json_error('title and campaign_type are required', 422);
@@ -3188,6 +3382,12 @@ if ($path === '/admin/publication-items') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $state = trim($_GET['state'] ?? '');
         $status = trim($_GET['status'] ?? '');
+        if (!is_zonal_scope_role($user)) {
+            if (empty($user['state'])) {
+                json_error('No state assigned to this user', 403);
+            }
+            $state = $user['state'];
+        }
         $sql = 'SELECT id, title, description, content_html, publication_type, file_url, cover_image_url, publish_date,
                        tags, scope, state, status, published_at, created_at, updated_at
                 FROM publication_items WHERE 1=1';
@@ -3226,6 +3426,8 @@ if ($path === '/admin/publication-items') {
         $scope = trim($payload['scope'] ?? 'zonal');
         $state = trim($payload['state'] ?? '');
         $status = trim($payload['status'] ?? 'draft');
+        $notFeatured = 0;
+        constrain_scoped_content_for_actor($user, $scope, $state, $notFeatured);
 
         if ($title === '' || $publicationType === '') {
             json_error('title and publication_type are required', 422);
@@ -3279,6 +3481,13 @@ if (preg_match('#^/admin/publication-items/(\\d+)$#', $path, $matches)) {
         json_error('Forbidden', 403);
     }
     $id = (int) $matches[1];
+    $stmt = db_prepare($db, 'SELECT scope, state FROM publication_items WHERE id = ? LIMIT 1', 'i', [$id]);
+    $stmt->execute();
+    $targetRows = db_fetch_all($stmt);
+    if (!$targetRows) {
+        json_error('Not found', 404);
+    }
+    assert_scoped_content_target_allowed($user, $targetRows[0]['scope'] ?? null, $targetRows[0]['state'] ?? null);
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         if (!can_manage_publications($user)) {
             json_error('Forbidden', 403);
@@ -3296,6 +3505,8 @@ if (preg_match('#^/admin/publication-items/(\\d+)$#', $path, $matches)) {
         $scope = trim($payload['scope'] ?? 'zonal');
         $state = trim($payload['state'] ?? '');
         $status = trim($payload['status'] ?? 'draft');
+        $notFeatured = 0;
+        constrain_scoped_content_for_actor($user, $scope, $state, $notFeatured);
 
         if ($title === '' || $publicationType === '') {
             json_error('title and publication_type are required', 422);
@@ -3354,11 +3565,9 @@ if (preg_match('#^/admin/publication-items/(\\d+)$#', $path, $matches)) {
 
 if ($path === '/admin/regions') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        $user = require_roles(['administrator', 'zonal_cord', 'state_cord']);
+        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
         $state = $_GET['state'] ?? '';
-        if ($user['role'] === 'state_cord' && $user['state']) {
-            $state = $user['state'];
-        }
+        force_user_state_scope($user, $state);
         if ($state === '') {
             json_ok(['items' => []]);
         }
@@ -3368,14 +3577,12 @@ if ($path === '/admin/regions') {
         json_ok(['items' => $rows]);
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $user = require_roles(['administrator', 'zonal_cord', 'state_cord']);
+        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
         require_csrf();
         $payload = read_json();
         $state = trim($payload['state'] ?? '');
         $name = trim($payload['name'] ?? '');
-        if ($user['role'] === 'state_cord' && $user['state']) {
-            $state = $user['state'];
-        }
+        force_user_state_scope($user, $state);
         if ($state === '' || $name === '') {
             json_error('State and name are required', 422);
         }
@@ -3386,7 +3593,7 @@ if ($path === '/admin/regions') {
 }
 
 if (preg_match('#^/admin/regions/(\\d+)$#', $path, $matches)) {
-    $user = require_roles(['administrator', 'zonal_cord', 'state_cord']);
+    $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
     require_csrf();
     $id = (int) $matches[1];
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
@@ -3404,9 +3611,8 @@ if (preg_match('#^/admin/regions/(\\d+)$#', $path, $matches)) {
         }
         $oldState = $rows[0]['state_name'];
         $oldName = $rows[0]['name'];
-        if ($user['role'] === 'state_cord' && $user['state']) {
-            $state = $user['state'];
-        }
+        assert_target_in_user_scope($user, $oldState, null, null);
+        force_user_state_scope($user, $state);
         if ($state === '') {
             $state = $oldState;
         }
@@ -3427,11 +3633,14 @@ if (preg_match('#^/admin/regions/(\\d+)$#', $path, $matches)) {
         }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
-        if ($user['role'] === 'state_cord' && $user['state']) {
-            $stmt = db_prepare($db, 'DELETE FROM regions WHERE id = ? AND state_name = ?', 'is', [$id, $user['state']]);
-        } else {
-            $stmt = db_prepare($db, 'DELETE FROM regions WHERE id = ?', 'i', [$id]);
+        $stmt = db_prepare($db, 'SELECT state_name FROM regions WHERE id = ? LIMIT 1', 'i', [$id]);
+        $stmt->execute();
+        $rows = db_fetch_all($stmt);
+        if (!$rows) {
+            json_error('Not found', 404);
         }
+        assert_target_in_user_scope($user, $rows[0]['state_name'] ?? null, null, null);
+        $stmt = db_prepare($db, 'DELETE FROM regions WHERE id = ?', 'i', [$id]);
         $stmt->execute();
         json_ok(['message' => 'Region deleted']);
     }
@@ -3439,11 +3648,9 @@ if (preg_match('#^/admin/regions/(\\d+)$#', $path, $matches)) {
 
 if ($path === '/admin/institutions') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        $user = require_roles(['administrator', 'zonal_cord', 'state_cord']);
+        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
         $state = $_GET['state'] ?? '';
-        if ($user['role'] === 'state_cord' && $user['state']) {
-            $state = $user['state'];
-        }
+        force_user_state_scope($user, $state);
         if ($state === '') {
             json_ok(['items' => []]);
         }
@@ -3453,14 +3660,12 @@ if ($path === '/admin/institutions') {
         json_ok(['items' => $rows]);
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $user = require_roles(['administrator', 'zonal_cord', 'state_cord']);
+        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
         require_csrf();
         $payload = read_json();
         $state = trim($payload['state'] ?? '');
         $name = trim($payload['name'] ?? '');
-        if ($user['role'] === 'state_cord' && $user['state']) {
-            $state = $user['state'];
-        }
+        force_user_state_scope($user, $state);
         if ($state === '' || $name === '') {
             json_error('State and name are required', 422);
         }
@@ -3495,7 +3700,15 @@ if ($path === '/admin/institutions/bulk') {
             $state = trim((string) ($item['state'] ?? ''));
             $name = trim((string) ($item['institution_name'] ?? ($item['name'] ?? '')));
 
-            if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+            if (in_array($user['role'], ['state_cord', 'state_admin'], true)) {
+                if (empty($user['state'])) {
+                    $skipped++;
+                    $errors[] = [
+                        'row' => $rowNumber,
+                        'message' => 'Row ' . $rowNumber . ': no state assigned to this user.',
+                    ];
+                    continue;
+                }
                 if ($state !== '' && $state !== $user['state']) {
                     $skipped++;
                     $errors[] = [
@@ -3557,7 +3770,7 @@ if ($path === '/admin/institutions/bulk') {
 }
 
 if (preg_match('#^/admin/institutions/(\\d+)$#', $path, $matches)) {
-    $user = require_roles(['administrator', 'zonal_cord', 'state_cord']);
+    $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
     require_csrf();
     $id = (int) $matches[1];
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
@@ -3574,9 +3787,8 @@ if (preg_match('#^/admin/institutions/(\\d+)$#', $path, $matches)) {
             json_error('Not found', 404);
         }
         $oldState = $rows[0]['state_name'];
-        if ($user['role'] === 'state_cord' && $user['state']) {
-            $state = $user['state'];
-        }
+        assert_target_in_user_scope($user, $oldState, null, null);
+        force_user_state_scope($user, $state);
         if ($state === '') {
             $state = $oldState;
         }
@@ -3585,11 +3797,14 @@ if (preg_match('#^/admin/institutions/(\\d+)$#', $path, $matches)) {
         json_ok(['message' => 'Institution updated']);
     }
     if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
-        if ($user['role'] === 'state_cord' && $user['state']) {
-            $stmt = db_prepare($db, 'DELETE FROM institutions WHERE id = ? AND state_name = ?', 'is', [$id, $user['state']]);
-        } else {
-            $stmt = db_prepare($db, 'DELETE FROM institutions WHERE id = ?', 'i', [$id]);
+        $stmt = db_prepare($db, 'SELECT state_name FROM institutions WHERE id = ? LIMIT 1', 'i', [$id]);
+        $stmt->execute();
+        $rows = db_fetch_all($stmt);
+        if (!$rows) {
+            json_error('Not found', 404);
         }
+        assert_target_in_user_scope($user, $rows[0]['state_name'] ?? null, null, null);
+        $stmt = db_prepare($db, 'DELETE FROM institutions WHERE id = ?', 'i', [$id]);
         $stmt->execute();
         json_ok(['message' => 'Institution deleted']);
     }
@@ -3599,7 +3814,7 @@ if ($path === '/admin/fellowships/bulk') {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         json_error('Method not allowed', 405);
     }
-    $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'associate_cord']);
+    $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'region_admin']);
     require_csrf();
     $payload = read_json();
     $items = $payload['items'] ?? null;
@@ -3620,16 +3835,40 @@ if ($path === '/admin/fellowships/bulk') {
             $address = trim($item['address'] ?? '');
             $description = trim($item['description'] ?? '');
 
-            if ($user['role'] === 'region_cord' && $user['region']) {
+            if (is_region_scope_role($user)) {
+                if (empty($user['state']) || empty($user['region'])) {
+                    $errors[] = ['row' => $index + 2, 'message' => 'No state/region assigned to this user'];
+                    continue;
+                }
+                if ($state !== '' && $state !== $user['state']) {
+                    $errors[] = ['row' => $index + 2, 'message' => 'State is outside your allowed scope'];
+                    continue;
+                }
+                if ($region !== '' && $region !== $user['region']) {
+                    $errors[] = ['row' => $index + 2, 'message' => 'Region is outside your allowed scope'];
+                    continue;
+                }
+                $state = $user['state'];
                 $region = $user['region'];
-                $state = $user['state'] ?? $state;
             }
-            if ($user['role'] === 'state_cord' && $user['state']) {
+            if (is_state_scope_role($user)) {
+                if (empty($user['state'])) {
+                    $errors[] = ['row' => $index + 2, 'message' => 'No state assigned to this user'];
+                    continue;
+                }
+                if ($state !== '' && $state !== $user['state']) {
+                    $errors[] = ['row' => $index + 2, 'message' => 'State is outside your allowed scope'];
+                    continue;
+                }
                 $state = $user['state'];
             }
 
             if ($name === '' || $state === '' || $region === '') {
                 $errors[] = ['row' => $index + 2, 'message' => 'Missing name, state, or region'];
+                continue;
+            }
+            if (!region_belongs_to_state($db, $state, $region)) {
+                $errors[] = ['row' => $index + 2, 'message' => 'Selected region does not belong to the selected state'];
                 continue;
             }
 
@@ -3671,22 +3910,28 @@ if ($path === '/admin/fellowships/bulk') {
 
 if ($path === '/admin/fellowships') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'associate_cord']);
+        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'region_admin', 'associate_cord']);
         $state = $_GET['state'] ?? '';
         $region = $_GET['region'] ?? '';
-        if ($user['role'] === 'region_cord' && $user['region']) {
+        if (is_region_scope_role($user)) {
+            if (empty($user['region'])) {
+                json_error('No region assigned to this user', 403);
+            }
             $region = $user['region'];
             $state = $user['state'] ?? $state;
         }
-        if ($user['role'] === 'associate_cord' && $user['fellowship_centre_id']) {
+        if ($user['role'] === 'associate_cord') {
+            if (empty($user['fellowship_centre_id'])) {
+                json_error('No fellowship centre assigned to this user', 403);
+            }
             $sql = 'SELECT id, name, state, region, address, description FROM fellowship_centres WHERE id = ? LIMIT 1';
             $stmt = db_prepare($db, $sql, 'i', [(int) $user['fellowship_centre_id']]);
             $stmt->execute();
             $rows = db_fetch_all($stmt);
             json_ok(['items' => $rows]);
         }
-        if ($user['role'] === 'state_cord' && $user['state']) {
-            $state = $user['state'];
+        if (is_state_scope_role($user)) {
+            force_user_state_scope($user, $state);
         }
         $sql = 'SELECT id, name, state, region, address, description FROM fellowship_centres WHERE 1=1';
         $types = '';
@@ -3708,7 +3953,7 @@ if ($path === '/admin/fellowships') {
         json_ok(['items' => $rows]);
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'associate_cord']);
+        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'region_admin', 'associate_cord']);
         require_csrf();
         $payload = read_json();
         $state = trim($payload['state'] ?? '');
@@ -3719,16 +3964,26 @@ if ($path === '/admin/fellowships') {
         if ($user['role'] === 'associate_cord' && $user['fellowship_centre_id']) {
             json_error('Not allowed', 403);
         }
-        if ($user['role'] === 'region_cord' && $user['region']) {
-            $region = $user['region'];
-            $state = $user['state'] ?? $state;
-        }
-        if ($user['role'] === 'state_cord' && $user['state']) {
+        if (is_region_scope_role($user)) {
+            if (empty($user['state']) || empty($user['region'])) {
+                json_error('No state/region assigned to this user', 403);
+            }
+            if ($state !== '' && $state !== $user['state']) {
+                json_error('Forbidden', 403);
+            }
+            if ($region !== '' && $region !== $user['region']) {
+                json_error('Forbidden', 403);
+            }
             $state = $user['state'];
+            $region = $user['region'];
+        }
+        if (is_state_scope_role($user)) {
+            force_user_state_scope($user, $state);
         }
         if ($state === '' || $region === '' || $name === '') {
             json_error('State, region, and name are required', 422);
         }
+        assert_region_belongs_to_state($db, $state, $region);
         $stmt = db_prepare($db, 'INSERT INTO fellowship_centres (name, state, region, address, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())', 'sssss', [$name, $state, $region, $address !== '' ? $address : null, $description !== '' ? $description : null]);
         $stmt->execute();
         json_ok(['message' => 'Fellowship added'], 201);
@@ -3736,7 +3991,7 @@ if ($path === '/admin/fellowships') {
 }
 
 if (preg_match('#^/admin/fellowships/(\\d+)$#', $path, $matches)) {
-    $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'associate_cord']);
+    $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'region_admin', 'associate_cord']);
     require_csrf();
     $id = (int) $matches[1];
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
@@ -3760,12 +4015,22 @@ if (preg_match('#^/admin/fellowships/(\\d+)$#', $path, $matches)) {
         }
         $oldState = $rows[0]['state'];
         $oldRegion = $rows[0]['region'];
-        if ($user['role'] === 'region_cord' && $user['region']) {
-            $region = $user['region'];
-            $state = $user['state'] ?? $state;
-        }
-        if ($user['role'] === 'state_cord' && $user['state']) {
+        assert_target_in_user_scope($user, $oldState, $oldRegion, $id);
+        if (is_region_scope_role($user)) {
+            if (empty($user['state']) || empty($user['region'])) {
+                json_error('No state/region assigned to this user', 403);
+            }
+            if ($state !== '' && $state !== $user['state']) {
+                json_error('Forbidden', 403);
+            }
+            if ($region !== '' && $region !== $user['region']) {
+                json_error('Forbidden', 403);
+            }
             $state = $user['state'];
+            $region = $user['region'];
+        }
+        if (is_state_scope_role($user)) {
+            force_user_state_scope($user, $state);
         }
         if ($state === '') {
             $state = $oldState;
@@ -3773,6 +4038,7 @@ if (preg_match('#^/admin/fellowships/(\\d+)$#', $path, $matches)) {
         if ($region === '') {
             $region = $oldRegion;
         }
+        assert_region_belongs_to_state($db, $state, $region);
         $stmt = db_prepare($db, 'UPDATE fellowship_centres SET name = ?, state = ?, region = ?, address = ?, description = ?, updated_at = NOW() WHERE id = ?', 'sssssi', [$name, $state, $region, $address !== '' ? $address : null, $description !== '' ? $description : null, $id]);
         $stmt->execute();
         json_ok(['message' => 'Fellowship updated']);
@@ -3781,13 +4047,14 @@ if (preg_match('#^/admin/fellowships/(\\d+)$#', $path, $matches)) {
         if ($user['role'] === 'associate_cord') {
             json_error('Not allowed', 403);
         }
-        if ($user['role'] === 'region_cord' && $user['region']) {
-            $stmt = db_prepare($db, 'DELETE FROM fellowship_centres WHERE id = ? AND region = ?', 'is', [$id, $user['region']]);
-        } elseif ($user['role'] === 'state_cord' && $user['state']) {
-            $stmt = db_prepare($db, 'DELETE FROM fellowship_centres WHERE id = ? AND state = ?', 'is', [$id, $user['state']]);
-        } else {
-            $stmt = db_prepare($db, 'DELETE FROM fellowship_centres WHERE id = ?', 'i', [$id]);
+        $stmt = db_prepare($db, 'SELECT state, region FROM fellowship_centres WHERE id = ? LIMIT 1', 'i', [$id]);
+        $stmt->execute();
+        $rows = db_fetch_all($stmt);
+        if (!$rows) {
+            json_error('Not found', 404);
         }
+        assert_target_in_user_scope($user, $rows[0]['state'] ?? null, $rows[0]['region'] ?? null, $id);
+        $stmt = db_prepare($db, 'DELETE FROM fellowship_centres WHERE id = ?', 'i', [$id]);
         $stmt->execute();
         json_ok(['message' => 'Fellowship deleted']);
     }
@@ -3894,10 +4161,14 @@ if (preg_match('#^/admin/work-units/(\\d+)$#', $path, $matches)) {
 
 if ($path === '/admin/roles') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'associate_cord']);
+        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'region_admin', 'associate_cord']);
         $stmt = db_prepare($db, 'SELECT id, name FROM roles ORDER BY name', '', []);
         $stmt->execute();
         $rows = db_fetch_all($stmt);
+        if (($user['role'] ?? '') !== 'administrator') {
+            $allowed = allowed_assignable_roles($user);
+            $rows = array_values(array_filter($rows, fn($row) => in_array($row['name'], $allowed, true)));
+        }
         json_ok(['items' => $rows]);
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -3962,15 +4233,29 @@ if ($path === '/admin/users') {
                 WHERE 1=1';
         $types = '';
         $params = [];
-        if ($user['role'] === 'associate_cord' && $user['fellowship_centre_id']) {
+        if ($user['role'] === 'associate_cord') {
+            if (empty($user['fellowship_centre_id'])) {
+                json_error('No fellowship centre assigned to this user', 403);
+            }
             $sql .= ' AND b.fellowship_centre_id = ?';
             $types .= 'i';
             $params[] = (int) $user['fellowship_centre_id'];
-        } elseif ($user['role'] === 'region_cord' && $user['region']) {
+        } elseif (is_region_scope_role($user)) {
+            if (empty($user['region'])) {
+                json_error('No region assigned to this user', 403);
+            }
             $sql .= ' AND b.region = ?';
             $types .= 's';
             $params[] = $user['region'];
-        } elseif ($user['role'] === 'state_cord' && $user['state']) {
+            if (!empty($user['state'])) {
+                $sql .= ' AND b.state = ?';
+                $types .= 's';
+                $params[] = $user['state'];
+            }
+        } elseif (is_state_scope_role($user)) {
+            if (empty($user['state'])) {
+                json_error('No state assigned to this user', 403);
+            }
             $sql .= ' AND b.state = ?';
             $types .= 's';
             $params[] = $user['state'];
@@ -3998,7 +4283,10 @@ if ($path === '/admin/users') {
         $centreName = trim($payload['fellowship_centre'] ?? '');
         $workUnits = $payload['work_units'] ?? [];
 
-        if ($user['role'] === 'associate_cord' && $user['fellowship_centre_id']) {
+        if ($user['role'] === 'associate_cord') {
+            if (empty($user['fellowship_centre_id'])) {
+                json_error('No fellowship centre assigned to this user', 403);
+            }
             $centreId = (int) $user['fellowship_centre_id'];
             $stmt = db_prepare($db, 'SELECT name, state, region FROM fellowship_centres WHERE id = ? LIMIT 1', 'i', [$centreId]);
             $stmt->execute();
@@ -4008,11 +4296,14 @@ if ($path === '/admin/users') {
                 $state = $centreRow[0]['state'];
                 $region = $centreRow[0]['region'];
             }
-        } elseif ($user['role'] === 'region_cord' && $user['region']) {
+        } elseif (is_region_scope_role($user)) {
+            if (empty($user['region'])) {
+                json_error('No region assigned to this user', 403);
+            }
             $region = $user['region'];
             $state = $user['state'] ?? $state;
-        } elseif ($user['role'] === 'state_cord' && $user['state']) {
-            $state = $user['state'];
+        } elseif (is_state_scope_role($user)) {
+            force_user_state_scope($user, $state);
         }
 
         if ($name === '' || $email === '' || $password === '' || $role === '') {
@@ -4020,6 +4311,10 @@ if ($path === '/admin/users') {
         }
         if (!is_array($workUnits)) {
             json_error('Work units must be an array', 422);
+        }
+        assert_role_assignable($user, $role);
+        if (!is_zonal_scope_role($user)) {
+            $workUnits = [];
         }
 
         ensure_unique_coordinator_role($db, $role, $state ?: null, $region ?: null);
@@ -4085,24 +4380,31 @@ if ($path === '/attendance-access-codes') {
         $types = '';
         $params = [];
 
-        if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+        if (in_array($user['role'], ['state_cord', 'state_admin'], true)) {
+            if (empty($user['state'])) {
+                json_error('No state assigned to this user', 403);
+            }
             $sql .= ' AND c.state = ?';
             $types .= 's';
             $params[] = $user['state'];
         }
         if (in_array($user['role'], ['region_cord', 'region_admin'], true)) {
+            if (empty($user['region'])) {
+                json_error('No region assigned to this user', 403);
+            }
             if (!empty($user['state'])) {
                 $sql .= ' AND c.state = ?';
                 $types .= 's';
                 $params[] = $user['state'];
             }
-            if (!empty($user['region'])) {
-                $sql .= ' AND c.region = ?';
-                $types .= 's';
-                $params[] = $user['region'];
-            }
+            $sql .= ' AND c.region = ?';
+            $types .= 's';
+            $params[] = $user['region'];
         }
-        if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+        if ($user['role'] === 'associate_cord') {
+            if (empty($user['fellowship_centre_id'])) {
+                json_error('No fellowship centre assigned to this user', 403);
+            }
             $sql .= ' AND c.fellowship_centre_id = ?';
             $types .= 'i';
             $params[] = (int) $user['fellowship_centre_id'];
@@ -4220,10 +4522,24 @@ if (preg_match('#^/attendance-access-codes/(\d+)/revoke$#', $path, $matches)) {
 }
 
 if (preg_match('#^/admin/users/(\\d+)$#', $path, $matches)) {
-    require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'associate_cord']);
+    $actor = require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord', 'region_admin', 'associate_cord']);
     require_csrf();
     $id = (int) $matches[1];
     if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+        $stmt = db_prepare($db, 'SELECT u.role, b.state, b.region, b.fellowship_centre_id
+                                 FROM users u
+                                 LEFT JOIN biodata b ON b.user_id = u.id
+                                 WHERE u.id = ? LIMIT 1', 'i', [$id]);
+        $stmt->execute();
+        $rows = db_fetch_all($stmt);
+        if (!$rows) {
+            json_error('Not found', 404);
+        }
+        $target = $rows[0];
+        assert_target_in_user_scope($actor, $target['state'] ?? null, $target['region'] ?? null, isset($target['fellowship_centre_id']) ? (int) $target['fellowship_centre_id'] : null);
+        if (($actor['role'] ?? '') !== 'administrator' && !in_array($target['role'], allowed_assignable_roles($actor), true)) {
+            json_error('Forbidden', 403);
+        }
         $stmt = db_prepare($db, 'DELETE FROM users WHERE id = ?', 'i', [$id]);
         $stmt->execute();
         json_ok(['message' => 'User deleted']);
@@ -4241,6 +4557,10 @@ if (preg_match('#^/admin/users/(\\d+)$#', $path, $matches)) {
             json_error('Not found', 404);
         }
         $current = $rows[0];
+        assert_target_in_user_scope($actor, $current['state'] ?? null, $current['region'] ?? null, isset($current['fellowship_centre_id']) ? (int) $current['fellowship_centre_id'] : null);
+        if (($actor['role'] ?? '') !== 'administrator' && !in_array($current['role'], allowed_assignable_roles($actor), true)) {
+            json_error('Forbidden', 403);
+        }
 
         $name = trim($payload['name'] ?? $current['name']);
         $email = trim($payload['email'] ?? $current['email']);
@@ -4256,6 +4576,20 @@ if (preg_match('#^/admin/users/(\\d+)$#', $path, $matches)) {
         }
         if (!is_array($workUnits)) {
             json_error('Work units must be an array', 422);
+        }
+        assert_role_assignable($actor, $role);
+        if (is_state_scope_role($actor)) {
+            force_user_state_scope($actor, $state);
+        }
+        if (is_region_scope_role($actor)) {
+            if (empty($actor['region'])) {
+                json_error('No region assigned to this user', 403);
+            }
+            $region = $actor['region'] ?? $region;
+            $state = $actor['state'] ?? $state;
+        }
+        if (!is_zonal_scope_role($actor)) {
+            $workUnits = [];
         }
 
         ensure_unique_coordinator_role($db, $role, $state ?: null, $region ?: null, $id);
@@ -4560,11 +4894,17 @@ if ($path === '/attendance') {
                 $state = $centre['state'];
                 $region = $centre['region'];
             } else {
-                if ($user['role'] === 'region_cord' && $user['region']) {
+                if (is_region_scope_role($user)) {
+                    if (empty($user['region'])) {
+                        json_error('No region assigned to this user', 403);
+                    }
                     $region = $user['region'];
+                    if (!empty($user['state'])) {
+                        $state = $user['state'];
+                    }
                 }
-                if ($user['role'] === 'state_cord' && $user['state']) {
-                    $state = $user['state'];
+                if (is_state_scope_role($user)) {
+                    force_user_state_scope($user, $state);
                 }
             }
 
@@ -4666,15 +5006,27 @@ if (preg_match('#^/attendance/(\\d+)$#', $path, $matches)) {
     }
     $entry = $rows[0];
 
-    if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+    if ($user['role'] === 'associate_cord') {
+        if (empty($user['fellowship_centre_id'])) {
+            json_error('No fellowship centre assigned to this user', 403);
+        }
         if ((int) $user['fellowship_centre_id'] !== (int) $entry['fellowship_centre_id']) {
             json_error('Forbidden', 403);
         }
-    } elseif ($user['role'] === 'region_cord' && $user['region']) {
+    } elseif (is_region_scope_role($user)) {
+        if (empty($user['region'])) {
+            json_error('No region assigned to this user', 403);
+        }
         if ($user['region'] !== $entry['region']) {
             json_error('Forbidden', 403);
         }
-    } elseif ($user['role'] === 'state_cord' && $user['state']) {
+        if (!empty($user['state']) && $user['state'] !== $entry['state']) {
+            json_error('Forbidden', 403);
+        }
+    } elseif (is_state_scope_role($user)) {
+        if (empty($user['state'])) {
+            json_error('No state assigned to this user', 403);
+        }
         if ($user['state'] !== $entry['state']) {
             json_error('Forbidden', 403);
         }
@@ -5123,15 +5475,27 @@ if (preg_match('#^/gck/(\\d+)$#', $path, $matches)) {
     }
     $report = $rows[0];
 
-    if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+    if ($user['role'] === 'associate_cord') {
+        if (empty($user['fellowship_centre_id'])) {
+            json_error('No fellowship centre assigned to this user', 403);
+        }
         if ((int) $user['fellowship_centre_id'] !== (int) $report['fellowship_centre_id']) {
             json_error('Forbidden', 403);
         }
-    } elseif (in_array($user['role'], ['region_cord', 'region_admin'], true) && $user['region']) {
+    } elseif (in_array($user['role'], ['region_cord', 'region_admin'], true)) {
+        if (empty($user['region'])) {
+            json_error('No region assigned to this user', 403);
+        }
         if ($user['region'] !== $report['region']) {
             json_error('Forbidden', 403);
         }
-    } elseif (in_array($user['role'], ['state_cord', 'state_admin'], true) && $user['state']) {
+        if (!empty($user['state']) && $user['state'] !== $report['state']) {
+            json_error('Forbidden', 403);
+        }
+    } elseif (in_array($user['role'], ['state_cord', 'state_admin'], true)) {
+        if (empty($user['state'])) {
+            json_error('No state assigned to this user', 403);
+        }
         if ($user['state'] !== $report['state']) {
             json_error('Forbidden', 403);
         }
@@ -5277,11 +5641,17 @@ if ($path === '/reports/summary') {
     $region = trim((string) ($_GET['region'] ?? ''));
     $fellowshipCentre = trim((string) ($_GET['fellowship_centre'] ?? ''));
 
-    if ($user['role'] === 'region_cord' && $user['region']) {
+    if (is_region_scope_role($user)) {
+        if (empty($user['region'])) {
+            json_error('No region assigned to this user', 403);
+        }
         $region = $user['region'];
+        if (!empty($user['state'])) {
+            $state = $user['state'];
+        }
     }
-    if ($user['role'] === 'state_cord' && $user['state']) {
-        $state = $user['state'];
+    if (is_state_scope_role($user)) {
+        force_user_state_scope($user, $state);
     }
 
     $sql = 'SELECT fc.name AS fellowship_centre, fc.state, fc.region,
@@ -6803,10 +7173,19 @@ if ($path === '/biodata') {
             'lifecycle_bucket' => $_GET['lifecycle_bucket'] ?? null,
         ];
 
-        if (in_array($user['role'], ['region_cord', 'region_admin'], true) && $user['region']) {
+        if (in_array($user['role'], ['region_cord', 'region_admin'], true)) {
+            if (empty($user['region'])) {
+                json_error('No region assigned to this user', 403);
+            }
             $filters['region'] = $user['region'];
+            if (!empty($user['state'])) {
+                $filters['state'] = $user['state'];
+            }
         }
-        if (in_array($user['role'], ['state_cord', 'state_admin'], true) && $user['state']) {
+        if (in_array($user['role'], ['state_cord', 'state_admin'], true)) {
+            if (empty($user['state'])) {
+                json_error('No state assigned to this user', 403);
+            }
             $filters['state'] = $user['state'];
         }
 
@@ -6918,17 +7297,31 @@ if ($path === '/biodata-reports/spiritual') {
             WHERE 1=1';
     $types = '';
     $params = [];
-    if (in_array($user['role'], ['state_cord', 'state_admin'], true) && !empty($user['state'])) {
+    if (in_array($user['role'], ['state_cord', 'state_admin'], true)) {
+        if (empty($user['state'])) {
+            json_error('No state assigned to this user', 403);
+        }
         $sql .= ' AND fc.state = ?';
         $types .= 's';
         $params[] = $user['state'];
     }
-    if (in_array($user['role'], ['region_cord', 'region_admin'], true) && !empty($user['region'])) {
+    if (in_array($user['role'], ['region_cord', 'region_admin'], true)) {
+        if (empty($user['region'])) {
+            json_error('No region assigned to this user', 403);
+        }
+        if (!empty($user['state'])) {
+            $sql .= ' AND fc.state = ?';
+            $types .= 's';
+            $params[] = $user['state'];
+        }
         $sql .= ' AND fc.region = ?';
         $types .= 's';
         $params[] = $user['region'];
     }
-    if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+    if ($user['role'] === 'associate_cord') {
+        if (empty($user['fellowship_centre_id'])) {
+            json_error('No fellowship centre assigned to this user', 403);
+        }
         $sql .= ' AND fc.id = ?';
         $types .= 'i';
         $params[] = (int) $user['fellowship_centre_id'];
@@ -7194,15 +7587,29 @@ if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
         $types = 'i';
         $params = [$id];
 
-        if ($user['role'] === 'associate_cord' && !empty($user['fellowship_centre_id'])) {
+        if ($user['role'] === 'associate_cord') {
+            if (empty($user['fellowship_centre_id'])) {
+                json_error('No fellowship centre assigned to this user', 403);
+            }
             $sql .= ' AND fc.id = ?';
             $types .= 'i';
             $params[] = (int) $user['fellowship_centre_id'];
-        } elseif (in_array($user['role'], ['region_cord', 'region_admin'], true) && $user['region']) {
+        } elseif (in_array($user['role'], ['region_cord', 'region_admin'], true)) {
+            if (empty($user['region'])) {
+                json_error('No region assigned to this user', 403);
+            }
+            if (!empty($user['state'])) {
+                $sql .= ' AND fc.state = ?';
+                $types .= 's';
+                $params[] = $user['state'];
+            }
             $sql .= ' AND fc.region = ?';
             $types .= 's';
             $params[] = $user['region'];
-        } elseif (in_array($user['role'], ['state_cord', 'state_admin'], true) && $user['state']) {
+        } elseif (in_array($user['role'], ['state_cord', 'state_admin'], true)) {
+            if (empty($user['state'])) {
+                json_error('No state assigned to this user', 403);
+            }
             $sql .= ' AND fc.state = ?';
             $types .= 's';
             $params[] = $user['state'];
@@ -7249,12 +7656,12 @@ if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
                 json_error('Forbidden', 403);
             }
         }
-        if ($user['role'] === 'region_cord') {
+        if (is_region_scope_role($user)) {
             if (empty($user['region']) || $target['region'] !== $user['region']) {
                 json_error('Forbidden', 403);
             }
         }
-        if ($user['role'] === 'state_cord') {
+        if (is_state_scope_role($user)) {
             if (empty($user['state']) || $target['state'] !== $user['state']) {
                 json_error('Forbidden', 403);
             }
@@ -7278,6 +7685,16 @@ if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
         $state = trim($payload['state'] ?? '');
         $region = trim($payload['region'] ?? '');
         $cluster = trim($payload['cluster'] ?? '');
+
+        if (is_region_scope_role($user)) {
+            $region = $user['region'];
+            if (!empty($user['state'])) {
+                $state = $user['state'];
+            }
+        }
+        if (is_state_scope_role($user)) {
+            force_user_state_scope($user, $state);
+        }
 
         if ($user['email'] && strcasecmp($email, $user['email']) !== 0) {
             json_error('Email must match your account email', 422);
@@ -7372,12 +7789,12 @@ if (preg_match('#^/biodata/(\\d+)$#', $path, $matches)) {
                 json_error('Forbidden', 403);
             }
         }
-        if ($user['role'] === 'region_cord') {
+        if (is_region_scope_role($user)) {
             if (empty($user['region']) || $target['region'] !== $user['region']) {
                 json_error('Forbidden', 403);
             }
         }
-        if ($user['role'] === 'state_cord') {
+        if (is_state_scope_role($user)) {
             if (empty($user['state']) || $target['state'] !== $user['state']) {
                 json_error('Forbidden', 403);
             }
@@ -7413,12 +7830,12 @@ if (preg_match('#^/biodata/(\d+)/history$#', $path, $matches)) {
             json_error('Forbidden', 403);
         }
     }
-    if ($user['role'] === 'region_cord') {
+    if (is_region_scope_role($user)) {
         if (empty($user['region']) || $target['region'] !== $user['region']) {
             json_error('Forbidden', 403);
         }
     }
-    if ($user['role'] === 'state_cord') {
+    if (is_state_scope_role($user)) {
         if (empty($user['state']) || $target['state'] !== $user['state']) {
             json_error('Forbidden', 403);
         }

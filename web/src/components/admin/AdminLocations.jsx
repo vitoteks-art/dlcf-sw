@@ -121,6 +121,7 @@ function StatesPanel({
 }
 
 function RegionsPanel({
+    user,
     adminRegions,
     adminRegionState,
     setAdminRegionState,
@@ -138,6 +139,8 @@ function RegionsPanel({
     handleDeleteRegion,
 }) {
     const isEditing = !!adminRegionEditId;
+    const isStateScopedAdmin = user && ["state_cord", "state_admin"].includes(user.role);
+    const visibleStateOptions = isStateScopedAdmin ? (user.state ? [user.state] : []) : stateOptions;
     return (
         <div className="panel-content">
             <div className="form-card card">
@@ -147,12 +150,13 @@ function RegionsPanel({
                         <label>
                             State
                             <select
-                                value={isEditing ? (adminRegionEditState || adminRegionState) : adminRegionState}
-                                onChange={(e) => isEditing ? setAdminRegionEditState(e.target.value) : setAdminRegionState(e.target.value)}
+                                value={isStateScopedAdmin ? (user?.state || "") : (isEditing ? (adminRegionEditState || adminRegionState) : adminRegionState)}
+                                onChange={(e) => isEditing ? setAdminRegionEditState(isStateScopedAdmin ? (user?.state || "") : e.target.value) : setAdminRegionState(isStateScopedAdmin ? (user?.state || "") : e.target.value)}
+                                disabled={!!isStateScopedAdmin}
                                 required
                             >
                                 <option value="">Select state</option>
-                                {stateOptions.map((state) => (
+                                {visibleStateOptions.map((state) => (
                                     <option key={state} value={state}>{state}</option>
                                 ))}
                             </select>
@@ -216,6 +220,7 @@ function RegionsPanel({
 }
 
 function FellowshipsPanel({
+    user,
     adminFellowships,
     adminFellowshipState,
     setAdminFellowshipState,
@@ -248,6 +253,11 @@ function FellowshipsPanel({
     loadAdminFellowships
 }) {
     const isEditing = !!adminFellowshipEditId;
+    const isStateScopedAdmin = user && ["state_cord", "state_admin"].includes(user.role);
+    const isRegionScopedAdmin = user && ["region_cord", "region_admin"].includes(user.role);
+    const isScopedAdmin = isStateScopedAdmin || isRegionScopedAdmin;
+    const visibleStateOptions = isScopedAdmin ? (user?.state ? [user.state] : []) : stateOptions;
+    const visibleRegionOptions = isRegionScopedAdmin ? (user?.region ? [user.region] : []) : (isEditing ? adminFellowshipEditRegions : adminFellowshipRegions);
     const [uploadFile, setUploadFile] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState("");
@@ -355,20 +365,22 @@ function FellowshipsPanel({
                         <label>
                             State
                             <select
-                                value={isEditing ? (adminFellowshipEditState || adminFellowshipState) : adminFellowshipState}
+                                value={isScopedAdmin ? (user?.state || "") : (isEditing ? (adminFellowshipEditState || adminFellowshipState) : adminFellowshipState)}
                                 onChange={(e) => {
+                                    const nextState = isScopedAdmin ? (user?.state || "") : e.target.value;
                                     if (isEditing) {
-                                        setAdminFellowshipEditState(e.target.value);
+                                        setAdminFellowshipEditState(nextState);
                                         setAdminFellowshipEditRegion("");
                                     } else {
-                                        setAdminFellowshipState(e.target.value);
+                                        setAdminFellowshipState(nextState);
                                         setAdminFellowshipRegion("");
                                     }
                                 }}
+                                disabled={!!isScopedAdmin}
                                 required
                             >
                                 <option value="">Select state</option>
-                                {stateOptions.map((state) => (
+                                {visibleStateOptions.map((state) => (
                                     <option key={state} value={state}>{state}</option>
                                 ))}
                             </select>
@@ -376,13 +388,13 @@ function FellowshipsPanel({
                         <label>
                             Region
                             <select
-                                value={isEditing ? (adminFellowshipEditRegion || "") : adminFellowshipRegion}
-                                onChange={(e) => isEditing ? setAdminFellowshipEditRegion(e.target.value) : setAdminFellowshipRegion(e.target.value)}
+                                value={isRegionScopedAdmin ? (user?.region || "") : (isEditing ? (adminFellowshipEditRegion || "") : adminFellowshipRegion)}
+                                onChange={(e) => isEditing ? setAdminFellowshipEditRegion(isRegionScopedAdmin ? (user?.region || "") : e.target.value) : setAdminFellowshipRegion(isRegionScopedAdmin ? (user?.region || "") : e.target.value)}
                                 required
-                                disabled={isEditing ? !adminFellowshipEditState : !adminFellowshipState}
+                                disabled={!!isRegionScopedAdmin || (isEditing ? !adminFellowshipEditState : !adminFellowshipState)}
                             >
                                 <option value="">Select region</option>
-                                {(isEditing ? adminFellowshipEditRegions : adminFellowshipRegions).map((region) => (
+                                {visibleRegionOptions.map((region) => (
                                     <option key={region} value={region}>{region}</option>
                                 ))}
                             </select>
