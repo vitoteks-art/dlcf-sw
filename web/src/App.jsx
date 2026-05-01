@@ -3244,17 +3244,27 @@ function App() {
 
   const uploadImage = async (file) => {
     if (!file) return "";
+    const maxByType = file.type?.startsWith("video/") ? 100 : file.type?.startsWith("audio/") ? 75 : file.type === "application/pdf" ? 50 : 15;
+    const maxBytes = maxByType * 1024 * 1024;
+    if (file.size > maxBytes) {
+      throw new Error(`Upload is too large. ${file.type?.startsWith("image/") ? "Please use an image under" : "Maximum allowed size is"} ${maxByType}MB.`);
+    }
     const token = await ensureCsrf();
     const form = new FormData();
     form.append("file", file);
-    const res = await fetch(`${API_BASE}/admin/uploads`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "X-CSRF-Token": token,
-      },
-      body: form,
-    });
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/admin/uploads`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "X-CSRF-Token": token,
+        },
+        body: form,
+      });
+    } catch (err) {
+      throw new Error("Upload connection failed. The API server may be blocking large uploads or the connection was reset. Try a smaller file; if it continues, deploy the backend upload-limit fix.");
+    }
     const json = await res.json().catch(() => ({}));
     if (!res.ok || json.ok === false) {
       const message = json?.error || "Upload failed";

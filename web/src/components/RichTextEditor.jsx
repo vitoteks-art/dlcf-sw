@@ -31,6 +31,7 @@ export default function RichTextEditor({ value, onChange, onUploadImage }) {
       }
     } catch (err) {
       console.error(err);
+      window.alert(err?.message || "Image upload failed");
     }
   };
 
