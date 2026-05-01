@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import StatePublicHeader from "../components/StatePublicHeader";
 import PublicFooter from "../components/PublicFooter";
 import { apiFetch } from "../api";
+import { contentSlug } from "../utils/slugs";
 
 const slugifyState = (value) =>
   String(value)
@@ -115,7 +116,7 @@ export default function StateMediaListPage({ stateSlug, states }) {
               {item.speaker ? <p className="media-item-speaker">{item.speaker}</p> : null}
               {item.description ? <p className="lede">{item.description}</p> : null}
               <div className="media-item-actions">
-                <Link to={`/${stateSlug}/media/${item.id}`}>View Details</Link>
+                <Link to={`/${stateSlug}/media/${contentSlug(item)}`}>View Details</Link>
               </div>
             </article>
           ))}

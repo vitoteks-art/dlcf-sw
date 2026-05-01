@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
+import { contentSlug } from "../utils/slugs";
 import FeaturedGivingCard from "../components/FeaturedGivingCard";
 import StatePublicHeader from "../components/StatePublicHeader";
 import PublicFooter from "../components/PublicFooter";
@@ -644,7 +645,7 @@ export default function StateDetailPage({ stateSlug, states }) {
                   <div className="state-ref-messageCard__body">
                     <p>{item.media_type || "Recent Message"}</p>
                     <h4>{item.title}</h4>
-                    <Link to={item.id?.toString().startsWith("placeholder") ? `/${stateId}/media` : `/${stateId}/media/${item.id}`}>
+                    <Link to={item.id?.toString().startsWith("placeholder") ? `/${stateId}/media` : `/${stateId}/media/${contentSlug(item)}`}>
                       Watch Now
                     </Link>
                   </div>
@@ -673,7 +674,7 @@ export default function StateDetailPage({ stateSlug, states }) {
                     <span>{item.publication_type || "Publication"}</span>
                     <h4>{item.title}</h4>
                     <p>{excerpt(item.description || "", 120)}</p>
-                    <Link to={item.id?.toString().startsWith("resource-") ? `/${stateId}/publications` : `/${stateId}/publications/${item.id}`}>
+                    <Link to={item.id?.toString().startsWith("resource-") ? `/${stateId}/publications` : `/${stateId}/publications/${contentSlug(item)}`}>
                       Read More
                     </Link>
                   </div>

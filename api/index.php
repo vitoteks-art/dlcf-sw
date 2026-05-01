@@ -291,6 +291,34 @@ function normalize_content_slug(string $title, string $slug = ''): string
     return $base !== '' ? $base : ('item-' . time());
 }
 
+function unique_content_slug(mysqli $db, string $table, string $title, string $slug = '', ?int $excludeId = null): string
+{
+    if (!in_array($table, ['media_items', 'publication_items'], true)) {
+        json_error('Invalid content table', 500);
+    }
+    $base = normalize_content_slug($title, $slug);
+    $candidate = $base;
+    $i = 2;
+    while (true) {
+        $sql = "SELECT id FROM $table WHERE slug = ?";
+        $types = 's';
+        $params = [$candidate];
+        if ($excludeId !== null) {
+            $sql .= ' AND id <> ?';
+            $types .= 'i';
+            $params[] = $excludeId;
+        }
+        $sql .= ' LIMIT 1';
+        $stmt = db_prepare($db, $sql, $types, $params);
+        $stmt->execute();
+        if (!db_fetch_all($stmt)) {
+            return $candidate;
+        }
+        $candidate = $base . '-' . $i;
+        $i++;
+    }
+}
+
 function assert_content_status_allowed(array $user, string $status): void
 {
     if (!in_array($status, content_workflow_statuses(), true)) {
@@ -382,6 +410,54 @@ function require_publication_publish_checklist(array $payload): void
     if (($payload['scope'] ?? '') === 'state' && trim((string)($payload['state'] ?? '')) === '') {
         json_error('State is required before approval/publishing', 422);
     }
+}
+
+
+function public_content_identifier_condition(string $identifier): array
+{
+    $identifier = trim($identifier);
+    if ($identifier === '') {
+        json_error('Not found', 404);
+    }
+    if (ctype_digit($identifier)) {
+        return ['id = ?', 'i', [(int)$identifier]];
+    }
+    return ['slug = ?', 's', [$identifier]];
+}
+
+function find_public_content_by_identifier(mysqli $db, string $table, string $columns, string $identifier): ?array
+{
+    [$where, $types, $params] = public_content_identifier_condition($identifier);
+    $stmt = db_prepare(
+        $db,
+        "SELECT $columns FROM $table WHERE $where AND status = \"published\" AND visibility = \"public\" LIMIT 1",
+        $types,
+        $params
+    );
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    if ($rows) {
+        return $rows[0];
+    }
+
+    if (ctype_digit($identifier)) {
+        return null;
+    }
+
+    // Backward compatibility for records created before slug columns were populated.
+    $stmt = db_prepare(
+        $db,
+        "SELECT $columns FROM $table WHERE status = \"published\" AND visibility = \"public\" ORDER BY id DESC LIMIT 500",
+        '',
+        []
+    );
+    $stmt->execute();
+    foreach (db_fetch_all($stmt) as $row) {
+        if (normalize_content_slug($row['title'] ?? '', $row['slug'] ?? '') === $identifier) {
+            return $row;
+        }
+    }
+    return null;
 }
 
 function can_manage_giving(array $user): bool
@@ -2921,24 +2997,21 @@ if ($path === '/publication-items') {
     json_ok(['items' => $rows]);
 }
 
-if (preg_match('#^/media-items/(\d+)$#', $path, $matches)) {
+if (preg_match('#^/media-items/([A-Za-z0-9_-]+)$#', $path, $matches)) {
     require_method('GET');
-    $id = (int) $matches[1];
-    $stmt = db_prepare(
+    $identifier = trim($matches[1]);
+    $item = find_public_content_by_identifier(
         $db,
-        'SELECT id, title, slug, description, speaker, series, media_type, source_url, thumbnail_url,
-                duration_seconds, event_date, tags, scope, state, status, visibility, seo_title, seo_description,
-                is_featured, pinned_until, scheduled_at, published_at
-         FROM media_items WHERE id = ? AND status = "published" AND visibility = "public" LIMIT 1',
-        'i',
-        [$id]
+        'media_items',
+        'id, title, slug, description, speaker, series, media_type, source_url, thumbnail_url,
+         duration_seconds, event_date, tags, scope, state, status, visibility, seo_title, seo_description,
+         is_featured, pinned_until, scheduled_at, published_at',
+        $identifier
     );
-    $stmt->execute();
-    $rows = db_fetch_all($stmt);
-    if (empty($rows)) {
+    if (!$item) {
         json_error('Not found', 404);
     }
-    json_ok(['item' => $rows[0]]);
+    json_ok(['item' => $item]);
 }
 
 if (preg_match('#^/giving-campaigns/(\d+)$#', $path, $matches)) {
@@ -2961,24 +3034,21 @@ if (preg_match('#^/giving-campaigns/(\d+)$#', $path, $matches)) {
     json_ok(['item' => $rows[0]]);
 }
 
-if (preg_match('#^/publication-items/(\d+)$#', $path, $matches)) {
+if (preg_match('#^/publication-items/([A-Za-z0-9_-]+)$#', $path, $matches)) {
     require_method('GET');
-    $id = (int) $matches[1];
-    $stmt = db_prepare(
+    $identifier = trim($matches[1]);
+    $item = find_public_content_by_identifier(
         $db,
-        'SELECT id, title, slug, description, content_html, publication_type, author, file_url, cover_image_url,
-                publish_date, tags, scope, state, status, visibility, seo_title, seo_description,
-                is_featured, pinned_until, scheduled_at, published_at
-         FROM publication_items WHERE id = ? AND status = "published" AND visibility = "public" LIMIT 1',
-        'i',
-        [$id]
+        'publication_items',
+        'id, title, slug, description, content_html, publication_type, author, file_url, cover_image_url,
+         publish_date, tags, scope, state, status, visibility, seo_title, seo_description,
+         is_featured, pinned_until, scheduled_at, published_at',
+        $identifier
     );
-    $stmt->execute();
-    $rows = db_fetch_all($stmt);
-    if (empty($rows)) {
+    if (!$item) {
         json_error('Not found', 404);
     }
-    json_ok(['item' => $rows[0]]);
+    json_ok(['item' => $item]);
 }
 
 if ($path === '/admin/media-items') {
@@ -3039,7 +3109,7 @@ if ($path === '/admin/media-items') {
         require_csrf();
         $payload = read_json();
         $title = trim($payload['title'] ?? '');
-        $slug = normalize_content_slug($title, trim($payload['slug'] ?? ''));
+        $slug = unique_content_slug($db, 'media_items', $title, trim($payload['slug'] ?? ''));
         $description = trim($payload['description'] ?? '');
         $speaker = trim($payload['speaker'] ?? '');
         $series = trim($payload['series'] ?? '');
@@ -3109,7 +3179,7 @@ if (preg_match('#^/admin/media-items/(\d+)$#', $path, $matches)) {
         require_csrf();
         $payload = read_json();
         $title = trim($payload['title'] ?? '');
-        $slug = normalize_content_slug($title, trim($payload['slug'] ?? ''));
+        $slug = unique_content_slug($db, 'media_items', $title, trim($payload['slug'] ?? ''), $id);
         $description = trim($payload['description'] ?? '');
         $speaker = trim($payload['speaker'] ?? '');
         $series = trim($payload['series'] ?? '');
@@ -3801,7 +3871,7 @@ if ($path === '/admin/publication-items') {
         require_csrf();
         $payload = read_json();
         $title = trim($payload['title'] ?? '');
-        $slug = normalize_content_slug($title, trim($payload['slug'] ?? ''));
+        $slug = unique_content_slug($db, 'publication_items', $title, trim($payload['slug'] ?? ''));
         $description = trim($payload['description'] ?? '');
         $contentHtml = trim($payload['content_html'] ?? '');
         $publicationType = trim($payload['publication_type'] ?? '');
@@ -3863,7 +3933,7 @@ if (preg_match('#^/admin/publication-items/(\d+)$#', $path, $matches)) {
         require_csrf();
         $payload = read_json();
         $title = trim($payload['title'] ?? '');
-        $slug = normalize_content_slug($title, trim($payload['slug'] ?? ''));
+        $slug = unique_content_slug($db, 'publication_items', $title, trim($payload['slug'] ?? ''), $id);
         $description = trim($payload['description'] ?? '');
         $contentHtml = trim($payload['content_html'] ?? '');
         $publicationType = trim($payload['publication_type'] ?? '');

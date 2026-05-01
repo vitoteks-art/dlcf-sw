@@ -4,6 +4,7 @@ import PublicNav from "../components/PublicNav";
 import PublicFooter from "../components/PublicFooter";
 import SEO from "../components/SEO";
 import { apiFetch } from "../api";
+import { contentSlug } from "../utils/slugs";
 
 export default function PublicationsListPage({ user }) {
   const [items, setItems] = useState([]);
@@ -97,7 +98,7 @@ export default function PublicationsListPage({ user }) {
               <h4>{item.title}</h4>
               {item.description ? <p className="lede">{item.description}</p> : null}
               <div className="media-item-actions">
-                <Link to={`/publications/${item.id}`}>Read More</Link>
+                <Link to={`/publications/${contentSlug(item)}`}>Read More</Link>
               </div>
             </article>
           ))}

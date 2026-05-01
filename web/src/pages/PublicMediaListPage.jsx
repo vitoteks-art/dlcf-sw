@@ -4,6 +4,7 @@ import PublicNav from "../components/PublicNav";
 import PublicFooter from "../components/PublicFooter";
 import SEO from "../components/SEO";
 import { apiFetch } from "../api";
+import { contentSlug } from "../utils/slugs";
 
 function fmtDate(value) {
   if (!value) return null;
@@ -108,7 +109,7 @@ export default function PublicMediaListPage({ user }) {
           <section className="media-featured-premium">
             <div className="media-featured-premium__grid">
               <Link
-                to={`/media/${featured.id}`}
+                to={`/media/${contentSlug(featured)}`}
                 className="lg:col-span-2 relative aspect-video bg-black flex items-center justify-center group cursor-pointer overflow-hidden"
               >
                 <img
@@ -157,7 +158,7 @@ export default function PublicMediaListPage({ user }) {
                 <div className="flex gap-3">
                   <Link
                     className="flex-1 bg-primary text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-blue-800 transition-colors"
-                    to={`/media/${featured.id}`}
+                    to={`/media/${contentSlug(featured)}`}
                   >
                     <span className="material-symbols-outlined text-xl">play_circle</span>
                     Watch Now
@@ -268,7 +269,7 @@ export default function PublicMediaListPage({ user }) {
           {filtered.map((i) => (
             <Link
               key={i.id}
-              to={`/media/${i.id}`}
+              to={`/media/${contentSlug(i)}`}
               className="media-card-premium"
             >
               <div className="relative aspect-video overflow-hidden bg-slate-100">

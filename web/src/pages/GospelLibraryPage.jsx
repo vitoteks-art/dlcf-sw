@@ -4,6 +4,7 @@ import PublicNav from "../components/PublicNav";
 import PublicFooter from "../components/PublicFooter";
 import SEO from "../components/SEO";
 import { apiFetch } from "../api";
+import { contentSlug } from "../utils/slugs";
 
 export default function GospelLibraryPage({ user, stateSlug, states }) {
   const [items, setItems] = useState([]);
@@ -177,7 +178,7 @@ export default function GospelLibraryPage({ user, stateSlug, states }) {
           <section className="media-featured-premium gospel-featured-premium">
             <div className="media-featured-premium__grid">
               <Link
-                to={stateSlug ? `/${stateSlug}/publications/${featuredStudy.id}` : `/publications/${featuredStudy.id}`}
+                to={stateSlug ? `/${stateSlug}/publications/${contentSlug(featuredStudy)}` : `/publications/${contentSlug(featuredStudy)}`}
                 className="lg:col-span-2 relative aspect-video bg-black flex items-center justify-center group cursor-pointer overflow-hidden"
               >
                 <img
@@ -212,7 +213,7 @@ export default function GospelLibraryPage({ user, stateSlug, states }) {
                 <div className="flex gap-3">
                   <Link
                     className="flex-1 bg-primary text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-blue-800 transition-colors"
-                    to={stateSlug ? `/${stateSlug}/publications/${featuredStudy.id}` : `/publications/${featuredStudy.id}`}
+                    to={stateSlug ? `/${stateSlug}/publications/${contentSlug(featuredStudy)}` : `/publications/${contentSlug(featuredStudy)}`}
                   >
                     Read Now
                   </Link>
@@ -237,7 +238,7 @@ export default function GospelLibraryPage({ user, stateSlug, states }) {
               <h4>{item.title}</h4>
               {item.description ? <p className="lede">{item.description}</p> : null}
               <div className="media-item-actions">
-                <Link to={stateSlug ? `/${stateSlug}/publications/${item.id}` : `/publications/${item.id}`}>Read More</Link>
+                <Link to={stateSlug ? `/${stateSlug}/publications/${contentSlug(item)}` : `/publications/${contentSlug(item)}`}>Read More</Link>
               </div>
             </article>
           ))}
