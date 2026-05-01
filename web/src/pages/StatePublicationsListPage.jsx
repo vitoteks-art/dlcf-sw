@@ -13,7 +13,7 @@ const slugifyState = (value) =>
 
 export default function StatePublicationsListPage({ stateSlug, states }) {
   const [items, setItems] = useState([]);
-  const [filters, setFilters] = useState({ type: "" });
+  const [filters, setFilters] = useState({ type: "", q: "" });
   const [status, setStatus] = useState("");
 
   const resolvedStateName = useMemo(() => {
@@ -51,9 +51,14 @@ export default function StatePublicationsListPage({ stateSlug, states }) {
   );
 
   const filteredItems = useMemo(() => {
-    if (!filters.type) return items;
-    return items.filter((item) => item.publication_type === filters.type);
-  }, [items, filters.type]);
+    let next = items;
+    if (filters.type) next = next.filter((item) => item.publication_type === filters.type);
+    const q = filters.q.trim().toLowerCase();
+    if (q) {
+      next = next.filter((item) => `${item.title || ""} ${item.description || ""} ${item.author || ""} ${item.tags || ""}`.toLowerCase().includes(q));
+    }
+    return next;
+  }, [items, filters.type, filters.q]);
 
   const displayName =
     resolvedStateName ||
@@ -78,6 +83,15 @@ export default function StatePublicationsListPage({ stateSlug, states }) {
             <h2>Latest state releases</h2>
           </div>
           <div className="media-filter-bar">
+            <label>
+              Search
+              <input
+                type="search"
+                value={filters.q}
+                onChange={(e) => setFilters({ ...filters, q: e.target.value })}
+                placeholder="Search title, author, tags"
+              />
+            </label>
             <label>
               Type
               <select

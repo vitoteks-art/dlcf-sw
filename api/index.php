@@ -253,17 +253,135 @@ if ($path === '/admin/integration-settings/evolution-api' || $path === '/admin/i
 
 function can_publish_media(array $user): bool
 {
-    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin', 'region_cord'], true);
+    return in_array($user['role'], ['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin'], true);
 }
 
 function can_manage_media(array $user): bool
 {
-    return in_array($user['role'], ['administrator'], true) || user_has_work_unit($user, 'Gospel Production Team');
+    return can_publish_media($user)
+        || user_has_work_unit($user, 'Media Editorial Officer')
+        || user_has_work_unit($user, 'Production Team')
+        || user_has_work_unit($user, 'Media Team')
+        || user_has_work_unit($user, 'Gospel Production Team');
 }
 
 function can_manage_publications(array $user): bool
 {
-    return in_array($user['role'], ['administrator'], true) || user_has_work_unit($user, 'Publication Team');
+    return can_publish_media($user)
+        || user_has_work_unit($user, 'Publication Editorial Officer')
+        || user_has_work_unit($user, 'Publication Team');
+}
+
+function content_workflow_statuses(): array
+{
+    return ['draft', 'submitted', 'changes_requested', 'approved', 'scheduled', 'published', 'archived', 'rejected'];
+}
+
+function content_visibilities(): array
+{
+    return ['public', 'members', 'leaders', 'private'];
+}
+
+function normalize_content_slug(string $title, string $slug = ''): string
+{
+    $base = $slug !== '' ? $slug : $title;
+    $base = strtolower(trim($base));
+    $base = preg_replace('/[^a-z0-9]+/', '-', $base);
+    $base = trim($base ?? '', '-');
+    return $base !== '' ? $base : ('item-' . time());
+}
+
+function assert_content_status_allowed(array $user, string $status): void
+{
+    if (!in_array($status, content_workflow_statuses(), true)) {
+        json_error('Invalid workflow status', 422);
+    }
+    if (in_array($status, ['approved', 'scheduled', 'published', 'archived', 'rejected'], true) && !can_publish_media($user)) {
+        json_error('Only authorized admins/coordinators can approve, publish, schedule, archive, restore, or reject content', 403);
+    }
+}
+
+function content_timestamp_for_status(string $status, ?string &$publishedAt, ?string &$scheduledAt, ?string &$approvedAt, ?string &$archivedAt, ?string &$rejectedAt): void
+{
+    $now = date('Y-m-d H:i:s');
+    if ($status === 'published') {
+        $publishedAt = $publishedAt ?: $now;
+        $approvedAt = $approvedAt ?: $now;
+        $archivedAt = null;
+        $rejectedAt = null;
+    } elseif ($status === 'scheduled') {
+        $approvedAt = $approvedAt ?: $now;
+        $archivedAt = null;
+        $rejectedAt = null;
+    } elseif ($status === 'approved') {
+        $approvedAt = $approvedAt ?: $now;
+        $archivedAt = null;
+        $rejectedAt = null;
+    } elseif ($status === 'archived') {
+        $archivedAt = $now;
+    } elseif ($status === 'rejected') {
+        $rejectedAt = $now;
+    } else {
+        $publishedAt = null;
+        $archivedAt = null;
+        $rejectedAt = null;
+    }
+}
+
+function require_media_publish_checklist(array $payload): void
+{
+    $status = trim($payload['status'] ?? 'draft');
+    if (!in_array($status, ['approved', 'scheduled', 'published'], true)) {
+        return;
+    }
+    $required = [
+        'title' => 'Title',
+        'description' => 'Description/excerpt',
+        'media_type' => 'Media type',
+        'source_url' => 'Source URL/upload',
+        'scope' => 'Scope',
+        'seo_title' => 'SEO title',
+        'seo_description' => 'SEO description',
+    ];
+    foreach ($required as $key => $label) {
+        if (trim((string)($payload[$key] ?? '')) === '') {
+            json_error($label . ' is required before approval/publishing', 422);
+        }
+    }
+    if (($payload['scope'] ?? '') === 'state' && trim((string)($payload['state'] ?? '')) === '') {
+        json_error('State is required before approval/publishing', 422);
+    }
+    if (in_array(($payload['media_type'] ?? ''), ['video', 'external'], true) && trim((string)($payload['thumbnail_url'] ?? '')) === '') {
+        json_error('Thumbnail is required for video/external media before approval/publishing', 422);
+    }
+}
+
+function require_publication_publish_checklist(array $payload): void
+{
+    $status = trim($payload['status'] ?? 'draft');
+    if (!in_array($status, ['approved', 'scheduled', 'published'], true)) {
+        return;
+    }
+    $required = [
+        'title' => 'Title',
+        'description' => 'Description/excerpt',
+        'publication_type' => 'Publication type/category',
+        'cover_image_url' => 'Cover image',
+        'scope' => 'Scope',
+        'seo_title' => 'SEO title',
+        'seo_description' => 'SEO description',
+    ];
+    foreach ($required as $key => $label) {
+        if (trim((string)($payload[$key] ?? '')) === '') {
+            json_error($label . ' is required before approval/publishing', 422);
+        }
+    }
+    if (trim((string)($payload['content_html'] ?? '')) === '' && trim((string)($payload['file_url'] ?? '')) === '') {
+        json_error('Content body or PDF/file is required before approval/publishing', 422);
+    }
+    if (($payload['scope'] ?? '') === 'state' && trim((string)($payload['state'] ?? '')) === '') {
+        json_error('State is required before approval/publishing', 422);
+    }
 }
 
 function can_manage_giving(array $user): bool
@@ -2634,9 +2752,13 @@ if ($path === '/media-items') {
     require_method('GET');
     $state = trim($_GET['state'] ?? '');
     $scope = trim($_GET['scope'] ?? '');
-    $sql = 'SELECT id, title, description, speaker, series, media_type, source_url, thumbnail_url,
-                   duration_seconds, event_date, tags, scope, state, status, published_at
-            FROM media_items WHERE status = "published"';
+    $q = trim($_GET['q'] ?? '');
+    $mediaType = trim($_GET['media_type'] ?? '');
+    $featured = trim($_GET['featured'] ?? '');
+    $sql = 'SELECT id, title, slug, description, speaker, series, media_type, source_url, thumbnail_url,
+                   duration_seconds, event_date, tags, scope, state, status, visibility, seo_title, seo_description,
+                   is_featured, pinned_until, scheduled_at, published_at
+            FROM media_items WHERE status = "published" AND visibility = "public"';
     $types = '';
     $params = [];
     if ($state !== '') {
@@ -2649,7 +2771,21 @@ if ($path === '/media-items') {
         $types .= 's';
         $params[] = $scope;
     }
-    $sql .= ' ORDER BY event_date DESC, id DESC';
+    if ($mediaType !== '') {
+        $sql .= ' AND media_type = ?';
+        $types .= 's';
+        $params[] = $mediaType;
+    }
+    if ($featured === '1') {
+        $sql .= ' AND is_featured = 1';
+    }
+    if ($q !== '') {
+        $like = '%' . $q . '%';
+        $sql .= ' AND (title LIKE ? OR description LIKE ? OR speaker LIKE ? OR series LIKE ? OR tags LIKE ?)';
+        $types .= 'sssss';
+        array_push($params, $like, $like, $like, $like, $like);
+    }
+    $sql .= ' ORDER BY is_featured DESC, pinned_until DESC, event_date DESC, id DESC';
     $stmt = db_prepare($db, $sql, $types, $params);
     $stmt->execute();
     $rows = db_fetch_all($stmt);
@@ -2701,9 +2837,13 @@ if ($path === '/publication-items') {
     require_method('GET');
     $state = trim($_GET['state'] ?? '');
     $scope = trim($_GET['scope'] ?? '');
-    $sql = 'SELECT id, title, description, content_html, publication_type, file_url, cover_image_url,
-                   publish_date, tags, scope, state, status, published_at, created_at
-            FROM publication_items WHERE status = "published"';
+    $q = trim($_GET['q'] ?? '');
+    $publicationType = trim($_GET['publication_type'] ?? '');
+    $featured = trim($_GET['featured'] ?? '');
+    $sql = 'SELECT id, title, slug, description, content_html, publication_type, author, file_url, cover_image_url,
+                   publish_date, tags, scope, state, status, visibility, seo_title, seo_description,
+                   is_featured, pinned_until, scheduled_at, published_at, created_at
+            FROM publication_items WHERE status = "published" AND visibility = "public"';
     $types = '';
     $params = [];
     if ($state !== '') {
@@ -2716,21 +2856,36 @@ if ($path === '/publication-items') {
         $types .= 's';
         $params[] = $scope;
     }
-    $sql .= ' ORDER BY publish_date DESC, id DESC';
+    if ($publicationType !== '') {
+        $sql .= ' AND publication_type = ?';
+        $types .= 's';
+        $params[] = $publicationType;
+    }
+    if ($featured === '1') {
+        $sql .= ' AND is_featured = 1';
+    }
+    if ($q !== '') {
+        $like = '%' . $q . '%';
+        $sql .= ' AND (title LIKE ? OR description LIKE ? OR author LIKE ? OR tags LIKE ?)';
+        $types .= 'ssss';
+        array_push($params, $like, $like, $like, $like);
+    }
+    $sql .= ' ORDER BY is_featured DESC, pinned_until DESC, publish_date DESC, id DESC';
     $stmt = db_prepare($db, $sql, $types, $params);
     $stmt->execute();
     $rows = db_fetch_all($stmt);
     json_ok(['items' => $rows]);
 }
 
-if (preg_match('#^/media-items/(\\d+)$#', $path, $matches)) {
+if (preg_match('#^/media-items/(\d+)$#', $path, $matches)) {
     require_method('GET');
     $id = (int) $matches[1];
     $stmt = db_prepare(
         $db,
-        'SELECT id, title, description, speaker, series, media_type, source_url, thumbnail_url,
-                duration_seconds, event_date, tags, scope, state, status, published_at
-         FROM media_items WHERE id = ? AND status = "published" LIMIT 1',
+        'SELECT id, title, slug, description, speaker, series, media_type, source_url, thumbnail_url,
+                duration_seconds, event_date, tags, scope, state, status, visibility, seo_title, seo_description,
+                is_featured, pinned_until, scheduled_at, published_at
+         FROM media_items WHERE id = ? AND status = "published" AND visibility = "public" LIMIT 1',
         'i',
         [$id]
     );
@@ -2742,7 +2897,7 @@ if (preg_match('#^/media-items/(\\d+)$#', $path, $matches)) {
     json_ok(['item' => $rows[0]]);
 }
 
-if (preg_match('#^/giving-campaigns/(\\d+)$#', $path, $matches)) {
+if (preg_match('#^/giving-campaigns/(\d+)$#', $path, $matches)) {
     require_method('GET');
     $id = (int) $matches[1];
     $stmt = db_prepare(
@@ -2762,14 +2917,15 @@ if (preg_match('#^/giving-campaigns/(\\d+)$#', $path, $matches)) {
     json_ok(['item' => $rows[0]]);
 }
 
-if (preg_match('#^/publication-items/(\\d+)$#', $path, $matches)) {
+if (preg_match('#^/publication-items/(\d+)$#', $path, $matches)) {
     require_method('GET');
     $id = (int) $matches[1];
     $stmt = db_prepare(
         $db,
-        'SELECT id, title, description, content_html, publication_type, file_url, cover_image_url,
-                publish_date, tags, scope, state, status, published_at
-         FROM publication_items WHERE id = ? AND status = "published" LIMIT 1',
+        'SELECT id, title, slug, description, content_html, publication_type, author, file_url, cover_image_url,
+                publish_date, tags, scope, state, status, visibility, seo_title, seo_description,
+                is_featured, pinned_until, scheduled_at, published_at
+         FROM publication_items WHERE id = ? AND status = "published" AND visibility = "public" LIMIT 1',
         'i',
         [$id]
     );
@@ -2779,6 +2935,193 @@ if (preg_match('#^/publication-items/(\\d+)$#', $path, $matches)) {
         json_error('Not found', 404);
     }
     json_ok(['item' => $rows[0]]);
+}
+
+if ($path === '/admin/media-items') {
+    $user = require_auth();
+    $user = current_user();
+    if (!can_manage_media($user) && !can_publish_media($user)) {
+        json_error('Forbidden', 403);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        $state = trim($_GET['state'] ?? '');
+        $status = trim($_GET['status'] ?? '');
+        $q = trim($_GET['q'] ?? '');
+        $mediaType = trim($_GET['media_type'] ?? '');
+        if (!is_zonal_scope_role($user)) {
+            if (empty($user['state'])) {
+                json_error('No state assigned to this user', 403);
+            }
+            $state = $user['state'];
+        }
+        $sql = 'SELECT id, title, slug, description, speaker, series, media_type, source_url, thumbnail_url,
+                       duration_seconds, event_date, tags, scope, state, status, visibility, workflow_note,
+                       seo_title, seo_description, is_featured, pinned_until, scheduled_at, approved_at,
+                       archived_at, rejected_at, published_at, created_at, updated_at
+                FROM media_items WHERE 1=1';
+        $types = '';
+        $params = [];
+        if ($state !== '') {
+            $sql .= ' AND state = ?';
+            $types .= 's';
+            $params[] = $state;
+        }
+        if ($status !== '') {
+            $sql .= ' AND status = ?';
+            $types .= 's';
+            $params[] = $status;
+        }
+        if ($mediaType !== '') {
+            $sql .= ' AND media_type = ?';
+            $types .= 's';
+            $params[] = $mediaType;
+        }
+        if ($q !== '') {
+            $like = '%' . $q . '%';
+            $sql .= ' AND (title LIKE ? OR description LIKE ? OR speaker LIKE ? OR series LIKE ? OR tags LIKE ?)';
+            $types .= 'sssss';
+            array_push($params, $like, $like, $like, $like, $like);
+        }
+        $sql .= ' ORDER BY updated_at DESC, event_date DESC, id DESC';
+        $stmt = db_prepare($db, $sql, $types, $params);
+        $stmt->execute();
+        $rows = db_fetch_all($stmt);
+        json_ok(['items' => $rows]);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!can_manage_media($user)) {
+            json_error('Forbidden', 403);
+        }
+        require_csrf();
+        $payload = read_json();
+        $title = trim($payload['title'] ?? '');
+        $slug = normalize_content_slug($title, trim($payload['slug'] ?? ''));
+        $description = trim($payload['description'] ?? '');
+        $speaker = trim($payload['speaker'] ?? '');
+        $series = trim($payload['series'] ?? '');
+        $mediaType = trim($payload['media_type'] ?? '');
+        $sourceUrl = trim($payload['source_url'] ?? '');
+        $thumbnailUrl = trim($payload['thumbnail_url'] ?? '');
+        $durationSeconds = $payload['duration_seconds'] ?? null;
+        $eventDate = $payload['event_date'] ?? null;
+        $tags = trim($payload['tags'] ?? '');
+        $scope = trim($payload['scope'] ?? 'zonal');
+        $state = trim($payload['state'] ?? '');
+        $status = trim($payload['status'] ?? 'draft');
+        $visibility = trim($payload['visibility'] ?? 'public');
+        $workflowNote = trim($payload['workflow_note'] ?? '');
+        $seoTitle = trim($payload['seo_title'] ?? '');
+        $seoDescription = trim($payload['seo_description'] ?? '');
+        $isFeatured = (int) !empty($payload['is_featured']);
+        $pinnedUntil = trim($payload['pinned_until'] ?? '');
+        $scheduledAt = trim($payload['scheduled_at'] ?? '');
+        constrain_scoped_content_for_actor($user, $scope, $state, $isFeatured);
+        if ($title === '' || $mediaType === '' || $sourceUrl === '') {
+            json_error('title, media_type, and source_url are required', 422);
+        }
+        if (!in_array($scope, ['zonal', 'state'], true)) json_error('Invalid scope', 422);
+        if ($scope === 'state' && $state === '') json_error('State is required for state scope', 422);
+        if (!in_array($visibility, content_visibilities(), true)) json_error('Invalid visibility', 422);
+        assert_content_status_allowed($user, $status);
+        require_media_publish_checklist(array_merge($payload, ['scope' => $scope, 'state' => $state, 'status' => $status]));
+        $publishedAt = null;
+        $approvedAt = null;
+        $archivedAt = null;
+        $rejectedAt = null;
+        $scheduledAt = $scheduledAt !== '' ? $scheduledAt : null;
+        content_timestamp_for_status($status, $publishedAt, $scheduledAt, $approvedAt, $archivedAt, $rejectedAt);
+        $stmt = db_prepare(
+            $db,
+            'INSERT INTO media_items
+             (title, slug, description, speaker, series, media_type, source_url, thumbnail_url, duration_seconds, event_date,
+              tags, scope, state, status, visibility, workflow_note, seo_title, seo_description, is_featured, pinned_until,
+              scheduled_at, approved_at, archived_at, rejected_at, published_at, created_by, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            'ssssssssisssssssssissssssi',
+            [$title, $slug, $description ?: null, $speaker ?: null, $series ?: null, $mediaType, $sourceUrl, $thumbnailUrl ?: null,
+             $durationSeconds !== '' ? (int)$durationSeconds : null, $eventDate !== '' ? $eventDate : null, $tags ?: null, $scope,
+             $state !== '' ? $state : null, $status, $visibility, $workflowNote ?: null, $seoTitle ?: null, $seoDescription ?: null,
+             $isFeatured, $pinnedUntil !== '' ? $pinnedUntil : null, $scheduledAt, $approvedAt, $archivedAt, $rejectedAt, $publishedAt, $user['id']]
+        );
+        $stmt->execute();
+        json_ok(['id' => $db->insert_id], 201);
+    }
+}
+
+if (preg_match('#^/admin/media-items/(\d+)$#', $path, $matches)) {
+    $user = require_auth();
+    $user = current_user();
+    if (!can_manage_media($user) && !can_publish_media($user)) {
+        json_error('Forbidden', 403);
+    }
+    $id = (int) $matches[1];
+    $stmt = db_prepare($db, 'SELECT scope, state FROM media_items WHERE id = ? LIMIT 1', 'i', [$id]);
+    $stmt->execute();
+    $targetRows = db_fetch_all($stmt);
+    if (!$targetRows) json_error('Not found', 404);
+    assert_scoped_content_target_allowed($user, $targetRows[0]['scope'] ?? null, $targetRows[0]['state'] ?? null);
+    if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+        if (!can_manage_media($user)) json_error('Forbidden', 403);
+        require_csrf();
+        $payload = read_json();
+        $title = trim($payload['title'] ?? '');
+        $slug = normalize_content_slug($title, trim($payload['slug'] ?? ''));
+        $description = trim($payload['description'] ?? '');
+        $speaker = trim($payload['speaker'] ?? '');
+        $series = trim($payload['series'] ?? '');
+        $mediaType = trim($payload['media_type'] ?? '');
+        $sourceUrl = trim($payload['source_url'] ?? '');
+        $thumbnailUrl = trim($payload['thumbnail_url'] ?? '');
+        $durationSeconds = $payload['duration_seconds'] ?? null;
+        $eventDate = $payload['event_date'] ?? null;
+        $tags = trim($payload['tags'] ?? '');
+        $scope = trim($payload['scope'] ?? 'zonal');
+        $state = trim($payload['state'] ?? '');
+        $status = trim($payload['status'] ?? 'draft');
+        $visibility = trim($payload['visibility'] ?? 'public');
+        $workflowNote = trim($payload['workflow_note'] ?? '');
+        $seoTitle = trim($payload['seo_title'] ?? '');
+        $seoDescription = trim($payload['seo_description'] ?? '');
+        $isFeatured = (int) !empty($payload['is_featured']);
+        $pinnedUntil = trim($payload['pinned_until'] ?? '');
+        $scheduledAt = trim($payload['scheduled_at'] ?? '');
+        constrain_scoped_content_for_actor($user, $scope, $state, $isFeatured);
+        if ($title === '' || $mediaType === '' || $sourceUrl === '') json_error('title, media_type, and source_url are required', 422);
+        if (!in_array($scope, ['zonal', 'state'], true)) json_error('Invalid scope', 422);
+        if ($scope === 'state' && $state === '') json_error('State is required for state scope', 422);
+        if (!in_array($visibility, content_visibilities(), true)) json_error('Invalid visibility', 422);
+        assert_content_status_allowed($user, $status);
+        require_media_publish_checklist(array_merge($payload, ['scope' => $scope, 'state' => $state, 'status' => $status]));
+        $publishedAt = null;
+        $approvedAt = null;
+        $archivedAt = null;
+        $rejectedAt = null;
+        $scheduledAt = $scheduledAt !== '' ? $scheduledAt : null;
+        content_timestamp_for_status($status, $publishedAt, $scheduledAt, $approvedAt, $archivedAt, $rejectedAt);
+        $stmt = db_prepare(
+            $db,
+            'UPDATE media_items
+             SET title = ?, slug = ?, description = ?, speaker = ?, series = ?, media_type = ?, source_url = ?, thumbnail_url = ?,
+                 duration_seconds = ?, event_date = ?, tags = ?, scope = ?, state = ?, status = ?, visibility = ?, workflow_note = ?,
+                 seo_title = ?, seo_description = ?, is_featured = ?, pinned_until = ?, scheduled_at = ?, approved_at = ?, archived_at = ?,
+                 rejected_at = ?, published_at = ?, updated_by = ?, updated_at = NOW()
+             WHERE id = ?',
+            'ssssssssisssssssssissssssii',
+            [$title, $slug, $description ?: null, $speaker ?: null, $series ?: null, $mediaType, $sourceUrl, $thumbnailUrl ?: null,
+             $durationSeconds !== '' ? (int)$durationSeconds : null, $eventDate !== '' ? $eventDate : null, $tags ?: null, $scope,
+             $state !== '' ? $state : null, $status, $visibility, $workflowNote ?: null, $seoTitle ?: null, $seoDescription ?: null,
+             $isFeatured, $pinnedUntil !== '' ? $pinnedUntil : null, $scheduledAt, $approvedAt, $archivedAt, $rejectedAt, $publishedAt, $user['id'], $id]
+        );
+        $stmt->execute();
+        json_ok(['message' => 'Media item updated']);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+        if (!can_publish_media($user)) json_error('Forbidden', 403);
+        require_csrf();
+        $stmt = db_prepare($db, 'UPDATE media_items SET status = "archived", archived_at = NOW(), updated_by = ?, updated_at = NOW() WHERE id = ?', 'ii', [$user['id'], $id]);
+        $stmt->execute();
+        json_ok(['message' => 'Media item archived']);
+    }
 }
 
 if ($path === '/state-gallery-items') {
@@ -3382,43 +3725,43 @@ if ($path === '/admin/publication-items') {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $state = trim($_GET['state'] ?? '');
         $status = trim($_GET['status'] ?? '');
+        $q = trim($_GET['q'] ?? '');
+        $publicationType = trim($_GET['publication_type'] ?? '');
         if (!is_zonal_scope_role($user)) {
-            if (empty($user['state'])) {
-                json_error('No state assigned to this user', 403);
-            }
+            if (empty($user['state'])) json_error('No state assigned to this user', 403);
             $state = $user['state'];
         }
-        $sql = 'SELECT id, title, description, content_html, publication_type, file_url, cover_image_url, publish_date,
-                       tags, scope, state, status, published_at, created_at, updated_at
+        $sql = 'SELECT id, title, slug, description, content_html, publication_type, author, file_url, cover_image_url, publish_date,
+                       tags, scope, state, status, visibility, workflow_note, seo_title, seo_description, is_featured,
+                       pinned_until, scheduled_at, approved_at, archived_at, rejected_at, published_at, created_at, updated_at
                 FROM publication_items WHERE 1=1';
         $types = '';
         $params = [];
-        if ($state !== '') {
-            $sql .= ' AND state = ?';
-            $types .= 's';
-            $params[] = $state;
+        if ($state !== '') { $sql .= ' AND state = ?'; $types .= 's'; $params[] = $state; }
+        if ($status !== '') { $sql .= ' AND status = ?'; $types .= 's'; $params[] = $status; }
+        if ($publicationType !== '') { $sql .= ' AND publication_type = ?'; $types .= 's'; $params[] = $publicationType; }
+        if ($q !== '') {
+            $like = '%' . $q . '%';
+            $sql .= ' AND (title LIKE ? OR description LIKE ? OR author LIKE ? OR tags LIKE ?)';
+            $types .= 'ssss';
+            array_push($params, $like, $like, $like, $like);
         }
-        if ($status !== '') {
-            $sql .= ' AND status = ?';
-            $types .= 's';
-            $params[] = $status;
-        }
-        $sql .= ' ORDER BY publish_date DESC, id DESC';
+        $sql .= ' ORDER BY updated_at DESC, publish_date DESC, id DESC';
         $stmt = db_prepare($db, $sql, $types, $params);
         $stmt->execute();
         $rows = db_fetch_all($stmt);
         json_ok(['items' => $rows]);
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (!can_manage_publications($user)) {
-            json_error('Forbidden', 403);
-        }
+        if (!can_manage_publications($user)) json_error('Forbidden', 403);
         require_csrf();
         $payload = read_json();
         $title = trim($payload['title'] ?? '');
+        $slug = normalize_content_slug($title, trim($payload['slug'] ?? ''));
         $description = trim($payload['description'] ?? '');
         $contentHtml = trim($payload['content_html'] ?? '');
         $publicationType = trim($payload['publication_type'] ?? '');
+        $author = trim($payload['author'] ?? '');
         $fileUrl = trim($payload['file_url'] ?? '');
         $coverImageUrl = trim($payload['cover_image_url'] ?? '');
         $publishDate = $payload['publish_date'] ?? null;
@@ -3426,78 +3769,61 @@ if ($path === '/admin/publication-items') {
         $scope = trim($payload['scope'] ?? 'zonal');
         $state = trim($payload['state'] ?? '');
         $status = trim($payload['status'] ?? 'draft');
-        $notFeatured = 0;
-        constrain_scoped_content_for_actor($user, $scope, $state, $notFeatured);
-
-        if ($title === '' || $publicationType === '') {
-            json_error('title and publication_type are required', 422);
-        }
-        if (!in_array($scope, ['zonal', 'state'], true)) {
-            json_error('Invalid scope', 422);
-        }
-        if ($scope === 'state' && $state === '') {
-            json_error('State is required for state scope', 422);
-        }
-        if (!in_array($status, ['draft', 'published'], true)) {
-            json_error('Invalid status', 422);
-        }
-        if ($status === 'published' && !can_publish_media($user)) {
-            json_error('Forbidden', 403);
-        }
-        $publishedAt = $status === 'published' ? date('Y-m-d H:i:s') : null;
-
+        $visibility = trim($payload['visibility'] ?? 'public');
+        $workflowNote = trim($payload['workflow_note'] ?? '');
+        $seoTitle = trim($payload['seo_title'] ?? '');
+        $seoDescription = trim($payload['seo_description'] ?? '');
+        $isFeatured = (int) !empty($payload['is_featured']);
+        $pinnedUntil = trim($payload['pinned_until'] ?? '');
+        $scheduledAt = trim($payload['scheduled_at'] ?? '');
+        constrain_scoped_content_for_actor($user, $scope, $state, $isFeatured);
+        if ($title === '' || $publicationType === '') json_error('title and publication_type are required', 422);
+        if (!in_array($scope, ['zonal', 'state'], true)) json_error('Invalid scope', 422);
+        if ($scope === 'state' && $state === '') json_error('State is required for state scope', 422);
+        if (!in_array($visibility, content_visibilities(), true)) json_error('Invalid visibility', 422);
+        assert_content_status_allowed($user, $status);
+        require_publication_publish_checklist(array_merge($payload, ['scope' => $scope, 'state' => $state, 'status' => $status]));
+        $publishedAt = null; $approvedAt = null; $archivedAt = null; $rejectedAt = null;
+        $scheduledAt = $scheduledAt !== '' ? $scheduledAt : null;
+        content_timestamp_for_status($status, $publishedAt, $scheduledAt, $approvedAt, $archivedAt, $rejectedAt);
         $stmt = db_prepare(
             $db,
             'INSERT INTO publication_items
-             (title, description, content_html, publication_type, file_url, cover_image_url, publish_date, tags, scope, state,
-              status, published_at, created_by, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
-            'ssssssssssssi',
-            [
-                $title,
-                $description !== '' ? $description : null,
-                $contentHtml !== '' ? $contentHtml : null,
-                $publicationType,
-                $fileUrl,
-                $coverImageUrl !== '' ? $coverImageUrl : null,
-                $publishDate !== '' ? $publishDate : null,
-                $tags !== '' ? $tags : null,
-                $scope,
-                $state !== '' ? $state : null,
-                $status,
-                $publishedAt,
-                $user['id'],
-            ]
+             (title, slug, description, content_html, publication_type, author, file_url, cover_image_url, publish_date, tags, scope, state,
+              status, visibility, workflow_note, seo_title, seo_description, is_featured, pinned_until, scheduled_at, approved_at,
+              archived_at, rejected_at, published_at, created_by, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            'sssssssssssssssssissssssi',
+            [$title, $slug, $description ?: null, $contentHtml ?: null, $publicationType, $author ?: null, $fileUrl, $coverImageUrl ?: null,
+             $publishDate !== '' ? $publishDate : null, $tags ?: null, $scope, $state !== '' ? $state : null, $status, $visibility,
+             $workflowNote ?: null, $seoTitle ?: null, $seoDescription ?: null, $isFeatured, $pinnedUntil !== '' ? $pinnedUntil : null,
+             $scheduledAt, $approvedAt, $archivedAt, $rejectedAt, $publishedAt, $user['id']]
         );
         $stmt->execute();
         json_ok(['id' => $db->insert_id], 201);
     }
 }
 
-if (preg_match('#^/admin/publication-items/(\\d+)$#', $path, $matches)) {
+if (preg_match('#^/admin/publication-items/(\d+)$#', $path, $matches)) {
     $user = require_auth();
     $user = current_user();
-    if (!can_manage_publications($user) && !can_publish_media($user)) {
-        json_error('Forbidden', 403);
-    }
+    if (!can_manage_publications($user) && !can_publish_media($user)) json_error('Forbidden', 403);
     $id = (int) $matches[1];
     $stmt = db_prepare($db, 'SELECT scope, state FROM publication_items WHERE id = ? LIMIT 1', 'i', [$id]);
     $stmt->execute();
     $targetRows = db_fetch_all($stmt);
-    if (!$targetRows) {
-        json_error('Not found', 404);
-    }
+    if (!$targetRows) json_error('Not found', 404);
     assert_scoped_content_target_allowed($user, $targetRows[0]['scope'] ?? null, $targetRows[0]['state'] ?? null);
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
-        if (!can_manage_publications($user)) {
-            json_error('Forbidden', 403);
-        }
+        if (!can_manage_publications($user)) json_error('Forbidden', 403);
         require_csrf();
         $payload = read_json();
         $title = trim($payload['title'] ?? '');
+        $slug = normalize_content_slug($title, trim($payload['slug'] ?? ''));
         $description = trim($payload['description'] ?? '');
         $contentHtml = trim($payload['content_html'] ?? '');
         $publicationType = trim($payload['publication_type'] ?? '');
+        $author = trim($payload['author'] ?? '');
         $fileUrl = trim($payload['file_url'] ?? '');
         $coverImageUrl = trim($payload['cover_image_url'] ?? '');
         $publishDate = $payload['publish_date'] ?? null;
@@ -3505,61 +3831,46 @@ if (preg_match('#^/admin/publication-items/(\\d+)$#', $path, $matches)) {
         $scope = trim($payload['scope'] ?? 'zonal');
         $state = trim($payload['state'] ?? '');
         $status = trim($payload['status'] ?? 'draft');
-        $notFeatured = 0;
-        constrain_scoped_content_for_actor($user, $scope, $state, $notFeatured);
-
-        if ($title === '' || $publicationType === '') {
-            json_error('title and publication_type are required', 422);
-        }
-        if (!in_array($scope, ['zonal', 'state'], true)) {
-            json_error('Invalid scope', 422);
-        }
-        if ($scope === 'state' && $state === '') {
-            json_error('State is required for state scope', 422);
-        }
-        if (!in_array($status, ['draft', 'published'], true)) {
-            json_error('Invalid status', 422);
-        }
-        if ($status === 'published' && !can_publish_media($user)) {
-            json_error('Forbidden', 403);
-        }
-        $publishedAt = $status === 'published' ? date('Y-m-d H:i:s') : null;
-
+        $visibility = trim($payload['visibility'] ?? 'public');
+        $workflowNote = trim($payload['workflow_note'] ?? '');
+        $seoTitle = trim($payload['seo_title'] ?? '');
+        $seoDescription = trim($payload['seo_description'] ?? '');
+        $isFeatured = (int) !empty($payload['is_featured']);
+        $pinnedUntil = trim($payload['pinned_until'] ?? '');
+        $scheduledAt = trim($payload['scheduled_at'] ?? '');
+        constrain_scoped_content_for_actor($user, $scope, $state, $isFeatured);
+        if ($title === '' || $publicationType === '') json_error('title and publication_type are required', 422);
+        if (!in_array($scope, ['zonal', 'state'], true)) json_error('Invalid scope', 422);
+        if ($scope === 'state' && $state === '') json_error('State is required for state scope', 422);
+        if (!in_array($visibility, content_visibilities(), true)) json_error('Invalid visibility', 422);
+        assert_content_status_allowed($user, $status);
+        require_publication_publish_checklist(array_merge($payload, ['scope' => $scope, 'state' => $state, 'status' => $status]));
+        $publishedAt = null; $approvedAt = null; $archivedAt = null; $rejectedAt = null;
+        $scheduledAt = $scheduledAt !== '' ? $scheduledAt : null;
+        content_timestamp_for_status($status, $publishedAt, $scheduledAt, $approvedAt, $archivedAt, $rejectedAt);
         $stmt = db_prepare(
             $db,
             'UPDATE publication_items
-             SET title = ?, description = ?, content_html = ?, publication_type = ?, file_url = ?, cover_image_url = ?, publish_date = ?,
-                 tags = ?, scope = ?, state = ?, status = ?, published_at = ?, updated_by = ?, updated_at = NOW()
+             SET title = ?, slug = ?, description = ?, content_html = ?, publication_type = ?, author = ?, file_url = ?, cover_image_url = ?,
+                 publish_date = ?, tags = ?, scope = ?, state = ?, status = ?, visibility = ?, workflow_note = ?, seo_title = ?,
+                 seo_description = ?, is_featured = ?, pinned_until = ?, scheduled_at = ?, approved_at = ?, archived_at = ?, rejected_at = ?,
+                 published_at = ?, updated_by = ?, updated_at = NOW()
              WHERE id = ?',
-            'ssssssssssssii',
-            [
-                $title,
-                $description !== '' ? $description : null,
-                $contentHtml !== '' ? $contentHtml : null,
-                $publicationType,
-                $fileUrl,
-                $coverImageUrl !== '' ? $coverImageUrl : null,
-                $publishDate !== '' ? $publishDate : null,
-                $tags !== '' ? $tags : null,
-                $scope,
-                $state !== '' ? $state : null,
-                $status,
-                $publishedAt,
-                $user['id'],
-                $id,
-            ]
+            'sssssssssssssssssissssssii',
+            [$title, $slug, $description ?: null, $contentHtml ?: null, $publicationType, $author ?: null, $fileUrl, $coverImageUrl ?: null,
+             $publishDate !== '' ? $publishDate : null, $tags ?: null, $scope, $state !== '' ? $state : null, $status, $visibility,
+             $workflowNote ?: null, $seoTitle ?: null, $seoDescription ?: null, $isFeatured, $pinnedUntil !== '' ? $pinnedUntil : null,
+             $scheduledAt, $approvedAt, $archivedAt, $rejectedAt, $publishedAt, $user['id'], $id]
         );
         $stmt->execute();
         json_ok(['message' => 'Publication updated']);
     }
     if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
-        if (!can_manage_publications($user)) {
-            json_error('Forbidden', 403);
-        }
+        if (!can_publish_media($user)) json_error('Forbidden', 403);
         require_csrf();
-        $stmt = db_prepare($db, 'DELETE FROM publication_items WHERE id = ?', 'i', [$id]);
+        $stmt = db_prepare($db, 'UPDATE publication_items SET status = "archived", archived_at = NOW(), updated_by = ?, updated_at = NOW() WHERE id = ?', 'ii', [$user['id'], $id]);
         $stmt->execute();
-        json_ok(['message' => 'Publication deleted']);
+        json_ok(['message' => 'Publication archived']);
     }
 }
 

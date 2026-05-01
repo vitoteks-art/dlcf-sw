@@ -778,15 +778,18 @@ function App() {
       "zonal_admin",
       "state_cord",
       "state_admin",
-      "region_cord",
     ].includes(user.role);
   const canManageMedia =
     user &&
-    (user.role === "administrator" ||
+    (canPublishMedia ||
+      userWorkUnits.includes("Media Editorial Officer") ||
+      userWorkUnits.includes("Production Team") ||
+      userWorkUnits.includes("Media Team") ||
       userWorkUnits.includes("Gospel Production Team"));
   const canManagePublications =
     user &&
-    (user.role === "administrator" ||
+    (canPublishMedia ||
+      userWorkUnits.includes("Publication Editorial Officer") ||
       userWorkUnits.includes("Publication Team"));
   const canManageGiving =
     user &&
