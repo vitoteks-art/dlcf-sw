@@ -19,6 +19,11 @@ return [
         'cookie_lifetime' => $SESSION_LIFETIME ?? 0,
     ],
     'log_path' => $LOG_PATH ?? (__DIR__ . '/storage/app.log'),
+    'uploads' => [
+        'dir' => $UPLOADS_DIR ?? (__DIR__ . '/uploads'),
+        'url' => $UPLOADS_URL ?? '/uploads',
+        'max_bytes' => $UPLOADS_MAX_BYTES ?? (100 * 1024 * 1024),
+    ],
     'mail' => [
         'from_email' => $MAIL_FROM_EMAIL ?? 'no-reply@dlcfsw.org.ng',
         'from_name' => $MAIL_FROM_NAME ?? 'DLCF South West',

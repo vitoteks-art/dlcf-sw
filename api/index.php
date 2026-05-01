@@ -1874,54 +1874,98 @@ if ($path === '/attendance-access/logout') {
 
 if ($path === '/admin/uploads') {
     require_method('POST');
-    require_roles(['administrator', 'zonal_cord', 'zonal_admin', 'state_cord', 'state_admin']);
+    $user = require_auth();
+    $user = current_user();
+    if (!can_manage_media($user)
+        && !can_manage_publications($user)
+        && !can_manage_state_gallery($user)
+        && !can_manage_giving($user)
+        && !can_publish_media($user)
+    ) {
+        json_error('Forbidden', 403);
+    }
     require_csrf();
     if (empty($_FILES['file'])) {
         json_error('No file uploaded', 422);
     }
     $file = $_FILES['file'];
+    $uploadErrors = [
+        UPLOAD_ERR_INI_SIZE => 'Uploaded file exceeds the server upload_max_filesize limit',
+        UPLOAD_ERR_FORM_SIZE => 'Uploaded file exceeds the form size limit',
+        UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+        UPLOAD_ERR_NO_FILE => 'No file uploaded',
+        UPLOAD_ERR_NO_TMP_DIR => 'Server missing temporary upload directory',
+        UPLOAD_ERR_CANT_WRITE => 'Server failed to write uploaded file to disk',
+        UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the upload',
+    ];
     if (!empty($file['error'])) {
-        json_error('Upload failed', 400);
+        json_error($uploadErrors[$file['error']] ?? 'Upload failed', 400);
+    }
+    if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+        json_error('Invalid upload payload', 400);
+    }
+    $maxBytes = (int)($config['uploads']['max_bytes'] ?? (100 * 1024 * 1024));
+    if (!empty($file['size']) && $file['size'] > $maxBytes) {
+        json_error('Uploaded file is too large. Maximum allowed size is ' . round($maxBytes / 1024 / 1024) . 'MB', 422);
     }
     $finfo = new finfo(FILEINFO_MIME_TYPE);
     $mime = $finfo->file($file['tmp_name']);
     $allowed = [
         // Images
-        'image/jpeg' => 'jpg',
-        'image/png' => 'png',
-        'image/gif' => 'gif',
-        'image/webp' => 'webp',
-        // Documents
-        'application/pdf' => 'pdf',
+        'image/jpeg' => ['ext' => 'jpg', 'folder' => 'images', 'prefix' => 'img'],
+        'image/png' => ['ext' => 'png', 'folder' => 'images', 'prefix' => 'img'],
+        'image/gif' => ['ext' => 'gif', 'folder' => 'images', 'prefix' => 'img'],
+        'image/webp' => ['ext' => 'webp', 'folder' => 'images', 'prefix' => 'img'],
+        'image/svg+xml' => ['ext' => 'svg', 'folder' => 'images', 'prefix' => 'img'],
+        // Documents/publications
+        'application/pdf' => ['ext' => 'pdf', 'folder' => 'documents', 'prefix' => 'doc'],
+        'application/msword' => ['ext' => 'doc', 'folder' => 'documents', 'prefix' => 'doc'],
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => ['ext' => 'docx', 'folder' => 'documents', 'prefix' => 'doc'],
         // Audio
-        'audio/mpeg' => 'mp3',
-        'audio/wav' => 'wav',
-        'audio/x-wav' => 'wav',
-        'audio/ogg' => 'ogg',
-        'audio/webm' => 'weba',
-        'audio/aac' => 'aac',
-        'audio/mp4' => 'm4a',
-        'audio/x-m4a' => 'm4a',
+        'audio/mpeg' => ['ext' => 'mp3', 'folder' => 'audio', 'prefix' => 'aud'],
+        'audio/wav' => ['ext' => 'wav', 'folder' => 'audio', 'prefix' => 'aud'],
+        'audio/x-wav' => ['ext' => 'wav', 'folder' => 'audio', 'prefix' => 'aud'],
+        'audio/ogg' => ['ext' => 'ogg', 'folder' => 'audio', 'prefix' => 'aud'],
+        'audio/webm' => ['ext' => 'weba', 'folder' => 'audio', 'prefix' => 'aud'],
+        'audio/aac' => ['ext' => 'aac', 'folder' => 'audio', 'prefix' => 'aud'],
+        'audio/mp4' => ['ext' => 'm4a', 'folder' => 'audio', 'prefix' => 'aud'],
+        'audio/x-m4a' => ['ext' => 'm4a', 'folder' => 'audio', 'prefix' => 'aud'],
         // Video
-        'video/mp4' => 'mp4',
-        'video/webm' => 'webm',
-        'video/ogg' => 'ogv',
-        'video/quicktime' => 'mov',
+        'video/mp4' => ['ext' => 'mp4', 'folder' => 'video', 'prefix' => 'vid'],
+        'video/webm' => ['ext' => 'webm', 'folder' => 'video', 'prefix' => 'vid'],
+        'video/ogg' => ['ext' => 'ogv', 'folder' => 'video', 'prefix' => 'vid'],
+        'video/quicktime' => ['ext' => 'mov', 'folder' => 'video', 'prefix' => 'vid'],
     ];
     if (!array_key_exists($mime, $allowed)) {
-        json_error('Invalid file type: ' . $mime, 422);
+        json_error('Invalid file type: ' . ($mime ?: 'unknown'), 422);
     }
-    $uploadDir = $config['uploads']['dir'];
+    $meta = $allowed[$mime];
+    $baseUploadDir = $config['uploads']['dir'] ?? (__DIR__ . '/uploads');
+    $baseUploadUrl = $config['uploads']['url'] ?? '/uploads';
+    $uploadDir = rtrim($baseUploadDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $meta['folder'];
     if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
-        json_error('Upload directory not writable', 500);
+        json_error('Upload directory not writable: ' . $meta['folder'], 500);
     }
-    $filename = uniqid('img_', true) . '.' . $allowed[$mime];
-    $target = rtrim($uploadDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $filename;
+    if (!is_writable($uploadDir)) {
+        json_error('Upload directory is not writable: ' . $meta['folder'], 500);
+    }
+    $safeName = strtolower(pathinfo($file['name'] ?? '', PATHINFO_FILENAME));
+    $safeName = preg_replace('/[^a-z0-9]+/', '-', $safeName ?: 'upload');
+    $safeName = trim($safeName, '-') ?: 'upload';
+    $filename = $meta['prefix'] . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '_' . substr($safeName, 0, 50) . '.' . $meta['ext'];
+    $target = $uploadDir . DIRECTORY_SEPARATOR . $filename;
     if (!move_uploaded_file($file['tmp_name'], $target)) {
-        json_error('Failed to save file', 500);
+        json_error('Failed to save file. Check upload directory permissions.', 500);
     }
-    $url = rtrim($config['uploads']['url'], '/') . '/' . $filename;
-    json_ok(['url' => $url]);
+    @chmod($target, 0644);
+    $url = rtrim($baseUploadUrl, '/') . '/' . rawurlencode($meta['folder']) . '/' . rawurlencode($filename);
+    json_ok([
+        'url' => $url,
+        'mime' => $mime,
+        'size' => (int)($file['size'] ?? 0),
+        'filename' => $filename,
+        'folder' => $meta['folder'],
+    ]);
 }
 
 // ==================== AUTH: SIGNUP ====================

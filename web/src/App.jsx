@@ -3260,7 +3260,11 @@ function App() {
       const message = json?.error || "Upload failed";
       throw new Error(message);
     }
-    return json?.data?.url || "";
+    const uploadedUrl = json?.data?.url || "";
+    if (uploadedUrl.startsWith("/uploads/")) {
+      return `${API_BASE}${uploadedUrl}`;
+    }
+    return uploadedUrl;
   };
 
   const loadAdminStateHome = useCallback(async (state) => {
