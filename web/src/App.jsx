@@ -668,6 +668,7 @@ function App() {
       : firstSegment !== "" && !reservedPublicSegments.has(firstSegment);
   const isPublicPage =
     ["/", "/about", "/beliefs", "/contact", "/states", "/events", "/blog"].includes(location.pathname) ||
+    location.pathname.startsWith("/events/") ||
     location.pathname.startsWith("/states/") ||
     location.pathname.startsWith("/media") ||
     location.pathname.startsWith("/publications") ||
