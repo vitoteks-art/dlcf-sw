@@ -17,6 +17,7 @@ import AdminGiving from "../components/admin/AdminGiving";
 import AdminStateGallery from "../components/admin/AdminStateGallery";
 import AdminAttendanceCodes from "../components/admin/AdminAttendanceCodes";
 import AdminIntegrationSettings from "../components/admin/AdminIntegrationSettings";
+import AdminFileManager from "../components/admin/AdminFileManager";
 
 export default function AdminPage(props) {
   const {
@@ -133,6 +134,7 @@ export default function AdminPage(props) {
     { id: "zonal-congress", label: "Zonal Congress", show: canManageZonalCongress },
     { id: "media", label: "Media", show: canManageMedia || canPublishMedia },
     { id: "publications", label: "Publications", show: canManagePublications },
+    { id: "file-manager", label: "File Manager", show: canManageMedia || canManagePublications || canManageStateGallery || canManageGiving },
     { id: "giving", label: "Giving", show: canManageGiving },
     { id: "state-gallery", label: "State Gallery", show: canManageStateGallery },
     { id: "attendance-codes", label: "Attendance Codes", show: props.canManageAttendanceCodes },
@@ -188,6 +190,7 @@ export default function AdminPage(props) {
         {activeTab === "zonal-congress" && <AdminZonalCongress {...props} />}
         {activeTab === "media" && <AdminMedia {...props} />}
         {activeTab === "publications" && <AdminPublications {...props} />}
+        {activeTab === "file-manager" && <AdminFileManager {...props} />}
         {activeTab === "giving" && <AdminGiving {...props} />}
         {activeTab === "state-gallery" && <AdminStateGallery {...props} />}
         {activeTab === "attendance-codes" && <AdminAttendanceCodes {...props} />}

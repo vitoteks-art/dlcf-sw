@@ -272,6 +272,63 @@ function can_manage_publications(array $user): bool
         || user_has_work_unit($user, 'Publication Team');
 }
 
+
+function can_manage_media_assets(array $user): bool
+{
+    return can_manage_media($user) || can_manage_publications($user) || can_manage_state_gallery($user) || can_manage_giving($user);
+}
+
+function media_asset_file_type(string $mime): string
+{
+    if (str_starts_with($mime, 'image/')) return 'image';
+    if (str_starts_with($mime, 'audio/')) return 'audio';
+    if (str_starts_with($mime, 'video/')) return 'video';
+    if (in_array($mime, ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'], true)) return 'document';
+    return 'other';
+}
+
+function resolve_media_asset_scope(array $user, string $scope, string $state): array
+{
+    $scope = in_array($scope, ['zonal', 'state'], true) ? $scope : 'zonal';
+    $state = trim($state);
+    if (!is_zonal_scope_role($user)) {
+        if (empty($user['state'])) json_error('No state assigned to this user', 403);
+        return ['state', $user['state']];
+    }
+    if ($scope === 'state' && $state === '') json_error('State is required for state file uploads', 422);
+    if ($scope === 'zonal') $state = '';
+    return [$scope, $state];
+}
+
+function media_asset_scope_sql(array $user, string &$where, string &$types, array &$params): void
+{
+    if (is_zonal_scope_role($user)) return;
+    if (empty($user['state'])) json_error('No state assigned to this user', 403);
+    $where .= ' AND scope = ? AND state = ?';
+    $types .= 'ss';
+    $params[] = 'state';
+    $params[] = $user['state'];
+}
+
+function media_asset_usage_count(mysqli $db, string $url): int
+{
+    if ($url === '') return 0;
+    $like = '%' . $url . '%';
+    $count = 0;
+    $checks = [
+        ['publication_items', 'cover_image_url = ? OR file_url = ? OR content_html LIKE ?', 'sss', [$url, $url, $like]],
+        ['media_items', 'thumbnail_url = ? OR source_url = ?', 'ss', [$url, $url]],
+        ['state_gallery_items', 'image_url = ?', 's', [$url]],
+    ];
+    foreach ($checks as [$table, $condition, $types, $params]) {
+        $stmt = db_prepare($db, "SELECT COUNT(*) AS c FROM $table WHERE $condition", $types, $params);
+        $stmt->execute();
+        $rows = db_fetch_all($stmt);
+        $count += (int)($rows[0]['c'] ?? 0);
+    }
+    return $count;
+}
+
 function content_workflow_statuses(): array
 {
     return ['draft', 'submitted', 'changes_requested', 'approved', 'scheduled', 'published', 'archived', 'rejected'];
@@ -2016,9 +2073,12 @@ if ($path === '/admin/uploads') {
         json_error('Invalid file type: ' . ($mime ?: 'unknown'), 422);
     }
     $meta = $allowed[$mime];
+    $fileType = media_asset_file_type($mime);
+    [$assetScope, $assetState] = resolve_media_asset_scope($user, trim($_POST['scope'] ?? 'zonal'), trim($_POST['state'] ?? ''));
+    $scopeFolder = $assetScope === 'state' ? ('states/' . normalize_content_slug($assetState)) : 'zonal';
     $baseUploadDir = $config['uploads']['dir'] ?? (__DIR__ . '/uploads');
     $baseUploadUrl = $config['uploads']['url'] ?? '/uploads';
-    $uploadDir = rtrim($baseUploadDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $meta['folder'];
+    $uploadDir = rtrim($baseUploadDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $scopeFolder) . DIRECTORY_SEPARATOR . $meta['folder'];
     if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
         json_error('Upload directory not writable: ' . $meta['folder'], 500);
     }
@@ -2034,14 +2094,117 @@ if ($path === '/admin/uploads') {
         json_error('Failed to save file. Check upload directory permissions.', 500);
     }
     @chmod($target, 0644);
-    $url = rtrim($baseUploadUrl, '/') . '/' . rawurlencode($meta['folder']) . '/' . rawurlencode($filename);
+    $url = rtrim($baseUploadUrl, '/') . '/' . str_replace('%2F', '/', rawurlencode($scopeFolder)) . '/' . rawurlencode($meta['folder']) . '/' . rawurlencode($filename);
+    $assetId = null;
+    $uuid = bin2hex(random_bytes(16));
+    $title = trim($_POST['title'] ?? '') ?: pathinfo($file['name'] ?? $filename, PATHINFO_FILENAME);
+    $usageContext = trim($_POST['usage_context'] ?? 'general');
+    $altText = trim($_POST['alt_text'] ?? '');
+    $caption = trim($_POST['caption'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $stmt = db_prepare($db,
+        'INSERT INTO media_assets (uuid, title, original_filename, stored_filename, mime_type, file_ext, file_type, file_size, folder, url, scope, state, usage_context, alt_text, caption, description, uploaded_by, uploaded_at, status, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), "active", NOW())',
+        'sssssssissssssssi',
+        [$uuid, $title, $file['name'] ?? $filename, $filename, $mime, $meta['ext'], $fileType, (int)($file['size'] ?? 0), $scopeFolder . '/' . $meta['folder'], $url, $assetScope, $assetState, $usageContext, $altText, $caption, $description, (int)$user['id']]
+    );
+    $stmt->execute();
+    $assetId = $db->insert_id;
     json_ok([
+        'id' => $assetId,
         'url' => $url,
         'mime' => $mime,
         'size' => (int)($file['size'] ?? 0),
         'filename' => $filename,
-        'folder' => $meta['folder'],
+        'folder' => $scopeFolder . '/' . $meta['folder'],
+        'file_type' => $fileType,
+        'scope' => $assetScope,
+        'state' => $assetState,
+        'title' => $title,
     ]);
+}
+
+
+if ($path === '/admin/media-assets') {
+    require_method('GET');
+    $user = require_auth();
+    if (!can_manage_media_assets($user)) json_error('Forbidden', 403);
+    $where = 'WHERE 1=1';
+    $types = '';
+    $params = [];
+    media_asset_scope_sql($user, $where, $types, $params);
+    foreach ([['file_type', 'file_type'], ['scope', 'scope'], ['state', 'state'], ['status', 'status'], ['usage_context', 'usage_context']] as [$queryKey, $column]) {
+        $value = trim($_GET[$queryKey] ?? '');
+        if ($value !== '') { $where .= " AND $column = ?"; $types .= 's'; $params[] = $value; }
+    }
+    $q = trim($_GET['q'] ?? '');
+    if ($q !== '') {
+        $like = '%' . $q . '%';
+        $where .= ' AND (title LIKE ? OR original_filename LIKE ? OR caption LIKE ? OR url LIKE ?)';
+        $types .= 'ssss';
+        array_push($params, $like, $like, $like, $like);
+    }
+    $limit = min(100, max(1, (int)($_GET['limit'] ?? 60)));
+    $offset = max(0, (int)($_GET['offset'] ?? 0));
+    $stmt = db_prepare($db, "SELECT ma.*, u.name AS uploaded_by_name FROM media_assets ma LEFT JOIN users u ON u.id = ma.uploaded_by $where ORDER BY ma.uploaded_at DESC, ma.id DESC LIMIT ? OFFSET ?", $types . 'ii', [...$params, $limit, $offset]);
+    $stmt->execute();
+    $items = db_fetch_all($stmt);
+    foreach ($items as &$item) {
+        $item['usage_count'] = media_asset_usage_count($db, $item['url'] ?? '');
+    }
+    json_ok(['items' => $items]);
+}
+
+if (preg_match('#^/admin/media-assets/(\d+)$#', $path, $matches)) {
+    $id = (int)$matches[1];
+    $user = require_auth();
+    if (!can_manage_media_assets($user)) json_error('Forbidden', 403);
+    $stmt = db_prepare($db, 'SELECT * FROM media_assets WHERE id = ? LIMIT 1', 'i', [$id]);
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    if (!$rows) json_error('Media asset not found', 404);
+    $asset = $rows[0];
+    assert_scoped_content_target_allowed($user, $asset['scope'] ?? null, $asset['state'] ?? null);
+    if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+        require_csrf();
+        $payload = read_json();
+        $title = trim($payload['title'] ?? $asset['title']);
+        $altText = trim($payload['alt_text'] ?? '');
+        $caption = trim($payload['caption'] ?? '');
+        $description = trim($payload['description'] ?? '');
+        $usageContext = trim($payload['usage_context'] ?? 'general');
+        $stmt = db_prepare($db, 'UPDATE media_assets SET title = ?, alt_text = ?, caption = ?, description = ?, usage_context = ?, updated_at = NOW() WHERE id = ?', 'sssssi', [$title, $altText, $caption, $description, $usageContext, $id]);
+        $stmt->execute();
+        json_ok(['message' => 'Media asset updated']);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+        require_csrf();
+        $stmt = db_prepare($db, 'UPDATE media_assets SET status = "deleted", deleted_at = NOW(), deleted_by = ?, updated_at = NOW() WHERE id = ?', 'ii', [(int)$user['id'], $id]);
+        $stmt->execute();
+        json_ok(['message' => 'Media asset deleted', 'usage_count' => media_asset_usage_count($db, $asset['url'] ?? '')]);
+    }
+    json_error('Method not allowed', 405);
+}
+
+if (preg_match('#^/admin/media-assets/(\d+)/(archive|restore)$#', $path, $matches)) {
+    require_method('POST');
+    $id = (int)$matches[1];
+    $action = $matches[2];
+    $user = require_auth();
+    if (!can_manage_media_assets($user)) json_error('Forbidden', 403);
+    require_csrf();
+    $stmt = db_prepare($db, 'SELECT * FROM media_assets WHERE id = ? LIMIT 1', 'i', [$id]);
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    if (!$rows) json_error('Media asset not found', 404);
+    $asset = $rows[0];
+    assert_scoped_content_target_allowed($user, $asset['scope'] ?? null, $asset['state'] ?? null);
+    if ($action === 'archive') {
+        $stmt = db_prepare($db, 'UPDATE media_assets SET status = "archived", archived_at = NOW(), updated_at = NOW() WHERE id = ?', 'i', [$id]);
+    } else {
+        $stmt = db_prepare($db, 'UPDATE media_assets SET status = "active", archived_at = NULL, deleted_at = NULL, deleted_by = NULL, updated_at = NOW() WHERE id = ?', 'i', [$id]);
+    }
+    $stmt->execute();
+    json_ok(['message' => 'Media asset ' . ($action === 'archive' ? 'archived' : 'restored')]);
 }
 
 // ==================== AUTH: SIGNUP ====================

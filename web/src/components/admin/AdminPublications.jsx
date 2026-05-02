@@ -86,6 +86,7 @@ export default function AdminPublications({ user, states = [], setStatus, canMan
   const [previewOpen, setPreviewOpen] = useState(false);
   const [mediaModal, setMediaModal] = useState({ open: false, mode: "insert", onSelect: null });
   const [recentUploads, setRecentUploads] = useState([]);
+  const [libraryAssets, setLibraryAssets] = useState([]);
   const [saveState, setSaveState] = useState("Saved");
   const stateScoped = isStateScoped(user);
   const visibleStates = stateScoped ? (user?.state ? [user.state] : []) : states;
@@ -99,14 +100,25 @@ export default function AdminPublications({ user, states = [], setStatus, canMan
       item.file_url ? { url: item.file_url, title: item.title || assetNameFromUrl(item.file_url), type: mediaTypeFromUrl(item.file_url), source: "Publication file" } : null,
     ]).filter(Boolean);
     const map = new Map();
-    [...recentUploads, ...fromItems].forEach((asset) => { if (asset?.url && !map.has(asset.url)) map.set(asset.url, asset); });
+    [...libraryAssets, ...recentUploads, ...fromItems].forEach((asset) => { if (asset?.url && !map.has(asset.url)) map.set(asset.url, asset); });
     return [...map.values()];
-  }, [items, recentUploads]);
+  }, [items, recentUploads, libraryAssets]);
 
   const effectiveForm = () => ({ ...form, scope: stateScoped ? "state" : form.scope, state: stateScoped ? user.state : form.state, is_featured: !!form.is_featured });
   const loadItems = async () => {
     try { const params = new URLSearchParams(filters); const data = await apiFetch(`/admin/publication-items?${params.toString()}`); setItems(data.items || []); }
     catch (err) { setItems([]); setStatus?.(err.message); }
+  };
+  const loadMediaAssets = async () => {
+    try {
+      const scope = effectiveForm().scope;
+      const state = effectiveForm().state;
+      const params = new URLSearchParams({ status: "active", limit: "80" });
+      if (scope) params.set("scope", scope);
+      if (state) params.set("state", state);
+      const data = await apiFetch(`/admin/media-assets?${params.toString()}`);
+      setLibraryAssets((data.items || []).map((asset) => ({ ...asset, type: asset.file_type, source: asset.scope === "state" ? asset.state : "Zonal library" })));
+    } catch { setLibraryAssets([]); }
   };
   useEffect(() => { loadItems(); }, [filters.state, filters.status, filters.publication_type]);
   useEffect(() => {
@@ -132,7 +144,8 @@ export default function AdminPublications({ user, states = [], setStatus, canMan
     if (!file || !uploadImage) return null;
     setStatus?.("Uploading file…");
     try {
-      const url = await uploadImage(file);
+      const current = effectiveForm();
+      const url = await uploadImage(file, { scope: current.scope, state: current.state, usage_context: field === "file_url" ? "publication" : "publication", title: file.name });
       const asset = { url, title: file.name || assetNameFromUrl(url), type: mediaTypeFromUrl(url), source: "Just uploaded" };
       setRecentUploads((prev) => [asset, ...prev.filter((item) => item.url !== url)].slice(0, 30));
       if (field) setForm((prev) => ({ ...prev, [field]: url }));
@@ -140,7 +153,7 @@ export default function AdminPublications({ user, states = [], setStatus, canMan
       return asset;
     } catch (err) { setStatus?.(err.message); throw err; }
   };
-  const openMediaLibrary = (mode, onSelect) => setMediaModal({ open: true, mode, onSelect });
+  const openMediaLibrary = (mode, onSelect) => { loadMediaAssets(); setMediaModal({ open: true, mode, onSelect }); };
   const closeMediaLibrary = () => setMediaModal({ open: false, mode: "insert", onSelect: null });
   const selectMedia = (asset) => {
     if (mediaModal.onSelect) mediaModal.onSelect(asset);

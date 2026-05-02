@@ -3242,7 +3242,7 @@ function App() {
     }
   };
 
-  const uploadImage = async (file) => {
+  const uploadImage = async (file, meta = {}) => {
     if (!file) return "";
     const maxByType = file.type?.startsWith("video/") ? 100 : file.type?.startsWith("audio/") ? 75 : file.type === "application/pdf" ? 50 : file.type?.startsWith("image/") ? 25 : 50;
     const maxBytes = maxByType * 1024 * 1024;
@@ -3252,6 +3252,9 @@ function App() {
     const token = await ensureCsrf();
     const form = new FormData();
     form.append("file", file);
+    Object.entries(meta || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") form.append(key, value);
+    });
     let res;
     try {
       res = await fetch(`${API_BASE}/admin/uploads`, {
