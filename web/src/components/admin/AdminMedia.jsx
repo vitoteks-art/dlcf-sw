@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../../api";
+import { API_BASE, apiFetch } from "../../api";
 
 const statuses = ["draft", "submitted", "changes_requested", "approved", "scheduled", "published", "archived", "rejected"];
 const statusLabels = {
@@ -54,6 +54,23 @@ function mediaTypeFromUrl(url = "") {
   return "file";
 }
 function assetNameFromUrl(url = "") { try { return decodeURIComponent(url.split("/").pop() || "Uploaded file"); } catch { return url.split("/").pop() || "Uploaded file"; } }
+function assetUrl(asset) {
+  const raw = asset?.url || asset?.source_url || "";
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.startsWith("/")) {
+    try { return `${new URL(API_BASE, window.location.origin).origin}${raw}`; } catch { return raw; }
+  }
+  return raw;
+}
+function AssetTilePreview({ asset }) {
+  const [failed, setFailed] = useState(false);
+  const type = asset.type || asset.file_type || mediaTypeFromUrl(asset.url || "");
+  const url = assetUrl(asset);
+  if (type === "image" && url && !failed) return <img src={url} alt={asset.alt_text || asset.title || assetNameFromUrl(url)} loading="lazy" onError={() => setFailed(true)} />;
+  if (type === "video" && url && !failed) return <video src={url} preload="metadata" muted playsInline onError={() => setFailed(true)} />;
+  return <span className="wp-file-icon">{type}</span>;
+}
 
 function MediaAssetPicker({ open, assets, onClose, onUpload, onSelect, title = "Select Media File" }) {
   const [tab, setTab] = useState("library");
@@ -68,7 +85,7 @@ function MediaAssetPicker({ open, assets, onClose, onUpload, onSelect, title = "
     try { const asset = await onUpload(file); if (asset) onSelect(asset); }
     finally { setUploading(false); }
   };
-  return <div className="media-modal-backdrop" role="dialog" aria-modal="true"><div className="media-modal card"><div className="section-header media-modal-header"><div><h3>{title}</h3><p className="lede">Upload a new file or choose an already uploaded file from the shared File Manager.</p><p className="upload-limit-note">{uploadLimitText}</p></div><button type="button" className="btn-sm btn-outline" onClick={onClose}>Close</button></div><div className="admin-tabs-nav compact-tabs"><button className={tab === "library" ? "admin-tab-btn active" : "admin-tab-btn"} onClick={() => setTab("library")}>Already Uploaded</button><button className={tab === "upload" ? "admin-tab-btn active" : "admin-tab-btn"} onClick={() => setTab("upload")}>Upload New</button></div>{tab === "upload" ? <div className="wp-upload-drop"><strong>Choose file</strong><p className="upload-limit-note">{uploadLimitText}</p><input type="file" accept="image/*,application/pdf,.doc,.docx,audio/*,video/*" disabled={uploading} onChange={(e) => handleUpload(e.target.files?.[0])} />{uploading ? <p className="text-success">Uploading…</p> : null}</div> : <><div className="media-library-controls"><input placeholder="Search uploaded files" value={q} onChange={(e) => setQ(e.target.value)} /><select value={type} onChange={(e) => setType(e.target.value)}><option value="">All files</option><option value="image">Images</option><option value="audio">Audio</option><option value="video">Video</option><option value="document">Documents</option></select></div><div className="wp-media-grid">{visible.map((asset) => <button key={`${asset.id || asset.url}-${asset.url}`} type="button" className="wp-media-tile" onClick={() => onSelect(asset)}>{(asset.type || asset.file_type) === "image" ? <img src={asset.url} alt={asset.alt_text || asset.title} /> : <span className="wp-file-icon">{asset.type || asset.file_type}</span>}<strong>{asset.title || assetNameFromUrl(asset.url)}</strong><small>{asset.scope === "state" ? asset.state : "Zonal"}</small></button>)}{visible.length === 0 ? <div className="empty-text">No files found. Upload a new file or change filters.</div> : null}</div></>}</div></div>;
+  return <div className="media-modal-backdrop" role="dialog" aria-modal="true"><div className="media-modal card"><div className="section-header media-modal-header"><div><h3>{title}</h3><p className="lede">Upload a new file or choose an already uploaded file from the shared File Manager.</p><p className="upload-limit-note">{uploadLimitText}</p></div><button type="button" className="btn-sm btn-outline" onClick={onClose}>Close</button></div><div className="admin-tabs-nav compact-tabs"><button className={tab === "library" ? "admin-tab-btn active" : "admin-tab-btn"} onClick={() => setTab("library")}>Already Uploaded</button><button className={tab === "upload" ? "admin-tab-btn active" : "admin-tab-btn"} onClick={() => setTab("upload")}>Upload New</button></div>{tab === "upload" ? <div className="wp-upload-drop"><strong>Choose file</strong><p className="upload-limit-note">{uploadLimitText}</p><input type="file" accept="image/*,application/pdf,.doc,.docx,audio/*,video/*" disabled={uploading} onChange={(e) => handleUpload(e.target.files?.[0])} />{uploading ? <p className="text-success">Uploading…</p> : null}</div> : <><div className="media-library-controls"><input placeholder="Search uploaded files" value={q} onChange={(e) => setQ(e.target.value)} /><select value={type} onChange={(e) => setType(e.target.value)}><option value="">All files</option><option value="image">Images</option><option value="audio">Audio</option><option value="video">Video</option><option value="document">Documents</option></select></div><div className="wp-media-grid">{visible.map((asset) => <button key={`${asset.id || asset.url}-${asset.url}`} type="button" className="wp-media-tile" onClick={() => onSelect(asset)}><AssetTilePreview asset={asset} /><strong>{asset.title || assetNameFromUrl(asset.url)}</strong><small>{asset.scope === "state" ? asset.state : "Zonal"}</small></button>)}{visible.length === 0 ? <div className="empty-text">No files found. Upload a new file or change filters.</div> : null}</div></>}</div></div>;
 }
 
 function checklist(form) {

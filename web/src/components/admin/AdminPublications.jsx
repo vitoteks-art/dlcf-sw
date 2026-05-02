@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../../api";
+import { API_BASE, apiFetch } from "../../api";
 import RichTextEditor from "../RichTextEditor";
 
 const statuses = ["draft", "submitted", "changes_requested", "approved", "scheduled", "published", "archived", "rejected"];
@@ -32,6 +32,23 @@ function mediaTypeFromUrl(url = "") {
   return "file";
 }
 function assetNameFromUrl(url = "") { try { return decodeURIComponent(url.split("/").pop() || "Uploaded file"); } catch { return url.split("/").pop() || "Uploaded file"; } }
+function assetUrl(asset) {
+  const raw = asset?.url || asset?.source_url || "";
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.startsWith("/")) {
+    try { return `${new URL(API_BASE, window.location.origin).origin}${raw}`; } catch { return raw; }
+  }
+  return raw;
+}
+function AssetTilePreview({ asset }) {
+  const [failed, setFailed] = useState(false);
+  const type = asset.type || asset.file_type || mediaTypeFromUrl(asset.url || "");
+  const url = assetUrl(asset);
+  if (type === "image" && url && !failed) return <img src={url} alt={asset.alt_text || asset.title || assetNameFromUrl(url)} loading="lazy" onError={() => setFailed(true)} />;
+  if (type === "video" && url && !failed) return <video src={url} preload="metadata" muted playsInline onError={() => setFailed(true)} />;
+  return <span className="wp-file-icon">{type}</span>;
+}
 
 function MediaLibraryModal({ open, assets, onClose, onUpload, onSelect }) {
   const [tab, setTab] = useState("library");
@@ -57,7 +74,7 @@ function MediaLibraryModal({ open, assets, onClose, onUpload, onSelect }) {
         <div className="admin-tabs-nav compact-tabs"><button className={tab === "library" ? "admin-tab-btn active" : "admin-tab-btn"} onClick={() => setTab("library")}>Media Library</button><button className={tab === "upload" ? "admin-tab-btn active" : "admin-tab-btn"} onClick={() => setTab("upload")}>Upload Files</button></div>
         {tab === "upload" ? <div className="wp-upload-drop"><strong>Drop or choose a file</strong><p>Images, PDF documents, audio, and video are supported. Images can be inserted directly into content.</p><p className="upload-limit-note">{uploadLimitText}</p><input type="file" accept="image/*,application/pdf,.doc,.docx,audio/*,video/*" disabled={uploading} onChange={(e) => handleUpload(e.target.files?.[0])} />{uploading ? <p className="text-success">Uploading…</p> : null}</div> : <>
           <div className="media-library-controls"><input placeholder="Search media" value={q} onChange={(e) => setQ(e.target.value)} /><select value={type} onChange={(e) => setType(e.target.value)}><option value="image">Images</option><option value="document">Documents</option><option value="audio">Audio</option><option value="video">Video</option><option value="file">Other files</option><option value="">All files</option></select></div>
-          <div className="wp-media-grid">{visible.map((asset) => <button key={`${asset.url}-${asset.title}`} type="button" className="wp-media-tile" onClick={() => onSelect(asset)}>{asset.type === "image" ? <img src={asset.url} alt={asset.alt || asset.title} /> : <span className="wp-file-icon">{asset.type}</span>}<strong>{asset.title}</strong><small>{asset.source}</small></button>)}{visible.length === 0 ? <div className="empty-text">No media found. Use the Upload Files tab to add new media.</div> : null}</div>
+          <div className="wp-media-grid">{visible.map((asset) => <button key={`${asset.url}-${asset.title}`} type="button" className="wp-media-tile" onClick={() => onSelect(asset)}><AssetTilePreview asset={asset} /><strong>{asset.title}</strong><small>{asset.source}</small></button>)}{visible.length === 0 ? <div className="empty-text">No media found. Use the Upload Files tab to add new media.</div> : null}</div>
         </>}
       </div>
     </div>

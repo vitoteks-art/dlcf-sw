@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../../api";
+import { API_BASE, apiFetch } from "../../api";
 
 const fileTypes = ["", "image", "document", "audio", "video", "other"];
 const statuses = ["active", "archived", "deleted"];
@@ -15,13 +15,34 @@ function formatSize(bytes) {
 }
 function assetName(asset) { return asset.title || asset.original_filename || asset.stored_filename || "Uploaded file"; }
 function fileLabel(asset) { return String(assetName(asset)).replace(/[_-]?[a-f0-9]{24,}/gi, "").replace(/[_-]+/g, " ").trim() || assetName(asset); }
-function FilePreview({ asset }) {
+function assetUrl(asset) {
+  const raw = asset?.url || "";
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.startsWith("/")) {
+    try { return `${new URL(API_BASE, window.location.origin).origin}${raw}`; }
+    catch { return raw; }
+  }
+  return raw;
+}
+function FilePreview({ asset, large = false }) {
   const [failed, setFailed] = useState(false);
   const type = asset.file_type || "file";
-  if (type === "image" && asset.url && !failed) {
-    return <img src={asset.url} alt={fileLabel(asset)} loading="lazy" onError={() => setFailed(true)} />;
+  const url = assetUrl(asset);
+  if (type === "image" && url && !failed) {
+    return <img src={url} alt={fileLabel(asset)} loading="lazy" onError={() => setFailed(true)} />;
+  }
+  if (type === "video" && url && !failed) {
+    return <video src={url} preload="metadata" muted playsInline controls={large} onError={() => setFailed(true)} />;
   }
   return <span className={`wp-file-icon file-icon-${type}`}>{type}</span>;
+}
+function FileDetailPreview({ asset }) {
+  const url = assetUrl(asset);
+  if (asset.file_type === "image") return <img className="file-detail-image" src={url} alt={asset.alt_text || fileLabel(asset)} />;
+  if (asset.file_type === "video") return <video className="file-detail-video" src={url} controls preload="metadata" />;
+  if (asset.file_type === "audio") return <audio className="file-detail-audio" src={url} controls />;
+  return <p><a href={url} target="_blank" rel="noreferrer">Open file</a></p>;
 }
 
 export default function AdminFileManager({ user, states = [], setStatus, uploadImage }) {
@@ -93,6 +114,6 @@ export default function AdminFileManager({ user, states = [], setStatus, uploadI
     <div className="card"><div className="section-header"><h4>Uploaded Files</h4><div className="form-actions"><input placeholder="Search files" value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} onBlur={loadItems} /><select value={filters.file_type} onChange={(e) => setFilters({ ...filters, file_type: e.target.value })}>{fileTypes.map((type) => <option key={type} value={type}>{type ? type : "All types"}</option>)}</select><select value={filters.scope} onChange={(e) => setFilters({ ...filters, scope: e.target.value, state: e.target.value === "zonal" ? "" : filters.state })}><option value="">All scopes</option><option value="zonal">Zonal</option><option value="state">State</option></select><select value={filters.state} disabled={stateScoped || filters.scope === "zonal"} onChange={(e) => setFilters({ ...filters, state: e.target.value })}><option value="">All states</option>{visibleStates.map((state) => <option key={state} value={state}>{state}</option>)}</select><select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>{statuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></div></div>
       <div className="file-manager-grid">{items.map((asset) => <div key={asset.id} className="file-card"><button type="button" className="file-preview" onClick={() => setSelected(asset)} title={assetName(asset)}><FilePreview asset={asset} /></button><strong className="file-card-title" title={assetName(asset)}>{fileLabel(asset)}</strong><div className="file-card-meta"><small>{asset.scope === "state" ? asset.state : "Zonal"}</small><small>{formatSize(asset.file_size)}</small></div><small className="file-card-usage">{asset.usage_count > 0 ? `Used in ${asset.usage_count} place(s)` : "Not used"}</small><div className="file-card-actions"><button className="btn-sm btn-outline" onClick={() => setSelected(asset)}>Details</button>{asset.status === "archived" || asset.status === "deleted" ? <button className="btn-sm btn-outline" onClick={() => restoreAsset(asset)}>Restore</button> : <button className="btn-sm btn-outline" onClick={() => archiveAsset(asset)}>Archive</button>}<button className="btn-sm btn-danger" onClick={() => deleteAsset(asset)}>Delete</button></div></div>)}{items.length === 0 ? <p className="lede">No files found for this view.</p> : null}</div>
     </div>
-    {selected ? <div className="media-modal-backdrop"><div className="media-modal card"><div className="section-header"><h3>File Details</h3><button className="btn-sm btn-outline" onClick={() => setSelected(null)}>Close</button></div>{selected.file_type === "image" ? <img className="file-detail-image" src={selected.url} alt={selected.alt_text || assetName(selected)} /> : <p><a href={selected.url} target="_blank" rel="noreferrer">Open file</a></p>}<div className="form compact-form"><label>Title<input value={selected.title || ""} onChange={(e) => setSelected({ ...selected, title: e.target.value })} /></label><label>URL<input value={selected.url || ""} readOnly onFocus={(e) => e.target.select()} /></label><div className="grid-2"><label>Alt Text<input value={selected.alt_text || ""} onChange={(e) => setSelected({ ...selected, alt_text: e.target.value })} /></label><label>Usage Context<input value={selected.usage_context || ""} onChange={(e) => setSelected({ ...selected, usage_context: e.target.value })} /></label></div><label>Caption<input value={selected.caption || ""} onChange={(e) => setSelected({ ...selected, caption: e.target.value })} /></label><label>Description<textarea rows="3" value={selected.description || ""} onChange={(e) => setSelected({ ...selected, description: e.target.value })} /></label><p className="upload-limit-note">{selected.usage_count > 0 ? `Warning: this file is used in ${selected.usage_count} place(s).` : "This file is not currently detected in content."}</p><div className="form-actions"><button onClick={updateAsset}>Save Details</button><button className="btn-sm btn-outline" onClick={() => navigator.clipboard?.writeText(selected.url)}>Copy URL</button>{selected.status === "archived" || selected.status === "deleted" ? <button className="btn-sm btn-outline" onClick={() => restoreAsset(selected)}>Restore</button> : <button className="btn-sm btn-outline" onClick={() => archiveAsset(selected)}>Archive</button>}<button className="btn-sm btn-danger" onClick={() => deleteAsset(selected)}>Delete</button></div></div></div></div> : null}
+    {selected ? <div className="media-modal-backdrop"><div className="media-modal card"><div className="section-header"><h3>File Preview & Details</h3><button className="btn-sm btn-outline" onClick={() => setSelected(null)}>Close</button></div><FileDetailPreview asset={selected} /><div className="form compact-form"><label>Title<input value={selected.title || ""} onChange={(e) => setSelected({ ...selected, title: e.target.value })} /></label><label>URL<input value={assetUrl(selected)} readOnly onFocus={(e) => e.target.select()} /></label><div className="grid-2"><label>Alt Text<input value={selected.alt_text || ""} onChange={(e) => setSelected({ ...selected, alt_text: e.target.value })} /></label><label>Usage Context<input value={selected.usage_context || ""} onChange={(e) => setSelected({ ...selected, usage_context: e.target.value })} /></label></div><label>Caption<input value={selected.caption || ""} onChange={(e) => setSelected({ ...selected, caption: e.target.value })} /></label><label>Description<textarea rows="3" value={selected.description || ""} onChange={(e) => setSelected({ ...selected, description: e.target.value })} /></label><p className="upload-limit-note">{selected.usage_count > 0 ? `Warning: this file is used in ${selected.usage_count} place(s).` : "This file is not currently detected in content."}</p><div className="form-actions"><button onClick={updateAsset}>Save Details</button><button className="btn-sm btn-outline" onClick={() => navigator.clipboard?.writeText(assetUrl(selected))}>Copy URL</button>{selected.status === "archived" || selected.status === "deleted" ? <button className="btn-sm btn-outline" onClick={() => restoreAsset(selected)}>Restore</button> : <button className="btn-sm btn-outline" onClick={() => archiveAsset(selected)}>Archive</button>}<button className="btn-sm btn-danger" onClick={() => deleteAsset(selected)}>Delete</button></div></div></div></div> : null}
   </div>;
 }
