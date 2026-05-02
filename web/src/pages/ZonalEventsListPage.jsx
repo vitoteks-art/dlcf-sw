@@ -81,13 +81,13 @@ export default function ZonalEventsListPage({ user }) {
     </Link>
   );
 
-  return <div className="bg-[#f7f9fc] text-[#191c1e]">
+  return <div className="bg-[#002659] text-[#191c1e]">
     <PublicNav user={user} />
     <main>
       <section className="relative min-h-[614px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img className="w-full h-full object-cover brightness-[0.4]" src={normalizeImageUrl(featuredEvent?.feature_image_url || "", "https://placehold.co/1600x900?text=Zone+Events")} alt="DLCF South West events" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#002659]/60 to-[#f7f9fc]"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#002659]/70 to-[#002659]"></div>
         </div>
         <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
           <span className="inline-block uppercase tracking-[0.3em] text-[#f2bf50] mb-4 text-sm font-semibold">Our Community Gatherings</span>
@@ -96,7 +96,7 @@ export default function ZonalEventsListPage({ user }) {
         </div>
       </section>
 
-      <section className="px-8 max-w-7xl mx-auto -mt-16 relative z-20 pb-20">
+      <section className="px-8 max-w-7xl mx-auto -mt-16 relative z-0 pb-20">
         <div className="bg-white p-4 rounded-2xl shadow-2xl shadow-[#002659]/5 flex flex-wrap items-center justify-center gap-4 mb-20 border border-[#c4c6d2]/20">
           {filterOptions.map((option) => {
             const active = option === activeFilter;
@@ -115,11 +115,11 @@ export default function ZonalEventsListPage({ user }) {
         </>}
       </section>
 
-      <section className="py-24 bg-[#f2f4f7] overflow-hidden relative">
+      <section className="py-24 bg-[#002659] overflow-hidden relative border-t border-white/10">
         <div className="absolute right-0 top-0 w-1/3 h-full opacity-5 pointer-events-none"><span className="material-symbols-outlined text-[30rem] leading-none translate-x-20">event_note</span></div>
         <div className="max-w-7xl mx-auto px-8 relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
-          <div className="max-w-2xl"><h2 className="font-black text-5xl text-[#002659] tracking-tighter mb-6">Stay Connected to the Word</h2><p className="text-[#434750] text-lg leading-relaxed">Never miss a gathering. Stay connected with upcoming programmes, special sessions, and fellowship moments across {displayName}.</p></div>
-          <Link to="/contact" className="bg-[#002659] text-white font-extrabold uppercase tracking-widest text-xs px-10 py-5 rounded-lg shadow-xl shadow-[#002659]/20 hover:-translate-y-1 transition-all">Contact Us</Link>
+          <div className="max-w-2xl"><h2 className="font-black text-5xl text-white tracking-tighter mb-6">Stay Connected to the Word</h2><p className="text-white/75 text-lg leading-relaxed">Never miss a gathering. Stay connected with upcoming programmes, special sessions, and fellowship moments across {displayName}.</p></div>
+          <Link to="/contact" className="bg-[#ffdea1] text-[#261900] font-extrabold uppercase tracking-widest text-xs px-10 py-5 rounded-lg shadow-xl shadow-black/20 hover:-translate-y-1 transition-all">Contact Us</Link>
         </div>
       </section>
     </main>

@@ -1636,7 +1636,7 @@ button:disabled {
 .public-nav {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 1000;
   background: rgba(7, 15, 25, 0.92);
   border-bottom: 1px solid rgba(197, 157, 84, 0.22);
   backdrop-filter: blur(12px);
