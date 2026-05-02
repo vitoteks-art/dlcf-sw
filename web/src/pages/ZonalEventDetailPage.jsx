@@ -26,7 +26,7 @@ export default function ZonalEventDetailPage({ user, eventId: eventIdProp }) {
   const [status, setStatus] = useState("");
   useEffect(() => {
     if (!eventId) return;
-    apiFetch(`/public/zonal-events/${eventId}`)
+    apiFetch(`/public/zonal-event-detail.php?id=${encodeURIComponent(eventId)}`)
       .then((data) => setEvent(data.item || null))
       .catch((err) => setStatus(err.message));
   }, [eventId]);
