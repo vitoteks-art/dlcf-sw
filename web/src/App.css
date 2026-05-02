@@ -7143,3 +7143,52 @@ button:disabled {
 .homepage-dashboard__thumb { overflow: hidden; position: relative; }
 .homepage-dashboard__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .homepage-dashboard__thumb:empty::after { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(216, 177, 105, 0.55) 0%, rgba(52, 72, 98, 0.95) 100%); }
+
+/* Zonal event detail: metallic raised panels */
+.zonal-detail-metal-section {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(216, 177, 105, 0.18), transparent 34%),
+    linear-gradient(145deg, rgba(17, 32, 49, 0.98) 0%, rgba(7, 16, 25, 1) 48%, rgba(11, 23, 36, 1) 100%);
+  border: 1px solid rgba(216, 177, 105, 0.28);
+  border-radius: 32px;
+  box-shadow:
+    0 34px 90px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -1px 0 rgba(216, 177, 105, 0.10);
+  overflow: visible;
+}
+
+.zonal-metal-panel {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.035) 42%, rgba(216, 177, 105, 0.08) 100%),
+    rgba(11, 23, 36, 0.86);
+  border: 1px solid rgba(216, 177, 105, 0.24);
+  box-shadow:
+    0 26px 60px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(16px);
+}
+
+.zonal-metal-callout {
+  background:
+    linear-gradient(135deg, rgba(216, 177, 105, 0.18), rgba(255, 255, 255, 0.05) 48%, rgba(11, 23, 36, 0.92)),
+    rgba(11, 23, 36, 0.72);
+  border: 1px solid rgba(216, 177, 105, 0.24);
+  border-left: 5px solid #d8b169;
+  box-shadow:
+    0 22px 46px rgba(0, 0, 0, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+.zonal-detail-metal-section .prose,
+.zonal-detail-metal-section .prose p,
+.zonal-detail-metal-section .prose li {
+  color: rgba(246, 239, 226, 0.84);
+}
+
+.zonal-metal-venue-card {
+  background: linear-gradient(145deg, #0b1724 0%, #111f31 55%, #071019 100%);
+  border: 1px solid rgba(216, 177, 105, 0.25);
+  box-shadow: 0 26px 58px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255,255,255,0.10);
+}
