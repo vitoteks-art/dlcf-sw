@@ -318,7 +318,7 @@ function media_asset_scope_sql(array $user, string &$where, string &$types, arra
 {
     if (is_zonal_scope_role($user)) return;
     if (empty($user['state'])) json_error('No state assigned to this user', 403);
-    $where .= ' AND scope = ? AND state = ?';
+    $where .= ' AND ma.scope = ? AND ma.state = ?';
     $types .= 'ss';
     $params[] = 'state';
     $params[] = $user['state'];
@@ -2148,14 +2148,14 @@ if ($path === '/admin/media-assets') {
     $types = '';
     $params = [];
     media_asset_scope_sql($user, $where, $types, $params);
-    foreach ([['file_type', 'file_type'], ['scope', 'scope'], ['state', 'state'], ['status', 'status'], ['usage_context', 'usage_context']] as [$queryKey, $column]) {
+    foreach ([['file_type', 'ma.file_type'], ['scope', 'ma.scope'], ['state', 'ma.state'], ['status', 'ma.status'], ['usage_context', 'ma.usage_context']] as [$queryKey, $column]) {
         $value = trim($_GET[$queryKey] ?? '');
         if ($value !== '') { $where .= " AND $column = ?"; $types .= 's'; $params[] = $value; }
     }
     $q = trim($_GET['q'] ?? '');
     if ($q !== '') {
         $like = '%' . $q . '%';
-        $where .= ' AND (title LIKE ? OR original_filename LIKE ? OR caption LIKE ? OR url LIKE ?)';
+        $where .= ' AND (ma.title LIKE ? OR ma.original_filename LIKE ? OR ma.caption LIKE ? OR ma.url LIKE ?)';
         $types .= 'ssss';
         array_push($params, $like, $like, $like, $like);
     }
