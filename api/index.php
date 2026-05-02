@@ -2144,35 +2144,68 @@ if ($path === '/admin/media-assets') {
     $user = require_auth();
     if (!can_manage_media_assets($user)) json_error('Forbidden', 403);
     require_media_assets_table($db);
-    $where = 'WHERE 1=1';
-    $types = '';
-    $params = [];
-    media_asset_scope_sql($user, $where, $types, $params);
-    foreach ([['file_type', 'ma.file_type'], ['scope', 'ma.scope'], ['state', 'ma.state'], ['status', 'ma.status'], ['usage_context', 'ma.usage_context']] as [$queryKey, $column]) {
-        $value = trim($_GET[$queryKey] ?? '');
-        if ($value !== '') { $where .= " AND $column = ?"; $types .= 's'; $params[] = $value; }
-    }
-    $q = trim($_GET['q'] ?? '');
-    if ($q !== '') {
-        $like = '%' . $q . '%';
-        $where .= ' AND (ma.title LIKE ? OR ma.original_filename LIKE ? OR ma.caption LIKE ? OR ma.url LIKE ?)';
-        $types .= 'ssss';
-        array_push($params, $like, $like, $like, $like);
-    }
-    $limit = min(100, max(1, (int)($_GET['limit'] ?? 60)));
-    $offset = max(0, (int)($_GET['offset'] ?? 0));
+
     try {
-        $stmt = db_prepare($db, "SELECT ma.* FROM media_assets ma $where ORDER BY ma.uploaded_at DESC, ma.id DESC LIMIT ? OFFSET ?", $types . 'ii', [...$params, $limit, $offset]);
+        $limit = min(100, max(1, (int)($_GET['limit'] ?? 60)));
+        $offset = max(0, (int)($_GET['offset'] ?? 0));
+        $where = 'WHERE 1=1';
+        $types = '';
+        $params = [];
+
+        if (!is_zonal_scope_role($user)) {
+            if (empty($user['state'])) json_error('No state assigned to this user', 403);
+            $where .= ' AND scope = ? AND state = ?';
+            $types .= 'ss';
+            $params[] = 'state';
+            $params[] = $user['state'];
+        }
+
+        $fileType = trim($_GET['file_type'] ?? '');
+        if ($fileType !== '') { $where .= ' AND file_type = ?'; $types .= 's'; $params[] = $fileType; }
+        $scope = trim($_GET['scope'] ?? '');
+        if ($scope !== '') { $where .= ' AND scope = ?'; $types .= 's'; $params[] = $scope; }
+        $state = trim($_GET['state'] ?? '');
+        if ($state !== '') { $where .= ' AND state = ?'; $types .= 's'; $params[] = $state; }
+        $status = trim($_GET['status'] ?? '');
+        if ($status !== '') { $where .= ' AND status = ?'; $types .= 's'; $params[] = $status; }
+        $usageContext = trim($_GET['usage_context'] ?? '');
+        if ($usageContext !== '') { $where .= ' AND usage_context = ?'; $types .= 's'; $params[] = $usageContext; }
+        $q = trim($_GET['q'] ?? '');
+        if ($q !== '') {
+            $like = '%' . $q . '%';
+            $where .= ' AND (title LIKE ? OR original_filename LIKE ? OR url LIKE ?)';
+            $types .= 'sss';
+            array_push($params, $like, $like, $like);
+        }
+
+        $columns = 'id, title, original_filename, stored_filename, mime_type, file_ext, file_type, file_size, folder, url, scope, state, usage_context, alt_text, caption, description, uploaded_by, uploaded_at, status, archived_at, deleted_at, deleted_by, updated_at';
+        $sql = "SELECT $columns FROM media_assets $where ORDER BY id DESC LIMIT ? OFFSET ?";
+        $stmt = db_prepare($db, $sql, $types . 'ii', [...$params, $limit, $offset]);
         $stmt->execute();
         $items = db_fetch_all($stmt);
         foreach ($items as &$item) {
-            // Keep list endpoint resilient on live cPanel schemas. Detailed usage checks can be run later.
             $item['uploaded_by_name'] = '';
             $item['usage_count'] = 0;
         }
         json_ok(['items' => $items]);
     } catch (Throwable $e) {
-        json_error('File Manager could not load files: ' . $e->getMessage(), 500);
+        // Final fallback: if a live schema is missing one optional column, still make File Manager usable.
+        try {
+            $stmt = db_prepare($db, 'SELECT id, title, original_filename, stored_filename, file_type, file_size, url, scope, state, status FROM media_assets ORDER BY id DESC LIMIT 60', '', []);
+            $stmt->execute();
+            $items = db_fetch_all($stmt);
+            foreach ($items as &$item) {
+                $item += [
+                    'mime_type' => '', 'file_ext' => '', 'folder' => '', 'usage_context' => '', 'alt_text' => '',
+                    'caption' => '', 'description' => '', 'uploaded_by' => '', 'uploaded_by_name' => '',
+                    'uploaded_at' => '', 'archived_at' => '', 'deleted_at' => '', 'deleted_by' => '', 'updated_at' => '',
+                    'usage_count' => 0,
+                ];
+            }
+            json_ok(['items' => $items, 'warning' => 'File Manager loaded using fallback mode. Primary error: ' . $e->getMessage()]);
+        } catch (Throwable $fallbackError) {
+            json_error('File Manager list failed. Primary: ' . $e->getMessage() . ' | Fallback: ' . $fallbackError->getMessage(), 500);
+        }
     }
 }
 
