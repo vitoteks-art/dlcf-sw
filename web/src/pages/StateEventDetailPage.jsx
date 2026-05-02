@@ -84,8 +84,7 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
   }, [resolvedStateSlug, resolvedEventSlug]);
 
   const displayName = stateName || resolvedStateSlug.replace(/-/g, " ");
-  const heroImage = normalizeImageUrl(event?.feature_image_url || "", "https://placehold.co/1600x1000?text=Event");
-  const locationImage = normalizeImageUrl(event?.feature_image_url || "", "https://placehold.co/1200x900?text=Venue");
+  const heroImage = normalizeImageUrl(event?.feature_image_url || "", "");
 
   return (
     <div className="bg-[#f7f9fc] text-[#191c1e]">
@@ -94,21 +93,21 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
       <main>
         <header className="relative min-h-[870px] flex items-center overflow-hidden">
           <div className="absolute inset-0 z-0">
-            <img alt="Event background" className="w-full h-full object-cover brightness-[0.4]" src={heroImage} />
+            {heroImage ? <img alt="Event background" className="w-full h-full object-cover brightness-[0.4]" src={heroImage} /> : <div className="w-full h-full bg-[#002659]" />}
             <div className="absolute inset-0 bg-gradient-to-r from-[#002659]/80 to-transparent"></div>
           </div>
           <div className="relative z-10 max-w-7xl mx-auto px-8 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-8">
               <div className="inline-flex items-center space-x-2 bg-[#ffdea1] text-[#261900] px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-8">
                 <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span>
-                <span>{event?.type || "Flagship Ministry Event"}</span>
+                <span>{event?.type || "Event"}</span>
               </div>
               <h1 className="text-6xl md:text-8xl font-black text-white tracking-[-0.02em] mb-6 leading-[0.9]">
                 {event?.title || "Loading event..."}
               </h1>
-              <p className="text-xl text-slate-200 max-w-2xl font-light leading-relaxed mb-10">
-                {excerpt(event?.content || "A gathering for spiritual renewal, biblical insight, and fellowship.", 200)}
-              </p>
+              {event?.content ? <p className="text-xl text-slate-200 max-w-2xl font-light leading-relaxed mb-10">
+                {excerpt(event.content, 200)}
+              </p> : null}
               <div className="flex flex-wrap gap-6">
                 <div className="flex items-center bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/10">
                   <span className="material-symbols-outlined text-[#f2bf50] mr-4">calendar_today</span>
@@ -123,7 +122,7 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
                   <span className="material-symbols-outlined text-[#f2bf50] mr-4">location_on</span>
                   <div>
                     <p className="text-[10px] uppercase tracking-tighter text-slate-400 font-bold">Location</p>
-                    <p className="text-white font-medium">{event?.event_location || "Location TBA"}</p>
+                    <p className="text-white font-medium">{event?.event_location || "Not set"}</p>
                   </div>
                 </div>
               </div>
@@ -135,7 +134,7 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
           <div className="lg:col-span-7 space-y-20">
             <div>
               <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
-                <h2 className="text-4xl font-black text-[#002659] tracking-tight">The Vision of this Event</h2>
+                <h2 className="text-4xl font-black text-[#002659] tracking-tight">Event Details</h2>
                 <Link to={`/${resolvedStateSlug}/events`} className="text-sm font-bold uppercase tracking-widest text-[#002659] hover:underline">
                   Back to Events
                 </Link>
@@ -144,11 +143,7 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
                 className="prose prose-lg max-w-none text-[#434750] leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: event?.content || "<p>No event description available yet.</p>" }}
               />
-              <div className="mt-12 p-8 bg-[#f2f4f7] rounded-2xl border-l-4 border-[#002659]">
-                <p className="italic text-[#002659] font-medium text-lg leading-relaxed">
-                  This gathering is designed to strengthen faith, deepen conviction, and build meaningful fellowship across the state.
-                </p>
-              </div>
+
             </div>
 
             <div>
@@ -158,11 +153,11 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
                   event.related_events.map((item) => (
                     <div key={item.id || item.slug} className="group">
                       <div className="relative mb-4 overflow-hidden rounded-2xl">
-                        <img alt={item.title} className="w-full aspect-[4/5] object-cover transition-transform duration-500 group-hover:scale-110" src={normalizeImageUrl(item.feature_image_url || "", "https://placehold.co/800x1000?text=Event")} />
+                        <img alt={item.title} className="w-full aspect-[4/5] object-cover transition-transform duration-500 group-hover:scale-110" src={normalizeImageUrl(item.feature_image_url || "", "")} />
                         <div className="absolute inset-0 bg-[#002659]/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       </div>
                       <h4 className="text-xl font-bold text-[#002659]">{item.title}</h4>
-                      <p className="text-sm text-[#485e8c] font-medium uppercase tracking-widest mb-2">{item.type || "Programme"}</p>
+                      <p className="text-sm text-[#485e8c] font-medium uppercase tracking-widest mb-2">{item.type || "Event"}</p>
                       <p className="text-[#434750] text-sm leading-relaxed mb-3">{formatEventDisplayDate(item)}</p>
                       <Link to={`/${resolvedStateSlug}/events/${item.slug || item.id}`} className="text-sm font-bold uppercase tracking-widest text-[#002659] hover:underline">
                         View Details
@@ -180,86 +175,31 @@ export default function StateEventDetailPage({ stateSlug, eventSlug, states }) {
             <div className="sticky top-32 space-y-8">
               <div className="bg-white p-10 rounded-3xl shadow-2xl shadow-[#002659]/5 border border-[#eceef1]">
                 <h3 className="text-2xl font-black text-[#002659] mb-2">Event Snapshot</h3>
-                <p className="text-[#434750] mb-8">Quick details for attendees and state members.</p>
+                <p className="text-[#434750] mb-8">Details from the published event record.</p>
                 <div className="space-y-4 mb-8">
                   <div className="flex items-center justify-between py-3 border-b border-[#e0e3e6] gap-4">
                     <span className="text-sm font-medium text-slate-500">Event Type</span>
-                    <span className="text-[#002659] font-bold text-right">{event?.type || "Programme"}</span>
+                    <span className="text-[#002659] font-bold text-right">{event?.type || "Not set"}</span>
                   </div>
                   <div className="flex items-center justify-between py-3 border-b border-[#e0e3e6] gap-4">
                     <span className="text-sm font-medium text-slate-500">Time</span>
-                    <span className="text-[#002659] font-bold text-right">{event?.event_time_label || "Time TBA"}</span>
+                    <span className="text-[#002659] font-bold text-right">{event?.event_time_label || "Not set"}</span>
                   </div>
                   <div className="flex items-center justify-between py-3 gap-4">
                     <span className="text-sm font-medium text-slate-500">Location</span>
-                    <span className="text-[#002659] font-bold text-right">{event?.event_location || "Location TBA"}</span>
+                    <span className="text-[#002659] font-bold text-right">{event?.event_location || "Not set"}</span>
                   </div>
                 </div>
                 <Link to={`/${resolvedStateSlug}/events`} className="block w-full bg-[#002659] text-white py-5 rounded-xl text-center font-black uppercase tracking-widest text-sm hover:bg-[#123c7a] transition-colors shadow-lg shadow-[#002659]/20">
                   View All Events
                 </Link>
-                <p className="text-center text-[10px] uppercase tracking-tighter text-slate-400 mt-4 font-bold">Stay connected with upcoming gatherings</p>
+                <p className="text-center text-[10px] uppercase tracking-tighter text-slate-400 mt-4 font-bold"></p>
               </div>
 
-              <div className="bg-[#f2f4f7] p-10 rounded-3xl">
-                <h3 className="text-xl font-black text-[#002659] mb-8 tracking-tight uppercase">The Agenda</h3>
-                <div className="space-y-8">
-                  <div className="relative pl-8 before:absolute before:left-0 before:top-2 before:w-3 before:h-3 before:rounded-full before:bg-[#f2bf50]">
-                    <p className="text-[10px] font-black text-[#485e8c] tracking-widest uppercase mb-1">Event Schedule</p>
-                    <p className="text-lg font-bold text-[#002659] mb-1">Arrival and Fellowship</p>
-                    <p className="text-sm text-[#434750]">Participants gather, connect, and prepare for the programme.</p>
-                  </div>
-                  <div className="relative pl-8 before:absolute before:left-0 before:top-2 before:w-3 before:h-3 before:rounded-full before:bg-[#002659]">
-                    <p className="text-[10px] font-black text-[#485e8c] tracking-widest uppercase mb-1">Main Session</p>
-                    <p className="text-lg font-bold text-[#002659] mb-1">Teaching, Worship, and Prayer</p>
-                    <p className="text-sm text-[#434750]">Core event moments focused on biblical growth and fellowship.</p>
-                  </div>
-                  <div className="relative pl-8 before:absolute before:left-0 before:top-2 before:w-3 before:h-3 before:rounded-full before:bg-[#002659]">
-                    <p className="text-[10px] font-black text-[#485e8c] tracking-widest uppercase mb-1">Closing</p>
-                    <p className="text-lg font-bold text-[#002659] mb-1">Charge and Blessing</p>
-                    <p className="text-sm text-[#434750]">A closing moment of prayer, announcements, and next steps.</p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </section>
 
-        <section className="max-w-7xl mx-auto px-8 mb-24">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 h-auto md:h-[500px]">
-            <div className="md:col-span-8 relative rounded-3xl overflow-hidden group">
-              <div className="absolute inset-0 bg-[#002659]/40 group-hover:bg-[#002659]/20 transition-all z-10"></div>
-              <img alt="Venue" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" src={locationImage} />
-              <div className="absolute bottom-10 left-10 z-20 text-white">
-                <h4 className="text-3xl font-black mb-2">The Sanctuary</h4>
-                <p className="text-white/80 max-w-md">{event?.event_location || `Our venue for this event in ${displayName}.`}</p>
-              </div>
-            </div>
-            <div className="md:col-span-4 bg-[#002659] p-10 rounded-3xl flex flex-col justify-between text-white">
-              <div>
-                <span className="material-symbols-outlined text-4xl text-[#ffdea1] mb-6">map</span>
-                <h4 className="text-2xl font-bold mb-4">How to Get Here</h4>
-                <p className="text-blue-200 text-sm leading-relaxed mb-6">The event location is prepared to receive worshippers, guests, and participants from across the state.</p>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3 text-sm">
-                  <span className="material-symbols-outlined text-[#ffdea1] text-lg">event</span>
-                  <span>
-                    {formatEventDisplayDate(event)}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-3 text-sm">
-                  <span className="material-symbols-outlined text-[#ffdea1] text-lg">schedule</span>
-                  <span>{event?.event_time_label || "Time TBA"}</span>
-                </div>
-                <div className="flex items-center space-x-3 text-sm">
-                  <span className="material-symbols-outlined text-[#ffdea1] text-lg">location_on</span>
-                  <span>{event?.event_location || "Location TBA"}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
 
       <PublicFooter />

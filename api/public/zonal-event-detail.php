@@ -51,4 +51,19 @@ if (!$rows) {
 }
 $item = $rows[0];
 $item['state_name'] = 'DLCF South West';
+
+$relatedSql = 'SELECT id, title, slug, feature_image_url, content, type, status, published_at, event_location, event_start_date, event_end_date, event_time_label, recurrence_mode, recurrence_day_of_week, created_at, updated_at
+               FROM zonal_events
+               WHERE id != ? AND status = "published"
+                 AND (
+                   recurrence_mode = "weekly"
+                   OR COALESCE(event_end_date, event_start_date, DATE(published_at)) >= CURDATE()
+                 )
+               ORDER BY CASE WHEN recurrence_mode = "weekly" THEN 0 ELSE 1 END,
+                        COALESCE(event_start_date, DATE(published_at)) ASC, created_at DESC
+               LIMIT 3';
+$relatedStmt = db_prepare($db, $relatedSql, 'i', [(int) $item['id']]);
+$relatedStmt->execute();
+$item['related_events'] = db_fetch_all($relatedStmt);
+
 json_ok(['item' => $item]);
