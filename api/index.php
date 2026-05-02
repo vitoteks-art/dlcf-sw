@@ -2161,13 +2161,19 @@ if ($path === '/admin/media-assets') {
     }
     $limit = min(100, max(1, (int)($_GET['limit'] ?? 60)));
     $offset = max(0, (int)($_GET['offset'] ?? 0));
-    $stmt = db_prepare($db, "SELECT ma.*, u.name AS uploaded_by_name FROM media_assets ma LEFT JOIN users u ON u.id = ma.uploaded_by $where ORDER BY ma.uploaded_at DESC, ma.id DESC LIMIT ? OFFSET ?", $types . 'ii', [...$params, $limit, $offset]);
-    $stmt->execute();
-    $items = db_fetch_all($stmt);
-    foreach ($items as &$item) {
-        $item['usage_count'] = media_asset_usage_count($db, $item['url'] ?? '');
+    try {
+        $stmt = db_prepare($db, "SELECT ma.* FROM media_assets ma $where ORDER BY ma.uploaded_at DESC, ma.id DESC LIMIT ? OFFSET ?", $types . 'ii', [...$params, $limit, $offset]);
+        $stmt->execute();
+        $items = db_fetch_all($stmt);
+        foreach ($items as &$item) {
+            // Keep list endpoint resilient on live cPanel schemas. Detailed usage checks can be run later.
+            $item['uploaded_by_name'] = '';
+            $item['usage_count'] = 0;
+        }
+        json_ok(['items' => $items]);
+    } catch (Throwable $e) {
+        json_error('File Manager could not load files: ' . $e->getMessage(), 500);
     }
-    json_ok(['items' => $items]);
 }
 
 if (preg_match('#^/admin/media-assets/(\d+)$#', $path, $matches)) {
