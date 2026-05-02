@@ -3244,10 +3244,10 @@ function App() {
 
   const uploadImage = async (file) => {
     if (!file) return "";
-    const maxByType = file.type?.startsWith("video/") ? 100 : file.type?.startsWith("audio/") ? 75 : file.type === "application/pdf" ? 50 : 15;
+    const maxByType = file.type?.startsWith("video/") ? 100 : file.type?.startsWith("audio/") ? 75 : file.type === "application/pdf" ? 50 : file.type?.startsWith("image/") ? 25 : 50;
     const maxBytes = maxByType * 1024 * 1024;
     if (file.size > maxBytes) {
-      throw new Error(`Upload is too large. ${file.type?.startsWith("image/") ? "Please use an image under" : "Maximum allowed size is"} ${maxByType}MB.`);
+      throw new Error(`This file is too large. Maximum allowed size for this file type is ${maxByType}MB. Please compress the file or choose a smaller one.`);
     }
     const token = await ensureCsrf();
     const form = new FormData();

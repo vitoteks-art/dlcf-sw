@@ -93,6 +93,7 @@ export default function RichTextEditor({ value, onChange, onUploadImage, onOpenM
         <button type="button" onClick={() => exec("justifyRight")}>Right</button>
         <button type="button" onClick={handleLink}>Link</button>
         <button type="button" onClick={handleMediaLibrary}>Add Media</button>
+        <span className="toolbar-limit-note">Images max 25MB</span>
         <label className="rich-upload">
           Upload Image
           <input ref={fileRef} type="file" accept="image/*" onChange={handleImageUpload} />
