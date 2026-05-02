@@ -273,6 +273,20 @@ function can_manage_publications(array $user): bool
 }
 
 
+
+function media_assets_table_ready(mysqli $db): bool
+{
+    $result = $db->query("SHOW TABLES LIKE 'media_assets'");
+    return $result && $result->num_rows > 0;
+}
+
+function require_media_assets_table(mysqli $db): void
+{
+    if (!media_assets_table_ready($db)) {
+        json_error('Media File Manager is not ready yet. Please apply database migration 20260502_media_asset_manager.sql before using uploads/File Manager.', 503);
+    }
+}
+
 function can_manage_media_assets(array $user): bool
 {
     return can_manage_media($user) || can_manage_publications($user) || can_manage_state_gallery($user) || can_manage_giving($user);
@@ -2095,6 +2109,7 @@ if ($path === '/admin/uploads') {
     }
     @chmod($target, 0644);
     $url = rtrim($baseUploadUrl, '/') . '/' . str_replace('%2F', '/', rawurlencode($scopeFolder)) . '/' . rawurlencode($meta['folder']) . '/' . rawurlencode($filename);
+    require_media_assets_table($db);
     $assetId = null;
     $uuid = bin2hex(random_bytes(16));
     $title = trim($_POST['title'] ?? '') ?: pathinfo($file['name'] ?? $filename, PATHINFO_FILENAME);
@@ -2128,6 +2143,7 @@ if ($path === '/admin/media-assets') {
     require_method('GET');
     $user = require_auth();
     if (!can_manage_media_assets($user)) json_error('Forbidden', 403);
+    require_media_assets_table($db);
     $where = 'WHERE 1=1';
     $types = '';
     $params = [];
@@ -2158,6 +2174,7 @@ if (preg_match('#^/admin/media-assets/(\d+)$#', $path, $matches)) {
     $id = (int)$matches[1];
     $user = require_auth();
     if (!can_manage_media_assets($user)) json_error('Forbidden', 403);
+    require_media_assets_table($db);
     $stmt = db_prepare($db, 'SELECT * FROM media_assets WHERE id = ? LIMIT 1', 'i', [$id]);
     $stmt->execute();
     $rows = db_fetch_all($stmt);
@@ -2191,6 +2208,7 @@ if (preg_match('#^/admin/media-assets/(\d+)/(archive|restore)$#', $path, $matche
     $action = $matches[2];
     $user = require_auth();
     if (!can_manage_media_assets($user)) json_error('Forbidden', 403);
+    require_media_assets_table($db);
     require_csrf();
     $stmt = db_prepare($db, 'SELECT * FROM media_assets WHERE id = ? LIMIT 1', 'i', [$id]);
     $stmt->execute();
