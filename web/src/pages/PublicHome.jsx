@@ -4,7 +4,7 @@ import PublicNav from "../components/PublicNav";
 import PublicFooter from "../components/PublicFooter";
 import SEO from "../components/SEO";
 import FeaturedGivingCard from "../components/FeaturedGivingCard";
-import { apiFetch } from "../api";
+import { API_BASE, apiFetch } from "../api";
 
 const slugifyState = (value) =>
   String(value)
@@ -27,6 +27,21 @@ const normalizeImageUrl = (value, fallback = "") => {
   if (raw.startsWith("/")) return raw;
   return raw;
 };
+
+const contentIdentifier = (item) => item?.slug || item?.id;
+const mediaDetailPath = (item) => item?.scope === "state" && item?.state
+  ? `/${slugifyState(item.state)}/media/${contentIdentifier(item)}`
+  : `/media/${contentIdentifier(item)}`;
+const publicationDetailPath = (item) => item?.scope === "state" && item?.state
+  ? `/${slugifyState(item.state)}/publications/${contentIdentifier(item)}`
+  : `/publications/${contentIdentifier(item)}`;
+const mediaThumbnail = (item) => normalizeImageUrl(item?.thumbnail_url || (item?.media_type === "image" ? item?.source_url : ""), "");
+const publicationThumbnail = (item) => normalizeImageUrl(item?.cover_image_url || "", "");
+
+function DashboardThumb({ src, alt, className }) {
+  const [failed, setFailed] = useState(false);
+  return <div className={className}>{src && !failed ? <img src={src} alt={alt || "Media thumbnail"} loading="lazy" onError={() => setFailed(true)} /> : null}</div>;
+}
 
 const defaultMainHomeContent = {
   hero: {
@@ -338,20 +353,20 @@ export default function PublicHome({ states, stateSummaries, user }) {
               <Link to="/media">View All</Link>
             </div>
             <div className="homepage-dashboard__media-feature">
-              {featuredMedia[0] ? <a href={featuredMedia[0].source_url} target="_blank" rel="noreferrer" className="homepage-dashboard__media-card">
-                <div className="homepage-dashboard__media-cover" />
+              {featuredMedia[0] ? <Link to={mediaDetailPath(featuredMedia[0])} className="homepage-dashboard__media-card">
+                <DashboardThumb className="homepage-dashboard__media-cover" src={mediaThumbnail(featuredMedia[0])} alt={featuredMedia[0].title} />
                 <strong>{featuredMedia[0].title}</strong>
                 <p>{featuredMedia[0].speaker || featuredMedia[0].series || featuredMedia[0].media_type}</p>
-              </a> : <p className="homepage-dashboard__empty">Media will appear here.</p>}
+              </Link> : <p className="homepage-dashboard__empty">Media will appear here.</p>}
               <div className="homepage-dashboard__mini-resources">
                 {featuredPublications.slice(0, 2).map((item) => (
-                  <a key={item.id} href={item.file_url} target="_blank" rel="noreferrer" className="homepage-dashboard__resource-item">
-                    <div className="homepage-dashboard__resource-cover" />
+                  <Link key={item.id} to={publicationDetailPath(item)} className="homepage-dashboard__resource-item">
+                    <DashboardThumb className="homepage-dashboard__resource-cover" src={publicationThumbnail(item)} alt={item.title} />
                     <div>
                       <strong>{item.title}</strong>
                       <p>{item.publication_type || "Publication"}</p>
                     </div>
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>
