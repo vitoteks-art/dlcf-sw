@@ -98,7 +98,10 @@ export default function AdminStatePosts({
                 Event Scope
                 <select
                   value={adminStatePostState}
-                  onChange={(e) => setAdminStatePostState(e.target.value)}
+                  onChange={(e) => {
+                    setAdminStatePostState(e.target.value);
+                    if (e.target.value === "__zonal__" && !isEditing) setAdminStatePostStatus("published");
+                  }}
                   required
                   disabled={!canSelectState}
                 >
@@ -198,6 +201,7 @@ export default function AdminStatePosts({
               </label>
               <label>
                 Status
+                {isZonalEvent ? <small className="upload-limit-note">Only Published zone-wide events appear on the homepage and /events page.</small> : null}
                 <select
                   value={adminStatePostStatus}
                   onChange={(e) => setAdminStatePostStatus(e.target.value)}
@@ -354,7 +358,7 @@ export default function AdminStatePosts({
         </div>
 
         <div className="card preview-panel">
-          <h4>Live Preview</h4>
+          <h4>{isZonalEvent ? "Zone-wide Event Preview" : "Live Preview"}</h4>
           {adminStatePostFeatureImage ? (
             <div className="preview-image">
               <img src={adminStatePostFeatureImage} alt="Feature" />
