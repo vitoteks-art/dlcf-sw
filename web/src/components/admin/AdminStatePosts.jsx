@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import RichTextEditor from "../RichTextEditor";
 
 export default function AdminStatePosts({
@@ -40,6 +40,13 @@ export default function AdminStatePosts({
   uploadImage,
 }) {
   const isEditing = !!adminStatePostEditId;
+  const [eventSearch, setEventSearch] = useState("");
+  const isZonalEvent = adminStatePostState === "__zonal__";
+  const filteredPosts = useMemo(() => {
+    const q = eventSearch.trim().toLowerCase();
+    if (!q) return adminStatePosts;
+    return adminStatePosts.filter((post) => `${post.title || ""} ${post.type || ""} ${post.status || ""} ${(post.categories || []).join(" ")} ${post.event_location || ""}`.toLowerCase().includes(q));
+  }, [adminStatePosts, eventSearch]);
   const isStateAdmin =
     user && (user.role === "state_cord" || user.role === "state_admin");
   const canSelectState = !isStateAdmin || !user?.state;
@@ -76,7 +83,7 @@ export default function AdminStatePosts({
   return (
     <div className="admin-section">
       <div className="section-header">
-        <h3>Events</h3>
+        <div><h3>Events</h3><p className="lede">Create state events or zone-wide events for the whole South West zone.</p></div>
       </div>
 
       <div className="panel-content">
@@ -88,14 +95,15 @@ export default function AdminStatePosts({
           >
             <div className="grid-2">
               <label>
-                State
+                Event Scope
                 <select
                   value={adminStatePostState}
                   onChange={(e) => setAdminStatePostState(e.target.value)}
                   required
                   disabled={!canSelectState}
                 >
-                  <option value="">Select state</option>
+                  <option value="">Select scope</option>
+                  {!isStateAdmin ? <option value="__zonal__">Zone-wide Event (DLCF South West)</option> : null}
                   {stateOptions.map((state) => (
                     <option key={state} value={state}>
                       {state}
@@ -266,6 +274,16 @@ export default function AdminStatePosts({
         </div>
 
         <div className="table-container card">
+          <div className="section-header">
+            <div>
+              <h4>{isZonalEvent ? "Zone-wide Events" : "State Events"}</h4>
+              <p className="lede">Search by title, type, status, category, or location.</p>
+            </div>
+            <div className="form-actions">
+              <input placeholder="Search events" value={eventSearch} onChange={(e) => setEventSearch(e.target.value)} />
+              <button type="button" className="btn-sm btn-outline" onClick={() => loadAdminStatePosts(adminStatePostState, eventSearch)}>Search</button>
+            </div>
+          </div>
           <table className="data-table">
             <thead>
               <tr>
@@ -278,7 +296,7 @@ export default function AdminStatePosts({
               </tr>
             </thead>
             <tbody>
-              {adminStatePosts.map((post) => (
+              {filteredPosts.map((post) => (
                 <tr
                   key={post.id}
                   className={
@@ -312,9 +330,7 @@ export default function AdminStatePosts({
                         setAdminStatePostFeatureImage(post.feature_image_url || "");
                         setAdminStatePostContent(post.content || "");
                         setAdminStatePostCategoryIds(post.category_ids || []);
-                        if (post.state_name) {
-                          setAdminStatePostState(post.state_name);
-                        }
+                        setAdminStatePostState(post.scope === "zonal" ? "__zonal__" : (post.state_name || adminStatePostState));
                       }}
                     >
                       Edit
@@ -328,9 +344,9 @@ export default function AdminStatePosts({
                   </td>
                 </tr>
               ))}
-              {adminStatePosts.length === 0 ? (
+              {filteredPosts.length === 0 ? (
                 <tr>
-                  <td colSpan="6">No events yet.</td>
+                  <td colSpan="6">No events match this view.</td>
                 </tr>
               ) : null}
             </tbody>

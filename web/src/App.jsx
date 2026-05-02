@@ -21,6 +21,8 @@ import ZonalDailyReportPage from "./pages/ZonalDailyReportPage";
 import ZonalMembershipReportPage from "./pages/ZonalMembershipReportPage";
 import PublicMediaListPage from "./pages/PublicMediaListPage";
 import PublicMediaDetailPage from "./pages/PublicMediaDetailPage";
+import ZonalEventsListPage from "./pages/ZonalEventsListPage";
+import ZonalEventDetailPage from "./pages/ZonalEventDetailPage";
 import PublicationsDetailPage from "./pages/PublicationsDetailPage";
 import GospelLibraryPage from "./pages/GospelLibraryPage";
 import GivingListPage from "./pages/GivingListPage";
@@ -3137,15 +3139,18 @@ function App() {
     }
   };
 
-  const loadAdminStatePosts = async (state) => {
+  const loadAdminStatePosts = async (state, q = "") => {
     if (!state) {
       setAdminStatePosts([]);
       return;
     }
     try {
-      const data = await apiFetch(
-        `/state/posts?state=${encodeURIComponent(state)}`
-      );
+      const params = new URLSearchParams();
+      if (q) params.set("q", q);
+      const url = state === "__zonal__"
+        ? `/zonal/events?${params.toString()}`
+        : `/state/posts?state=${encodeURIComponent(state)}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+      const data = await apiFetch(url);
       setAdminStatePosts(data.items || []);
     } catch {
       setAdminStatePosts([]);
@@ -3157,7 +3162,7 @@ function App() {
     setStatus("");
     try {
       const payload = {
-        state: adminStatePostState,
+        state: adminStatePostState === "__zonal__" ? "" : adminStatePostState,
         title: adminStatePostTitle,
         content: adminStatePostContent,
         type: adminStatePostType,
@@ -3172,11 +3177,11 @@ function App() {
       if (adminStatePostPublishedAt) {
         payload.published_at = adminStatePostPublishedAt;
       }
-      await apiFetch("/state/posts", {
+      await apiFetch(adminStatePostState === "__zonal__" ? "/zonal/events" : "/state/posts", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      setStatus("State update created.");
+      setStatus(adminStatePostState === "__zonal__" ? "Zonal event created." : "State event created.");
       setAdminStatePostTitle("");
       setAdminStatePostType("");
       setAdminStatePostStatus("draft");
@@ -3212,11 +3217,11 @@ function App() {
         feature_image_url: adminStatePostFeatureImage,
         category_ids: adminStatePostCategoryIds,
       };
-      await apiFetch(`/state/posts/${adminStatePostEditId}`, {
+      await apiFetch(`${adminStatePostState === "__zonal__" ? "/zonal/events" : "/state/posts"}/${adminStatePostEditId}`, {
         method: "PUT",
         body: JSON.stringify(payload),
       });
-      setStatus("State update updated.");
+      setStatus(adminStatePostState === "__zonal__" ? "Zonal event updated." : "State event updated.");
       setAdminStatePostEditId("");
       setAdminStatePostStartDate("");
       setAdminStatePostEndDate("");
@@ -3234,8 +3239,8 @@ function App() {
     }
     setStatus("");
     try {
-      await apiFetch(`/state/posts/${id}`, { method: "DELETE" });
-      setStatus("State update deleted.");
+      await apiFetch(`${adminStatePostState === "__zonal__" ? "/zonal/events" : "/state/posts"}/${id}`, { method: "DELETE" });
+      setStatus(adminStatePostState === "__zonal__" ? "Zonal event deleted." : "State event deleted.");
       loadAdminStatePosts(adminStatePostState);
     } catch (err) {
       setStatus(err.message);
@@ -3654,6 +3659,8 @@ function App() {
       isStatePath && segments[1] === "updates" && segments[2];
     const stateSlug = isLegacyStatePath ? segments[1] : firstSegment;
     const postSlug = isLegacyStatePostPath ? segments[3] : segments[2];
+    const isZonalEventsList = segments[0] === "events" && !segments[1];
+    const isZonalEventsDetail = segments[0] === "events" && segments[1];
     const isZonalMediaList = segments[0] === "media" && !segments[1];
     const isZonalMediaDetail = segments[0] === "media" && segments[1];
     const isZonalPublicationList = segments[0] === "publications" && !segments[1];
@@ -3685,6 +3692,10 @@ function App() {
           <ContactPage user={user} />
         ) : location.pathname === "/states" ? (
           <StatesPage states={states} user={user} />
+        ) : isZonalEventsList ? (
+          <ZonalEventsListPage user={user} />
+        ) : isZonalEventsDetail ? (
+          <ZonalEventDetailPage user={user} eventId={segments[1]} />
         ) : isZonalMediaList ? (
           <PublicMediaListPage user={user} />
         ) : isZonalMediaDetail ? (

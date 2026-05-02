@@ -1406,6 +1406,27 @@ function sync_state_post_categories(mysqli $db, int $postId, array $categoryIds)
     }
 }
 
+function sync_zonal_event_categories(mysqli $db, int $eventId, array $categoryIds): void
+{
+    $ids = array_values(array_filter(array_map('intval', $categoryIds), fn($id) => $id > 0));
+    $db->begin_transaction();
+    try {
+        $stmt = db_prepare($db, 'DELETE FROM zonal_event_categories WHERE event_id = ?', 'i', [$eventId]);
+        $stmt->execute();
+        if ($ids) {
+            $stmt = db_prepare($db, 'INSERT INTO zonal_event_categories (event_id, category_id) VALUES (?, ?)', 'ii', []);
+            foreach ($ids as $categoryId) {
+                $stmt->bind_param('ii', $eventId, $categoryId);
+                $stmt->execute();
+            }
+        }
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollback();
+        throw $e;
+    }
+}
+
 if ($path === '/' || $path === '/health') {
     json_ok(['status' => 'ok']);
 }
@@ -2656,6 +2677,157 @@ if (preg_match('#^/admin/categories/(\\d+)$#', $path, $matches)) {
         $stmt->execute();
         json_ok(['message' => 'Category deleted']);
     }
+}
+
+if ($path === '/zonal/events') {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        require_roles(['administrator', 'zonal_cord', 'zonal_admin']);
+        $q = trim($_GET['q'] ?? '');
+        $status = trim($_GET['status'] ?? '');
+        $sql = 'SELECT ze.id, "zonal" AS scope, "DLCF South West" AS state_name, ze.title, ze.slug, ze.type, ze.status, ze.published_at,
+                       ze.content, ze.feature_image_url, ze.event_location, ze.event_start_date, ze.event_end_date, ze.event_time_label,
+                       ze.recurrence_mode, ze.recurrence_day_of_week, ze.archive_at,
+                       GROUP_CONCAT(c.id ORDER BY c.name SEPARATOR ",") AS category_ids,
+                       GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ",") AS categories,
+                       ze.created_at, ze.updated_at
+                FROM zonal_events ze
+                LEFT JOIN zonal_event_categories zec ON zec.event_id = ze.id
+                LEFT JOIN categories c ON c.id = zec.category_id';
+        $where = [];
+        $types = '';
+        $params = [];
+        if ($status !== '') { $where[] = 'ze.status = ?'; $types .= 's'; $params[] = $status; }
+        if ($q !== '') {
+            $like = '%' . $q . '%';
+            $where[] = '(ze.title LIKE ? OR ze.type LIKE ? OR ze.content LIKE ? OR ze.event_location LIKE ?)';
+            $types .= 'ssss';
+            array_push($params, $like, $like, $like, $like);
+        }
+        if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
+        $sql .= ' GROUP BY ze.id, ze.title, ze.slug, ze.type, ze.status, ze.published_at,
+                          ze.content, ze.feature_image_url, ze.event_location, ze.event_start_date, ze.event_end_date, ze.event_time_label,
+                          ze.recurrence_mode, ze.recurrence_day_of_week, ze.archive_at, ze.created_at, ze.updated_at
+                  ORDER BY ze.updated_at DESC';
+        $stmt = db_prepare($db, $sql, $types, $params);
+        $stmt->execute();
+        $rows = db_fetch_all($stmt);
+        $items = array_map(function ($row) {
+            $row['category_ids'] = $row['category_ids'] ? array_values(array_filter(array_map('intval', explode(',', $row['category_ids'])))) : [];
+            $row['categories'] = $row['categories'] ? array_values(array_filter(array_map('trim', explode(',', $row['categories'])))) : [];
+            return $row;
+        }, $rows);
+        json_ok(['items' => $items]);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin']);
+        require_csrf();
+        $payload = read_json();
+        $title = trim($payload['title'] ?? '');
+        $content = $payload['content'] ?? '';
+        $type = trim($payload['type'] ?? '');
+        $status = trim($payload['status'] ?? 'draft');
+        $featureImageUrl = trim($payload['feature_image_url'] ?? '');
+        $eventLocation = trim($payload['event_location'] ?? '');
+        $schedule = normalize_state_post_schedule_payload($payload);
+        $eventTimeLabel = trim($payload['event_time_label'] ?? '');
+        $categoryIds = $payload['category_ids'] ?? [];
+        if ($title === '' || $content === '' || $type === '') json_error('Title, content, and type are required', 422);
+        if (!in_array($status, ['draft', 'published'], true)) json_error('Invalid status', 422);
+        $slug = slugify_value($title);
+        if ($slug === '') json_error('Invalid title', 422);
+        $stmt = db_prepare($db, 'SELECT id FROM zonal_events WHERE slug = ? LIMIT 1', 's', [$slug]);
+        $stmt->execute();
+        if (db_fetch_all($stmt)) json_error('Event slug already exists', 409);
+        $publishedAt = null;
+        if ($status === 'published') {
+            $publishedAt = trim($payload['published_at'] ?? '') ?: date('Y-m-d H:i:s');
+        }
+        $stmt = db_prepare($db,
+            'INSERT INTO zonal_events (title, slug, feature_image_url, content, type, status, published_at, event_location, event_start_date, event_end_date, event_time_label, recurrence_mode, recurrence_day_of_week, created_by, updated_by, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            'sssssssssssssii',
+            [$title, $slug, $featureImageUrl ?: null, $content, $type, $status, $publishedAt, $eventLocation ?: null, $schedule['event_start_date'], $schedule['event_end_date'], $eventTimeLabel ?: null, $schedule['recurrence_mode'], $schedule['recurrence_day_of_week'], $user['id'], $user['id']]
+        );
+        $stmt->execute();
+        $eventId = (int)$db->insert_id;
+        if ($categoryIds) sync_zonal_event_categories($db, $eventId, is_array($categoryIds) ? $categoryIds : []);
+        json_ok(['message' => 'Zonal event created'], 201);
+    }
+}
+
+if (preg_match('#^/zonal/events/(\d+)$#', $path, $matches)) {
+    $user = require_roles(['administrator', 'zonal_cord', 'zonal_admin']);
+    require_csrf();
+    $eventId = (int)$matches[1];
+    $stmt = db_prepare($db, 'SELECT * FROM zonal_events WHERE id = ? LIMIT 1', 'i', [$eventId]);
+    $stmt->execute();
+    $rows = db_fetch_all($stmt);
+    if (!$rows) json_error('Not found', 404);
+    $event = $rows[0];
+    if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+        $payload = read_json();
+        $title = trim($payload['title'] ?? $event['title']);
+        $content = $payload['content'] ?? $event['content'];
+        $type = trim($payload['type'] ?? $event['type']);
+        $status = trim($payload['status'] ?? $event['status']);
+        $featureImageUrl = trim($payload['feature_image_url'] ?? $event['feature_image_url'] ?? '');
+        $eventLocation = trim($payload['event_location'] ?? $event['event_location'] ?? '');
+        $schedule = normalize_state_post_schedule_payload([
+            'recurrence_mode' => $payload['recurrence_mode'] ?? $event['recurrence_mode'] ?? 'one_time',
+            'recurrence_day_of_week' => $payload['recurrence_day_of_week'] ?? $event['recurrence_day_of_week'] ?? '',
+            'event_start_date' => $payload['event_start_date'] ?? $event['event_start_date'] ?? '',
+            'event_end_date' => $payload['event_end_date'] ?? $event['event_end_date'] ?? '',
+        ]);
+        if ($title === '' || $content === '' || $type === '') json_error('Title, content, and type are required', 422);
+        $slug = $event['slug'];
+        if ($title !== $event['title']) {
+            $slug = slugify_value($title);
+            $stmt = db_prepare($db, 'SELECT id FROM zonal_events WHERE slug = ? AND id <> ? LIMIT 1', 'si', [$slug, $eventId]);
+            $stmt->execute();
+            if (db_fetch_all($stmt)) json_error('Event slug already exists', 409);
+        }
+        $publishedAt = $status === 'published' ? (trim($payload['published_at'] ?? $event['published_at'] ?? '') ?: date('Y-m-d H:i:s')) : null;
+        $eventTimeLabel = trim($payload['event_time_label'] ?? $event['event_time_label'] ?? '');
+        $stmt = db_prepare($db,
+            'UPDATE zonal_events SET title = ?, slug = ?, feature_image_url = ?, content = ?, type = ?, status = ?, published_at = ?, event_location = ?, event_start_date = ?, event_end_date = ?, event_time_label = ?, recurrence_mode = ?, recurrence_day_of_week = ?, updated_by = ?, updated_at = NOW() WHERE id = ?',
+            'sssssssssssssii',
+            [$title, $slug, $featureImageUrl ?: null, $content, $type, $status, $publishedAt, $eventLocation ?: null, $schedule['event_start_date'], $schedule['event_end_date'], $eventTimeLabel ?: null, $schedule['recurrence_mode'], $schedule['recurrence_day_of_week'], $user['id'], $eventId]
+        );
+        $stmt->execute();
+        sync_zonal_event_categories($db, $eventId, is_array($payload['category_ids'] ?? []) ? $payload['category_ids'] : []);
+        json_ok(['message' => 'Zonal event updated']);
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+        $stmt = db_prepare($db, 'DELETE FROM zonal_events WHERE id = ?', 'i', [$eventId]);
+        $stmt->execute();
+        json_ok(['message' => 'Zonal event deleted']);
+    }
+}
+
+if ($path === '/public/zonal-events.php' || $path === '/public/zonal-events') {
+    require_method('GET');
+    $q = trim($_GET['q'] ?? '');
+    $sql = 'SELECT id, "zonal" AS scope, "DLCF South West" AS state_name, title, slug, feature_image_url, content, type, status, published_at, event_location, event_start_date, event_end_date, event_time_label, recurrence_mode, recurrence_day_of_week, created_at, updated_at FROM zonal_events WHERE status = "published"';
+    $types = '';
+    $params = [];
+    if ($q !== '') {
+        $like = '%' . $q . '%';
+        $sql .= ' AND (title LIKE ? OR type LIKE ? OR content LIKE ? OR event_location LIKE ?)';
+        $types = 'ssss';
+        $params = [$like, $like, $like, $like];
+    }
+    $sql .= ' ORDER BY event_start_date IS NULL ASC, event_start_date ASC, published_at DESC, id DESC';
+    $stmt = db_prepare($db, $sql, $types, $params);
+    $stmt->execute();
+    json_ok(['items' => db_fetch_all($stmt)]);
+}
+
+if (preg_match('#^/public/zonal-events/([^/]+)$#', $path, $matches)) {
+    require_method('GET');
+    $item = find_public_content_by_identifier($db, 'zonal_events', 'id, title, slug, feature_image_url, content, type, status, published_at, event_location, event_start_date, event_end_date, event_time_label, recurrence_mode, recurrence_day_of_week, created_at, updated_at', trim($matches[1]));
+    if (!$item || ($item['status'] ?? '') !== 'published') json_error('Not found', 404);
+    $item['state_name'] = 'DLCF South West';
+    json_ok(['item' => $item]);
 }
 
 if ($path === '/state/posts') {
