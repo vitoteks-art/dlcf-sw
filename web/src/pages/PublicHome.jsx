@@ -153,6 +153,7 @@ export default function PublicHome({ states, stateSummaries, user }) {
   const [stateMediaItems, setStateMediaItems] = useState([]);
   const [statePublicationItems, setStatePublicationItems] = useState([]);
   const [featuredGivingItems, setFeaturedGivingItems] = useState([]);
+  const [zonalEvents, setZonalEvents] = useState([]);
 
   useEffect(() => {
     apiFetch("/public/main-home.php")
@@ -177,6 +178,9 @@ export default function PublicHome({ states, stateSummaries, user }) {
     apiFetch("/giving-campaigns?scope=zonal&featured=1")
       .then((data) => setFeaturedGivingItems(data.items || []))
       .catch(() => setFeaturedGivingItems([]));
+    apiFetch("/public/zonal-events.php")
+      .then((data) => setZonalEvents(data.items || []))
+      .catch(() => setZonalEvents([]));
   }, []);
 
   const featuredMedia = useMemo(() => mediaItems.slice(0, 3), [mediaItems]);
@@ -189,7 +193,13 @@ export default function PublicHome({ states, stateSummaries, user }) {
   const aboutImage = useMemo(() => normalizeImageUrl(content.about.imageUrl, "/hero-image.jpg"), [content.about.imageUrl]);
   const mentorImage = useMemo(() => normalizeImageUrl(content.mentor.imageUrl, "/src/assets/gs.png"), [content.mentor.imageUrl]);
   const dashboardItems = content.eventsAnnouncements.items || [];
-  const dashboardEvents = dashboardItems.filter((item) => !/announcement|news|update/i.test(String(item.type || ""))).slice(0, 2);
+  const dashboardEvents = (zonalEvents.length ? zonalEvents.map((item) => ({
+    ...item,
+    title: item.title,
+    meta: item.event_start_date || item.event_time_label || "TBA",
+    imageUrl: item.feature_image_url,
+    url: `/events/${item.slug || item.id}`,
+  })) : dashboardItems.filter((item) => !/announcement|news|update/i.test(String(item.type || "")))).slice(0, 2);
   const dashboardAnnouncements = dashboardItems.filter((item) => /announcement|news|update/i.test(String(item.type || ""))).slice(0, 3);
   const dashboardStates = (Array.isArray(states) ? states : []).slice(0, 5).map((state) => {
     const stateName = typeof state === "string" ? state : state?.name || state;
@@ -288,13 +298,13 @@ export default function PublicHome({ states, stateSummaries, user }) {
             </div>
             <div className="homepage-dashboard__list">
               {dashboardEvents.length === 0 ? <p className="homepage-dashboard__empty">Featured events will appear here.</p> : dashboardEvents.map((item, idx) => (
-                <div key={`${item.title}-${idx}`} className="homepage-dashboard__event-item">
-                  <div className="homepage-dashboard__thumb" />
+                <Link key={`${item.title}-${idx}`} to={item.url || "/events"} className="homepage-dashboard__event-item">
+                  <DashboardThumb className="homepage-dashboard__thumb" src={normalizeImageUrl(item.imageUrl || item.feature_image_url, "")} alt={item.title} />
                   <div>
                     <strong>{item.title}</strong>
-                    <p>{item.meta || "Upcoming event"}</p>
+                    <p>{item.meta || "TBA"}</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </article>

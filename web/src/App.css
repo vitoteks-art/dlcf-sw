@@ -7139,3 +7139,7 @@ button:disabled {
 .homepage-dashboard__media-cover:empty::after,
 .homepage-dashboard__resource-cover:empty::after { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(216, 177, 105, 0.32) 0%, rgba(36, 52, 74, 0.96) 100%); }
 .homepage-dashboard__resource-item { display: flex; gap: 12px; align-items: flex-start; }
+.homepage-dashboard__event-item { text-decoration: none; }
+.homepage-dashboard__thumb { overflow: hidden; position: relative; }
+.homepage-dashboard__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.homepage-dashboard__thumb:empty::after { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(216, 177, 105, 0.55) 0%, rgba(52, 72, 98, 0.95) 100%); }
