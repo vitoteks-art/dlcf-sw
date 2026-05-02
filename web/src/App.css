@@ -7104,3 +7104,27 @@ button:disabled {
 .file-preview img { width: 100%; height: 150px; object-fit: cover; display: block; }
 .file-card small { color: var(--muted); }
 .file-detail-image { width: 100%; max-height: 360px; object-fit: contain; border-radius: 14px; background: rgba(0,0,0,.25); border: 1px solid var(--border); margin-bottom: 12px; }
+
+/* File Manager polish: prevent card/text/button overlap with long uploaded names */
+.file-manager-admin .card { overflow: hidden; }
+.file-manager-admin .section-header { align-items: flex-start; }
+.file-manager-admin .section-header .form-actions { flex: 1 1 620px; min-width: 280px; justify-content: flex-end; flex-wrap: wrap; margin-top: 0; }
+.file-manager-admin .section-header .form-actions input,
+.file-manager-admin .section-header .form-actions select { min-width: 150px; max-width: 220px; }
+.file-manager-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; align-items: stretch; }
+.file-card { min-width: 0; overflow: hidden; padding: 14px; gap: 10px; align-content: start; }
+.file-preview { width: 100%; min-height: 0; height: auto; aspect-ratio: 16 / 10; border-radius: 14px; }
+.file-preview img { width: 100%; height: 100%; object-fit: cover; display: block; color: transparent; font-size: 0; }
+.file-preview .wp-file-icon { width: 100%; height: 100%; min-height: 128px; border-radius: 12px; }
+.file-card-title { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; line-height: 1.25; font-size: 0.98rem; }
+.file-card-meta { display: flex; gap: 8px; align-items: center; justify-content: space-between; min-width: 0; }
+.file-card-meta small:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-card-usage { color: var(--muted); }
+.file-card-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+.file-card-actions .btn-sm { width: 100%; padding: 0.55rem 0.45rem; text-align: center; }
+@media (max-width: 760px) {
+  .file-manager-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+  .file-card-actions { grid-template-columns: 1fr; }
+  .file-manager-admin .section-header .form-actions input,
+  .file-manager-admin .section-header .form-actions select { width: 100%; max-width: none; }
+}
