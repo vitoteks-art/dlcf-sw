@@ -2021,7 +2021,7 @@ if ($path === '/attendance-access/logout') {
 
 if ($path === '/admin/uploads') {
     require_method('POST');
-    $user = require_auth();
+    require_auth();
     $user = current_user();
     if (!can_manage_media($user)
         && !can_manage_publications($user)
@@ -2141,7 +2141,8 @@ if ($path === '/admin/uploads') {
 
 if ($path === '/admin/media-assets') {
     require_method('GET');
-    $user = require_auth();
+    require_auth();
+    $user = current_user();
     if (!can_manage_media_assets($user)) json_error('Forbidden', 403);
     require_media_assets_table($db);
 
@@ -2244,7 +2245,8 @@ if ($path === '/admin/media-assets') {
 
 if (preg_match('#^/admin/media-assets/(\d+)$#', $path, $matches)) {
     $id = (int)$matches[1];
-    $user = require_auth();
+    require_auth();
+    $user = current_user();
     if (!can_manage_media_assets($user)) json_error('Forbidden', 403);
     require_media_assets_table($db);
     $stmt = db_prepare($db, 'SELECT * FROM media_assets WHERE id = ? LIMIT 1', 'i', [$id]);
@@ -2278,7 +2280,8 @@ if (preg_match('#^/admin/media-assets/(\d+)/(archive|restore)$#', $path, $matche
     require_method('POST');
     $id = (int)$matches[1];
     $action = $matches[2];
-    $user = require_auth();
+    require_auth();
+    $user = current_user();
     if (!can_manage_media_assets($user)) json_error('Forbidden', 403);
     require_media_assets_table($db);
     require_csrf();
@@ -3305,7 +3308,7 @@ if (preg_match('#^/publication-items/([A-Za-z0-9_-]+)$#', $path, $matches)) {
 }
 
 if ($path === '/admin/media-items') {
-    $user = require_auth();
+    require_auth();
     $user = current_user();
     if (!can_manage_media($user) && !can_publish_media($user)) {
         json_error('Forbidden', 403);
@@ -3416,7 +3419,7 @@ if ($path === '/admin/media-items') {
 }
 
 if (preg_match('#^/admin/media-items/(\d+)$#', $path, $matches)) {
-    $user = require_auth();
+    require_auth();
     $user = current_user();
     if (!can_manage_media($user) && !can_publish_media($user)) {
         json_error('Forbidden', 403);
@@ -3511,7 +3514,7 @@ if ($path === '/state-gallery-items') {
 }
 
 if ($path === '/admin/media-items') {
-    $user = require_auth();
+    require_auth();
     $user = current_user();
     if (!can_manage_media($user) && !can_publish_media($user)) {
         json_error('Forbidden', 403);
@@ -3616,7 +3619,7 @@ if ($path === '/admin/media-items') {
 }
 
 if (preg_match('#^/admin/media-items/(\\d+)$#', $path, $matches)) {
-    $user = require_auth();
+    require_auth();
     $user = current_user();
     if (!can_manage_media($user) && !can_publish_media($user)) {
         json_error('Forbidden', 403);
@@ -3710,7 +3713,7 @@ if (preg_match('#^/admin/media-items/(\\d+)$#', $path, $matches)) {
 }
 
 if ($path === '/admin/state-gallery-items') {
-    $user = require_auth();
+    require_auth();
     $user = current_user();
     if (!can_manage_state_gallery($user)) {
         json_error('Forbidden', 403);
@@ -3799,7 +3802,7 @@ if ($path === '/admin/state-gallery-items') {
 }
 
 if (preg_match('#^/admin/state-gallery-items/(\\d+)$#', $path, $matches)) {
-    $user = require_auth();
+    require_auth();
     $user = current_user();
     if (!can_manage_state_gallery($user)) {
         json_error('Forbidden', 403);
@@ -3874,7 +3877,7 @@ if (preg_match('#^/admin/state-gallery-items/(\\d+)$#', $path, $matches)) {
 }
 
 if ($path === '/admin/giving-campaigns') {
-    $user = require_auth();
+    require_auth();
     $user = current_user();
     if (!can_manage_giving($user) && !can_publish_media($user)) {
         json_error('Forbidden', 403);
@@ -3985,7 +3988,7 @@ if ($path === '/admin/giving-campaigns') {
 }
 
 if (preg_match('#^/admin/giving-campaigns/(\\d+)$#', $path, $matches)) {
-    $user = require_auth();
+    require_auth();
     $user = current_user();
     if (!can_manage_giving($user) && !can_publish_media($user)) {
         json_error('Forbidden', 403);
@@ -4084,7 +4087,7 @@ if (preg_match('#^/admin/giving-campaigns/(\\d+)$#', $path, $matches)) {
 }
 
 if ($path === '/admin/publication-items') {
-    $user = require_auth();
+    require_auth();
     $user = current_user();
     if (!can_manage_publications($user) && !can_publish_media($user)) {
         json_error('Forbidden', 403);
@@ -4172,7 +4175,7 @@ if ($path === '/admin/publication-items') {
 }
 
 if (preg_match('#^/admin/publication-items/(\d+)$#', $path, $matches)) {
-    $user = require_auth();
+    require_auth();
     $user = current_user();
     if (!can_manage_publications($user) && !can_publish_media($user)) json_error('Forbidden', 403);
     $id = (int) $matches[1];
