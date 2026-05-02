@@ -2145,62 +2145,131 @@ if ($path === '/admin/media-assets') {
     if (!can_manage_media_assets($user)) json_error('Forbidden', 403);
     require_media_assets_table($db);
 
+    $defaultAsset = [
+        'id' => null,
+        'title' => '',
+        'original_filename' => '',
+        'stored_filename' => '',
+        'mime_type' => '',
+        'file_ext' => '',
+        'file_type' => '',
+        'file_size' => 0,
+        'folder' => '',
+        'url' => '',
+        'scope' => '',
+        'state' => '',
+        'usage_context' => '',
+        'alt_text' => '',
+        'caption' => '',
+        'description' => '',
+        'uploaded_by' => '',
+        'uploaded_by_name' => '',
+        'uploaded_at' => '',
+        'status' => 'active',
+        'archived_at' => '',
+        'deleted_at' => '',
+        'deleted_by' => '',
+        'updated_at' => '',
+        'usage_count' => 0,
+    ];
+
     try {
+        $columnsResult = $db->query('SHOW COLUMNS FROM media_assets');
+        $availableColumns = [];
+        while ($column = $columnsResult->fetch_assoc()) {
+            $availableColumns[$column['Field']] = true;
+        }
+
+        if (empty($availableColumns['id'])) {
+            json_error('Media File Manager table exists but is incomplete: missing id column.', 500);
+        }
+
+        $wantedColumns = ['id', 'title', 'original_filename', 'stored_filename', 'mime_type', 'file_ext', 'file_type', 'file_size', 'folder', 'url', 'scope', 'state', 'usage_context', 'alt_text', 'caption', 'description', 'uploaded_by', 'uploaded_at', 'status', 'archived_at', 'deleted_at', 'deleted_by', 'updated_at'];
+        $selectColumns = [];
+        foreach ($wantedColumns as $columnName) {
+            if (!empty($availableColumns[$columnName])) {
+                $selectColumns[] = '`' . $columnName . '`';
+            }
+        }
+        if (empty($selectColumns)) {
+            $selectColumns[] = '`id`';
+        }
+
         $limit = min(100, max(1, (int)($_GET['limit'] ?? 60)));
         $offset = max(0, (int)($_GET['offset'] ?? 0));
         $where = 'WHERE 1=1';
         $types = '';
         $params = [];
 
+        $addEqualsFilter = function (string $columnName, string $value) use (&$where, &$types, &$params, $availableColumns): void {
+            if ($value === '' || empty($availableColumns[$columnName])) return;
+            $where .= ' AND `' . $columnName . '` = ?';
+            $types .= 's';
+            $params[] = $value;
+        };
+
         if (!is_zonal_scope_role($user)) {
             if (empty($user['state'])) json_error('No state assigned to this user', 403);
-            $where .= ' AND scope = ? AND state = ?';
-            $types .= 'ss';
-            $params[] = 'state';
-            $params[] = $user['state'];
+            if (!empty($availableColumns['scope']) && !empty($availableColumns['state'])) {
+                $where .= ' AND `scope` = ? AND `state` = ?';
+                $types .= 'ss';
+                $params[] = 'state';
+                $params[] = $user['state'];
+            }
         }
 
-        $fileType = trim($_GET['file_type'] ?? '');
-        if ($fileType !== '') { $where .= ' AND file_type = ?'; $types .= 's'; $params[] = $fileType; }
-        $scope = trim($_GET['scope'] ?? '');
-        if ($scope !== '') { $where .= ' AND scope = ?'; $types .= 's'; $params[] = $scope; }
-        $state = trim($_GET['state'] ?? '');
-        if ($state !== '') { $where .= ' AND state = ?'; $types .= 's'; $params[] = $state; }
-        $status = trim($_GET['status'] ?? '');
-        if ($status !== '') { $where .= ' AND status = ?'; $types .= 's'; $params[] = $status; }
-        $usageContext = trim($_GET['usage_context'] ?? '');
-        if ($usageContext !== '') { $where .= ' AND usage_context = ?'; $types .= 's'; $params[] = $usageContext; }
+        $addEqualsFilter('file_type', trim($_GET['file_type'] ?? ''));
+        $addEqualsFilter('scope', trim($_GET['scope'] ?? ''));
+        $addEqualsFilter('state', trim($_GET['state'] ?? ''));
+        $addEqualsFilter('status', trim($_GET['status'] ?? ''));
+        $addEqualsFilter('usage_context', trim($_GET['usage_context'] ?? ''));
+
         $q = trim($_GET['q'] ?? '');
-        if ($q !== '') {
+        $searchableColumns = array_values(array_filter(['title', 'original_filename', 'url', 'caption'], fn($columnName) => !empty($availableColumns[$columnName])));
+        if ($q !== '' && !empty($searchableColumns)) {
             $like = '%' . $q . '%';
-            $where .= ' AND (title LIKE ? OR original_filename LIKE ? OR url LIKE ?)';
-            $types .= 'sss';
-            array_push($params, $like, $like, $like);
+            $clauses = [];
+            foreach ($searchableColumns as $columnName) {
+                $clauses[] = '`' . $columnName . '` LIKE ?';
+                $types .= 's';
+                $params[] = $like;
+            }
+            $where .= ' AND (' . implode(' OR ', $clauses) . ')';
         }
 
-        $columns = 'id, title, original_filename, stored_filename, mime_type, file_ext, file_type, file_size, folder, url, scope, state, usage_context, alt_text, caption, description, uploaded_by, uploaded_at, status, archived_at, deleted_at, deleted_by, updated_at';
-        $sql = "SELECT $columns FROM media_assets $where ORDER BY id DESC LIMIT ? OFFSET ?";
-        $stmt = db_prepare($db, $sql, $types . 'ii', [...$params, $limit, $offset]);
+        $orderColumn = !empty($availableColumns['id']) ? '`id`' : $selectColumns[0];
+        $sql = 'SELECT ' . implode(', ', $selectColumns) . " FROM media_assets $where ORDER BY $orderColumn DESC LIMIT ? OFFSET ?";
+        $stmt = $db->prepare($sql);
+        if (!$stmt) {
+            throw new RuntimeException('Primary prepare failed: ' . $db->error . ' | SQL: ' . $sql);
+        }
+        $bindTypes = $types . 'ii';
+        $bindParams = array_merge($params, [$limit, $offset]);
+        $stmt->bind_param($bindTypes, ...$bindParams);
         $stmt->execute();
-        $items = db_fetch_all($stmt);
+        $result = $stmt->get_result();
+        $items = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
         foreach ($items as &$item) {
+            $item = array_merge($defaultAsset, $item);
             $item['uploaded_by_name'] = '';
             $item['usage_count'] = 0;
         }
         json_ok(['items' => $items]);
     } catch (Throwable $e) {
-        // Final fallback: if a live schema is missing one optional column, still make File Manager usable.
         try {
-            $stmt = db_prepare($db, 'SELECT id, title, original_filename, stored_filename, file_type, file_size, url, scope, state, status FROM media_assets ORDER BY id DESC LIMIT 60', '', []);
-            $stmt->execute();
-            $items = db_fetch_all($stmt);
+            $fallbackColumns = [];
+            $fallbackResult = $db->query('SHOW COLUMNS FROM media_assets');
+            while ($column = $fallbackResult->fetch_assoc()) {
+                if (in_array($column['Field'], ['id', 'title', 'original_filename', 'stored_filename', 'file_type', 'file_size', 'url', 'scope', 'state', 'status'], true)) {
+                    $fallbackColumns[] = '`' . $column['Field'] . '`';
+                }
+            }
+            if (empty($fallbackColumns)) $fallbackColumns = ['`id`'];
+            $fallbackSql = 'SELECT ' . implode(', ', $fallbackColumns) . ' FROM media_assets ORDER BY `id` DESC LIMIT 60';
+            $result = $db->query($fallbackSql);
+            $items = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
             foreach ($items as &$item) {
-                $item += [
-                    'mime_type' => '', 'file_ext' => '', 'folder' => '', 'usage_context' => '', 'alt_text' => '',
-                    'caption' => '', 'description' => '', 'uploaded_by' => '', 'uploaded_by_name' => '',
-                    'uploaded_at' => '', 'archived_at' => '', 'deleted_at' => '', 'deleted_by' => '', 'updated_at' => '',
-                    'usage_count' => 0,
-                ];
+                $item = array_merge($defaultAsset, $item);
             }
             json_ok(['items' => $items, 'warning' => 'File Manager loaded using fallback mode. Primary error: ' . $e->getMessage()]);
         } catch (Throwable $fallbackError) {
