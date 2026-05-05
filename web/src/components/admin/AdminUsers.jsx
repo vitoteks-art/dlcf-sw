@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import SearchableSelect from "./SearchableSelect";
 
 export default function AdminUsers({
     user,
@@ -29,10 +30,29 @@ export default function AdminUsers({
     toggleWorkUnit,
 }) {
     const [showAddForm, setShowAddForm] = useState(false);
+    const [userSearch, setUserSearch] = useState("");
     const isStateScopedAdmin = user && ["state_cord", "state_admin"].includes(user.role);
     const isRegionScopedAdmin = user && ["region_cord", "region_admin", "associate_cord"].includes(user.role);
     const isScopedAdmin = isStateScopedAdmin || isRegionScopedAdmin;
     const visibleStateOptions = isScopedAdmin ? (user?.state ? [user.state] : []) : stateOptions;
+    const filteredAdminUsers = useMemo(() => {
+        const q = userSearch.trim().toLowerCase();
+        if (!q) return adminUsers;
+        return adminUsers.filter((item) => {
+            const haystack = [
+                item.name,
+                item.email,
+                item.phone,
+                item.phone_number,
+                item.mobile,
+                item.role,
+                item.state,
+                item.region,
+                item.fellowship_centre,
+            ].join(" ").toLowerCase();
+            return haystack.includes(q);
+        });
+    }, [adminUsers, userSearch]);
 
     return (
         <div className="admin-section">
@@ -94,63 +114,46 @@ export default function AdminUsers({
                                     ))}
                                 </select>
                             </label>
-                            <label>
-                                State
-                                <select
-                                    value={newUser.state}
-                                    onChange={(e) =>
-                                        setNewUser({
-                                            ...newUser,
-                                            state: isScopedAdmin ? (user?.state || "") : e.target.value,
-                                            region: "",
-                                            fellowship_centre: "",
-                                        })
-                                    }
-                                    disabled={!!isScopedAdmin}
-                                >
-                                    <option value="">Select state</option>
-                                    {visibleStateOptions.map((state) => (
-                                        <option key={state} value={state}>{state}</option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label>
-                                Region
-                                <select
-                                    value={newUser.region}
-                                    onChange={(e) =>
-                                        setNewUser({
-                                            ...newUser,
-                                            region: e.target.value,
-                                            fellowship_centre: "",
-                                        })
-                                    }
-                                    disabled={!newUser.state}
-                                >
-                                    <option value="">Select region</option>
-                                    {newUserRegions.map((region) => (
-                                        <option key={region} value={region}>{region}</option>
-                                    ))}
-                                </select>
-                            </label>
+                            <SearchableSelect
+                                label="State"
+                                value={newUser.state}
+                                onChange={(value) =>
+                                    setNewUser({
+                                        ...newUser,
+                                        state: isScopedAdmin ? (user?.state || "") : value,
+                                        region: "",
+                                        fellowship_centre: "",
+                                    })
+                                }
+                                options={visibleStateOptions}
+                                placeholder="Type to search state"
+                                disabled={!!isScopedAdmin}
+                            />
+                            <SearchableSelect
+                                label="Region"
+                                value={newUser.region}
+                                onChange={(value) =>
+                                    setNewUser({
+                                        ...newUser,
+                                        region: value,
+                                        fellowship_centre: "",
+                                    })
+                                }
+                                options={newUserRegions}
+                                placeholder="Type to search region"
+                                disabled={!newUser.state}
+                            />
                         </div>
 
                         <div className="grid-2">
-                            <label>
-                                Fellowship Centre
-                                <select
-                                    value={newUser.fellowship_centre}
-                                    onChange={(e) =>
-                                        setNewUser({ ...newUser, fellowship_centre: e.target.value })
-                                    }
-                                    disabled={!newUser.region}
-                                >
-                                    <option value="">Select centre</option>
-                                    {newUserCentres.map((centre) => (
-                                        <option key={centre} value={centre}>{centre}</option>
-                                    ))}
-                                </select>
-                            </label>
+                            <SearchableSelect
+                                label="Fellowship Centre"
+                                value={newUser.fellowship_centre}
+                                onChange={(value) => setNewUser({ ...newUser, fellowship_centre: value })}
+                                options={newUserCentres}
+                                placeholder="Type to search centre"
+                                disabled={!newUser.region}
+                            />
                             <label>
                                 Work Units
                                 <div className="checkbox-grid small-text">
@@ -223,63 +226,46 @@ export default function AdminUsers({
                                     ))}
                                 </select>
                             </label>
-                            <label>
-                                State
-                                <select
-                                    value={editUser.state}
-                                    onChange={(e) =>
-                                        setEditUser({
-                                            ...editUser,
-                                            state: isScopedAdmin ? (user?.state || "") : e.target.value,
-                                            region: "",
-                                            fellowship_centre: "",
-                                        })
-                                    }
-                                    disabled={!!isScopedAdmin}
-                                >
-                                    <option value="">Select state</option>
-                                    {visibleStateOptions.map((state) => (
-                                        <option key={state} value={state}>{state}</option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label>
-                                Region
-                                <select
-                                    value={editUser.region}
-                                    onChange={(e) =>
-                                        setEditUser({
-                                            ...editUser,
-                                            region: e.target.value,
-                                            fellowship_centre: "",
-                                        })
-                                    }
-                                    disabled={!editUser.state}
-                                >
-                                    <option value="">Select region</option>
-                                    {editUserRegions.map((region) => (
-                                        <option key={region} value={region}>{region}</option>
-                                    ))}
-                                </select>
-                            </label>
+                            <SearchableSelect
+                                label="State"
+                                value={editUser.state}
+                                onChange={(value) =>
+                                    setEditUser({
+                                        ...editUser,
+                                        state: isScopedAdmin ? (user?.state || "") : value,
+                                        region: "",
+                                        fellowship_centre: "",
+                                    })
+                                }
+                                options={visibleStateOptions}
+                                placeholder="Type to search state"
+                                disabled={!!isScopedAdmin}
+                            />
+                            <SearchableSelect
+                                label="Region"
+                                value={editUser.region}
+                                onChange={(value) =>
+                                    setEditUser({
+                                        ...editUser,
+                                        region: value,
+                                        fellowship_centre: "",
+                                    })
+                                }
+                                options={editUserRegions}
+                                placeholder="Type to search region"
+                                disabled={!editUser.state}
+                            />
                         </div>
 
                         <div className="grid-2">
-                            <label>
-                                Fellowship Centre
-                                <select
-                                    value={editUser.fellowship_centre}
-                                    onChange={(e) =>
-                                        setEditUser({ ...editUser, fellowship_centre: e.target.value })
-                                    }
-                                    disabled={!editUser.region}
-                                >
-                                    <option value="">Select centre</option>
-                                    {editUserCentres.map((centre) => (
-                                        <option key={centre} value={centre}>{centre}</option>
-                                    ))}
-                                </select>
-                            </label>
+                            <SearchableSelect
+                                label="Fellowship Centre"
+                                value={editUser.fellowship_centre}
+                                onChange={(value) => setEditUser({ ...editUser, fellowship_centre: value })}
+                                options={editUserCentres}
+                                placeholder="Type to search centre"
+                                disabled={!editUser.region}
+                            />
                             <label>
                                 Work Units
                                 <div className="checkbox-grid small-text">
@@ -306,25 +292,45 @@ export default function AdminUsers({
             )}
 
             <div className="table-container card">
+                <div className="admin-list-toolbar">
+                    <div>
+                        <h4>Users</h4>
+                        <p className="small-text">Showing {filteredAdminUsers.length} of {adminUsers.length} users</p>
+                    </div>
+                    <div className="admin-search-box">
+                        <span className="material-symbols-outlined">search</span>
+                        <input
+                            type="text"
+                            value={userSearch}
+                            onChange={(e) => setUserSearch(e.target.value)}
+                            placeholder="Search users by name, email, or phone..."
+                        />
+                        {userSearch ? <button type="button" onClick={() => setUserSearch("")}>Clear</button> : null}
+                    </div>
+                </div>
                 <table className="data-table">
                     <thead>
                         <tr>
                             <th>Name</th>
                             <th>Email</th>
+                            <th>Phone</th>
                             <th>Role</th>
                             <th>State</th>
                             <th>Region</th>
+                            <th>Fellowship</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {adminUsers.map((user) => (
+                        {filteredAdminUsers.map((user) => (
                             <tr key={user.id} className={editUserId === String(user.id) ? "active-row" : ""}>
                                 <td>{user.name}</td>
                                 <td>{user.email}</td>
+                                <td>{user.phone || user.phone_number || user.mobile || "-"}</td>
                                 <td><span className="role-badge">{user.role}</span></td>
                                 <td>{user.state || "-"}</td>
                                 <td>{user.region || "-"}</td>
+                                <td>{user.fellowship_centre || "-"}</td>
                                 <td className="actions-cell">
                                     <button
                                         className="btn-sm btn-outline"
@@ -345,9 +351,9 @@ export default function AdminUsers({
                                 </td>
                             </tr>
                         ))}
-                        {adminUsers.length === 0 && (
+                        {filteredAdminUsers.length === 0 && (
                             <tr>
-                                <td colSpan="6" className="text-center">No users found</td>
+                                <td colSpan="8" className="text-center">No users found</td>
                             </tr>
                         )}
                     </tbody>

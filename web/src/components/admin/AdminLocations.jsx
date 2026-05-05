@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { apiFetch } from "../../api";
+import SearchableSelect from "./SearchableSelect";
 
 export default function AdminLocations(props) {
     const [activeTab, setActiveTab] = useState("states");
@@ -147,20 +148,15 @@ function RegionsPanel({
                 <h4>{isEditing ? "Edit Region" : "Add New Region"}</h4>
                 <form onSubmit={isEditing ? handleEditRegion : handleAddRegion} className="form compact-form">
                     <div className="grid-2">
-                        <label>
-                            State
-                            <select
-                                value={isStateScopedAdmin ? (user?.state || "") : (isEditing ? (adminRegionEditState || adminRegionState) : adminRegionState)}
-                                onChange={(e) => isEditing ? setAdminRegionEditState(isStateScopedAdmin ? (user?.state || "") : e.target.value) : setAdminRegionState(isStateScopedAdmin ? (user?.state || "") : e.target.value)}
-                                disabled={!!isStateScopedAdmin}
-                                required
-                            >
-                                <option value="">Select state</option>
-                                {visibleStateOptions.map((state) => (
-                                    <option key={state} value={state}>{state}</option>
-                                ))}
-                            </select>
-                        </label>
+                        <SearchableSelect
+                            label="State"
+                            value={isStateScopedAdmin ? (user?.state || "") : (isEditing ? (adminRegionEditState || adminRegionState) : adminRegionState)}
+                            onChange={(value) => isEditing ? setAdminRegionEditState(isStateScopedAdmin ? (user?.state || "") : value) : setAdminRegionState(isStateScopedAdmin ? (user?.state || "") : value)}
+                            options={visibleStateOptions}
+                            placeholder="Type to search state"
+                            disabled={!!isStateScopedAdmin}
+                            required
+                        />
                         <label>
                             Region Name
                             <input
@@ -262,6 +258,17 @@ function FellowshipsPanel({
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState("");
     const [uploadErrors, setUploadErrors] = useState([]);
+    const [fellowshipSearch, setFellowshipSearch] = useState("");
+    const filteredFellowships = useMemo(() => {
+        const q = fellowshipSearch.trim().toLowerCase();
+        if (!q) return adminFellowships;
+        return adminFellowships.filter((centre) => {
+            const haystack = [centre.name, centre.state, centre.region, centre.address, centre.description]
+                .join(" ")
+                .toLowerCase();
+            return haystack.includes(q);
+        });
+    }, [adminFellowships, fellowshipSearch]);
 
     const extractField = (row, field) => {
         const key = Object.keys(row).find(
@@ -362,43 +369,33 @@ function FellowshipsPanel({
                 <h4>{isEditing ? "Edit Fellowship" : "Add New Fellowship"}</h4>
                 <form onSubmit={isEditing ? handleEditFellowship : handleAddFellowship} className="form compact-form">
                     <div className="grid-3">
-                        <label>
-                            State
-                            <select
-                                value={isScopedAdmin ? (user?.state || "") : (isEditing ? (adminFellowshipEditState || adminFellowshipState) : adminFellowshipState)}
-                                onChange={(e) => {
-                                    const nextState = isScopedAdmin ? (user?.state || "") : e.target.value;
-                                    if (isEditing) {
-                                        setAdminFellowshipEditState(nextState);
-                                        setAdminFellowshipEditRegion("");
-                                    } else {
-                                        setAdminFellowshipState(nextState);
-                                        setAdminFellowshipRegion("");
-                                    }
-                                }}
-                                disabled={!!isScopedAdmin}
-                                required
-                            >
-                                <option value="">Select state</option>
-                                {visibleStateOptions.map((state) => (
-                                    <option key={state} value={state}>{state}</option>
-                                ))}
-                            </select>
-                        </label>
-                        <label>
-                            Region
-                            <select
-                                value={isRegionScopedAdmin ? (user?.region || "") : (isEditing ? (adminFellowshipEditRegion || "") : adminFellowshipRegion)}
-                                onChange={(e) => isEditing ? setAdminFellowshipEditRegion(isRegionScopedAdmin ? (user?.region || "") : e.target.value) : setAdminFellowshipRegion(isRegionScopedAdmin ? (user?.region || "") : e.target.value)}
-                                required
-                                disabled={!!isRegionScopedAdmin || (isEditing ? !adminFellowshipEditState : !adminFellowshipState)}
-                            >
-                                <option value="">Select region</option>
-                                {visibleRegionOptions.map((region) => (
-                                    <option key={region} value={region}>{region}</option>
-                                ))}
-                            </select>
-                        </label>
+                        <SearchableSelect
+                            label="State"
+                            value={isScopedAdmin ? (user?.state || "") : (isEditing ? (adminFellowshipEditState || adminFellowshipState) : adminFellowshipState)}
+                            onChange={(value) => {
+                                const nextState = isScopedAdmin ? (user?.state || "") : value;
+                                if (isEditing) {
+                                    setAdminFellowshipEditState(nextState);
+                                    setAdminFellowshipEditRegion("");
+                                } else {
+                                    setAdminFellowshipState(nextState);
+                                    setAdminFellowshipRegion("");
+                                }
+                            }}
+                            options={visibleStateOptions}
+                            placeholder="Type to search state"
+                            disabled={!!isScopedAdmin}
+                            required
+                        />
+                        <SearchableSelect
+                            label="Region"
+                            value={isRegionScopedAdmin ? (user?.region || "") : (isEditing ? (adminFellowshipEditRegion || "") : adminFellowshipRegion)}
+                            onChange={(value) => isEditing ? setAdminFellowshipEditRegion(isRegionScopedAdmin ? (user?.region || "") : value) : setAdminFellowshipRegion(isRegionScopedAdmin ? (user?.region || "") : value)}
+                            options={visibleRegionOptions}
+                            placeholder="Type to search region"
+                            required
+                            disabled={!!isRegionScopedAdmin || (isEditing ? !adminFellowshipEditState : !adminFellowshipState)}
+                        />
                         <label>
                             Fellowship Name
                             <input
@@ -437,6 +434,22 @@ function FellowshipsPanel({
             </div>
 
             <div className="table-container card">
+                <div className="admin-list-toolbar">
+                    <div>
+                        <h4>Fellowships</h4>
+                        <p className="small-text">Showing {filteredFellowships.length} of {adminFellowships.length} fellowships</p>
+                    </div>
+                    <div className="admin-search-box">
+                        <span className="material-symbols-outlined">search</span>
+                        <input
+                            type="text"
+                            value={fellowshipSearch}
+                            onChange={(e) => setFellowshipSearch(e.target.value)}
+                            placeholder="Search fellowship by name, state, region, or address..."
+                        />
+                        {fellowshipSearch ? <button type="button" onClick={() => setFellowshipSearch("")}>Clear</button> : null}
+                    </div>
+                </div>
                 <table className="data-table">
                     <thead>
                         <tr>
@@ -449,7 +462,7 @@ function FellowshipsPanel({
                         </tr>
                     </thead>
                     <tbody>
-                        {adminFellowships.map(centre => (
+                        {filteredFellowships.map(centre => (
                             <tr key={centre.id} className={String(centre.id) === String(adminFellowshipEditId) ? 'active-row' : ''}>
                                 <td>{centre.name}</td>
                                 <td>{centre.state}</td>
@@ -479,6 +492,11 @@ function FellowshipsPanel({
                                 </td>
                             </tr>
                         ))}
+                        {filteredFellowships.length === 0 ? (
+                            <tr>
+                                <td colSpan="6" className="text-center">No fellowships found</td>
+                            </tr>
+                        ) : null}
                     </tbody>
                 </table>
             </div>
